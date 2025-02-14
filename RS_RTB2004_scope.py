@@ -8,7 +8,7 @@ import random
 # Make sure device is set to USB-TMC mode before running
 
 # User input pressure
-pressure = "4_mbar"
+pressure = "1000_mbar"
 
 # Initialize resource manager 
 rm = pyvisa.ResourceManager()
@@ -25,19 +25,19 @@ inst.timeout = 5000
 inst.write('*RST')
 
 # Enable channels and set scales
-# channel 1: X; channel 2: Y; channel 3: SUM
-channels = {1: 1e-1, 2: 1e-1, 3: 5e-1}
+# channel 1: X; channel 2: Y; channel 3: SUM; channel 4: arb function generator
+channels = {1: 1e-1, 2: 1e-1, 3: 5e-1, 4: 5e-1}
 for ch, scale in channels.items():
     inst.write(f'CHAN{ch}:STAT ON')
     inst.write(f'CHAN{ch}:SCAL {scale:.1e}')
 
 # Set time scale and data format
-time_scale = 10
+time_scale = 5
 inst.write(f'TIM:SCAL {time_scale:.3e}')
 inst.write('FORM:DATA ASC,0')
 
 # Set data points to default and start acquisition
-inst.write('CHAN:DATA:POIN DEF')
+inst.write('CHAN:DATA:POIN DMAX') #('CHAN:DATA:POIN DEF') # 
 inst.write('SING;*OPC?')
 
 # Wait for acquisition to complete
@@ -63,7 +63,7 @@ for ch in channels.keys():
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
 
 # Dynamically create the file name
-file_name = f"{pressure}_scope_data_{timestamp}.npz"
+file_name = f"{pressure}_scope_data_sample_pulse_{timestamp}.npz"
 
 # Save the data with the dynamically generated file name
 np.savez(file_name, **{f'channel_{ch}': data for ch, data in data_list.items()}, t=time_vec)
