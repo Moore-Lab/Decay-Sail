@@ -5,4 +5,4 @@ This repository contains scripts for:
 - Connecting to devices and acquiring data
 - Processing and analyzing collected data
 
-Ensure you have PyVisa installed.
+Ensure you have PyVisa installed and the necessary drivers.
