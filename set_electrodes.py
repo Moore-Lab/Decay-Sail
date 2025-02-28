@@ -8,7 +8,7 @@ import random
 from functiongenerator import AFG2225
 
 '''
-Development mode for setting electrode parameters with arb function generator
+In development for setting electrode parameters with arb function generator
 '''
 
 # might want the ability to change parameters on fxn generator and scope as arguments in a fxn from a notebook
