@@ -20,7 +20,7 @@ def save_data(file_path, pressures, timestamps, scope_data):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Read out pressure and acquire oscilloscope data")
     
-    parser.add_argument('--channel_name', type=str, default='COM5', 
+    parser.add_argument('--channel_name', type=str, default='COM6', 
                         help='Serial port for pressure gauge')
     parser.add_argument('--scope_resource', type=str, 
                         default='USB0::0x0AAD::0x01D6::102215::INSTR', 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
     # Generate filename with timestamp
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_path = f"combined_data_{timestamp_str}.npz"
+    file_path = f"data/combined_data_{timestamp_str}.npz"
 
     # Save all data
     save_data(file_path, pressures, timestamps, scope_data)
