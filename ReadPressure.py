@@ -10,14 +10,19 @@ def read_pressure(ed):
 
     ED.write(str.encode("?GA1\r"))  # Query the gauge
     current_pressure = ED.readlines()
+    #print('Raw pressure: ', current_pressure)
 
     if len(current_pressure) > 0:
         current_pressure = str(current_pressure[0])
+        #print('string is: ', current_pressure)
         current_pressure = float(current_pressure[2:-3])
+        #print('float is: ', current_pressure)
     else:
         time.sleep(0.5)
         ED.write(str.encode("?GA1\r"))  # Retry
         current_pressure = ED.readlines()
+
+        #print('Retry with: ', current_pressure)
 
         current_pressure = str(current_pressure[0])
         current_pressure = float(current_pressure[2:-3])
