@@ -7,6 +7,15 @@ from datetime import datetime
 from ReadPressure import read_pressure
 from RS_RTB2004_scope import acquire_scope_data
 
+def get_next_number(daily_dir):
+    '''
+    Determines the next number to use for a file name for continuous data collection.
+    '''
+    n = 1
+    while os.path.exists(f"{daily_dir}_{n}"):
+        n += 1
+    return n
+
 def save_data(file_path, pressures, timestamps, scope_data):
     """
     Saves pressure readings and scope data in a single .npz file.
@@ -20,7 +29,7 @@ def save_data(file_path, pressures, timestamps, scope_data):
     print(f"Data saved to {file_path}")
 
 # data taking function 
-def run_measurement(args):
+def run_measurement(args, run_folder):
     ''' Run one cycle'''
     pressures = []
     timestamps = []
@@ -38,7 +47,7 @@ def run_measurement(args):
                 timestamps.append(timestamp)
 
             else:
-                Print('Skipping invalid pressure reading...')
+                print('Skipping invalid pressure reading...')
 
         except Exception as e:
             print('Skipping measurement. Error: ', e)
@@ -47,12 +56,6 @@ def run_measurement(args):
 
     print('Starting scope data acquisition...')
     scope_data = acquire_scope_data(args.scope_resource)
-
-    # Create directory with today's date (YYYYMMDD)
-    today = datetime.now().strftime('%Y%m%d')
-    #os.makedirs(f'data/{today}', exist_ok=True) # might need to change due to windows convention
-    daily_dir = os.path.join(args.output_dir, today)
-    os.makedirs(daily_dir, exist_ok=True)
 
     # Generate filename with timestamp
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -64,17 +67,6 @@ def run_measurement(args):
 
     print('Measurement complete.')
 
-    # found lockbutton on scope - probably don't need
-    # try: 
-    #     rm = pyvisa.ResourceManager()
-    #     inst = rm.open_resource(args.scope_resource)
-    #     inst.write("SYST:LOC") # return scope to manual mode after measurements
-    #     inst.close()
-    #     rm.close()
-    #     print('Scope returned to manual mode')
-    # except Exception as e:
-    #     print('Could not return to manual mode dure to error: ', e)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Read out pressure and acquire oscilloscope data')
     parser.add_argument('--channel_name', type=str, default='COM6', help='Serial port for pressure gauge')
@@ -83,8 +75,23 @@ if __name__ == '__main__':
     parser.add_argument('--pressure_duration', type=int, default=15, help='Duration for pressure data collection (seconds)')
     parser.add_argument('--output_dir', type=str, default='data', help='Output directory for data files')
     parser.add_argument('--continuous', action='store_true', help='Run measurement continuously')
-    args = parser.parse_args()
     
+    args = parser.parse_args()
+
+    # Create directory with today's date (YYYYMMDD)
+    today = datetime.now().strftime('%Y%m%d')
+    daily_dir = os.path.join(args.output_dir, today)
+
+    if args.continuous:
+        # Find next available run number for continuous data collection
+        run_number = get_next_number(daily_dir)
+        run_folder = f"{daily_dir}_{run_number}" 
+    else:
+        run_folder = daily_dir  # Single run
+
+    # Ensure directory exists
+    os.makedirs(run_folder, exist_ok=True)
+
     print('Starting measurement... Press Ctrl+C to stop')
 
     try:
