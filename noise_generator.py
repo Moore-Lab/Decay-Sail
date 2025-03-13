@@ -1,7 +1,8 @@
 import time
 import random
 import numpy as np
-from function_generator import AFG2225 
+import pyvisa
+from functiongenerator import AFG2225 
 
 def apply_narrow_chirp_with_noise(device, channel=1, start_freq=20, end_freq=30, sweep_duration=120,
                                   amplitude=10.0, noise_interval=2.0, phase_noise_range=(-90, 90), continuous=False):
@@ -18,6 +19,9 @@ def apply_narrow_chirp_with_noise(device, channel=1, start_freq=20, end_freq=30,
     :param phase_noise_range: Tuple (min_phase, max_phase) defining random phase noise range
     :param continuous: If True, runs indefinitely until interrupted
     """
+    # rm = pyvisa.ResourceManager()
+    # inst = rm.list_resources()
+    
     try:
         device.set_wave(channel, wavetype="SIN", frequency=start_freq, amplitude=amplitude, phase=0)
 
