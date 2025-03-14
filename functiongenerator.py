@@ -1,4 +1,4 @@
-import logging
+import logging, time
 from visausb import VisaUsbInstrument
 
 __email__ = "chrisark7@gmail.com"
@@ -231,6 +231,32 @@ class AFG2225(VisaUsbInstrument):
                                     result=result,
                                     transform=float)
         return out
+
+    def set_sweep(self, channel, start_freq, stop_freq, sweep_time):
+        """ Sets the sweep parameters
+            start_freq in Hz
+            stop_freq in Hz
+            sweep_time in s
+        """
+
+        command = "SOUR{0}:SWE:STAT ON"
+        self.write(command)
+        time.sleep(0.1)
+
+        # Build commands
+        command = "SOUR{0}:FREQ:STAR {1}".format(channel, start_freq)
+        self.write(command)
+        time.sleep(0.1)  # wait for the command to be processed
+
+        command = "SOUR{0}:FREQ:STOP {1}".format(channel, stop_freq)
+        self.write(command)
+        time.sleep(0.1)
+
+        command = "SOUR{0}:SWE:TIME {1}".format(channel, sweep_time)
+        self.write(command)
+        time.sleep(0.1)
+
+        return True
 
     def get_frequency(self, channel):
         """ Returns the channel's current frequency in Hz
