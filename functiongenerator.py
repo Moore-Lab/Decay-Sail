@@ -849,7 +849,7 @@ class AFG2225(VisaUsbInstrument):
     #     return self.query("SOURCE{0}:BURST:STATE?".format(channel))
 
 
-    def set_burst(self,channel,state='OFF',mode='TRIG',ncycles='INF',period=1):
+    def set_burst(self,channel,state='OFF',mode='TRIG',ncycles='INF',trig_source='MAN'):
 
         """ Check whether the burst mode is ON or OFF
         """
@@ -858,13 +858,25 @@ class AFG2225(VisaUsbInstrument):
         command="SOURCE{0}:BURST:STATE {fname}".format(channel,fname=state)
         self.write(command)
         # return self.query("SOURCE{0}:BURST:STATE?".format(channel)) 
-        # if state=='ON':
+        #if state=='ON':
         command='SOURCE{0}:BURST:MODE {fname}'.format(channel,fname=mode)
         self.write(command)
         command='SOURCE{0}:BURST:NCYCLES {fname}'.format(channel,fname=ncycles)
         self.write(command)
-        command='SOURCE{0}:BURST:INTERNAL:PERIOD {0}'.format(channel,period)
+        #command='SOURCE{0}:BURST:INTERNAL:PERIOD {0}'.format(channel,period)
         # command='SOUR1:BURS:INT:PER +1.0000E+01'
-        self.write(command)            
+        #self.write(command)            
+        command = "SOURCE{0}:BURST:TRIGGER:SOURCE {fname}".format(channel,fname=trig_source)
+        self.write(command)
 
+    def send_manual_trigger(self, channel):
+        """ Send a manual trigger to the specified channel
+        :param channel: The channel to send the trigger to
+        :type channel: int
+        """
+        # Check channel
+        channel = self._check_channel(channel)
+        # Issue command
+        command = "SOUR{0}:BURS:TRIG:MAN".format(channel)
+        self.write(command)
 
