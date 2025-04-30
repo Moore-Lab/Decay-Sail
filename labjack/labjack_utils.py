@@ -127,6 +127,7 @@ class LabJack:
         print("\nStream started with a scan rate of %0.0f Hz." % scanRate)
 
     def close(self):
+        ljm.eStreamStop(self.handle)
         ljm.close(self.handle)
 
     def write_analog_out(self, channel, voltage):
