@@ -19,11 +19,15 @@ else:
 gps_start = gps_end - DURATION  # Start time is whatever duration before end time
 
 # Open NDS2 connection
-conn = nds2.connection ('cymac1', 8080)
+conn = nds2.connection ('cymac1', 8088)
 conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
 
+print('Channel:', CHANNEL, type(CHANNEL))
+print('Start time:', gps_start, 'End time:', gps_end)
+print('Duration:', DURATION, 'seconds')
+
 # FETCH data: buffers are used to store RAW data
-buffers = conn.fetch(CHANNEL, gps_start, gps_end)  # Adjust start and end times as needed
+buffers = conn.fetch('Y1:RDS-LES_YAW_MON_OUT_DQ', 1438109600, 60)  # Adjust start and end times as needed
 if not buffers:
     print(f"No data found for {CHANNEL} between {gps_start} and {gps_end}.")
 else:
@@ -44,7 +48,7 @@ timestamps = np.array(timestamps)
 
 # Create HDF5 file
 #filename = f'yaw_data_{int(time.time())}.hdf5'
-filename = f'{CHANNEL.replace(':', '_')}_{gps_start}_{gps_end}.hdf5'
+filename = f"{CHANNEL.replace(':', '_')}_{gps_start}_{gps_end}.hdf5"
 with h5py.File(filename, 'w') as f:
     f.attrs['channel'] = CHANNEL
     f.attrs['gps_start'] = gps_start
