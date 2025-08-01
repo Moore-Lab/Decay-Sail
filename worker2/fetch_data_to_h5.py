@@ -17,7 +17,7 @@ gps_start = gps_end - DURATION  # Start time is whatever duration before end tim
 
 # Connect to NDS2 connection
 conn = nds2.connection ('cymac1', 8088)
-#conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
+conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
 
 print('Channel:', CHANNEL, type(CHANNEL))
 print('Start time:', gps_start, 'End time:', gps_end)
@@ -25,7 +25,7 @@ print('Duration:', DURATION, 'seconds')
 
 # FETCH data: buffers are used to store RAW data
 # LIGO documentation: https://git.ligo.org/nds/nds2-client/-/blob/master/swig/python/module/nds_python.i?ref_type=heads
-buffers = conn.fetch(CHANNEL, gps_start, gps_end, allow_data_on_tape=True)  # Adjust start and end times as needed
+buffers = conn.fetch([CHANNEL], gps_start, gps_end)  # Adjust start and end times as needed
 if not buffers:
     print(f"No data found for {CHANNEL} between {gps_start} and {gps_end}.")
     exit()
