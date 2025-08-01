@@ -8,41 +8,40 @@ CHANNEL = 'Y1:RDS-LES_YAW_MON_OUT_DQ' # specify the channel to fetch data from
 DURATION = 60 * 60  # Fetch data for 1 hour (3600 seconds)
 USE_END_Now = True  # Use current time as end time
 
-# TIME
-# If USE_END_Now is True, use current time as end time
+# Compute start and end times
 if USE_END_Now:
     gps_end = int(time.time())  # Current time as end time
 else:
     gps_end = 1700000000 # Example fixed end time - change as needed
-
-# Fetching duration and end time
 gps_start = gps_end - DURATION  # Start time is whatever duration before end time
 
-# Open NDS2 connection
+# Connect to NDS2 connection
 conn = nds2.connection ('cymac1', 8088)
-conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
+#conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
 
 print('Channel:', CHANNEL, type(CHANNEL))
 print('Start time:', gps_start, 'End time:', gps_end)
 print('Duration:', DURATION, 'seconds')
 
 # FETCH data: buffers are used to store RAW data
-buffers = conn.fetch(CHANNEL, gps_start, gps_end)  # Adjust start and end times as needed
+# LIGO documentation: https://git.ligo.org/nds/nds2-client/-/blob/master/swig/python/module/nds_python.i?ref_type=heads
+buffers = conn.fetch(CHANNEL, gps_start, gps_end, allow_data_on_tape=True)  # Adjust start and end times as needed
 if not buffers:
     print(f"No data found for {CHANNEL} between {gps_start} and {gps_end}.")
+    exit()
 else:
     print(f"Fetching data from {CHANNEL} between {gps_start} and {gps_end}.")
 
 # combine the buffers into a single array
-data = np.concatenate([buffer['data'] for buffer in buffers])
-sample_rate = buffers[0]['sample_rate'] if buffers else None
+data = np.concatenate([buf.data for buf in buffers])
+sample_rate = buffers[0].sample_rate
        
 # timestamps for the data
 timestamps = []
 for buf in buffers:
     t0 = buf.seconds + buf.nanoseconds * 1e-9
-    dt = 1.0 / buf['sample_rate']
-    timestamps.extend(t0 + k * dt for k in range(len(buf['data'])))
+    dt = 1.0 / buf.sample_rate
+    timestamps.extend(t0 + k * dt for k in range(len(buf.data)))
     #timestamps.extend(np.arange(t0, t0 + dt * len(buf['data']), dt))
 timestamps = np.array(timestamps)
 
