@@ -27,7 +27,7 @@ print('Start time:', gps_start, 'End time:', gps_end)
 print('Duration:', DURATION, 'seconds')
 
 # FETCH data: buffers are used to store RAW data
-buffers = conn.fetch('Y1:RDS-LES_YAW_MON_OUT_DQ', 1438109600, 60)  # Adjust start and end times as needed
+buffers = conn.fetch(CHANNEL, gps_start, gps_end)  # Adjust start and end times as needed
 if not buffers:
     print(f"No data found for {CHANNEL} between {gps_start} and {gps_end}.")
 else:
