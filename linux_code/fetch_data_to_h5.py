@@ -7,13 +7,13 @@ from datetime import datetime
 # LIGO documentation about fetch function and gaps: https://git.ligo.org/nds/nds2-client/-/blob/master/swig/python/module/nds_python.i?ref_type=heads
 
 CHANNEL = 'Y1:RDS-LES_YAW_MON_OUT_DQ' # specify the channel to fetch data from
-DURATION = 60 * 60 * 24  # Fetch data for 1 day (86400 seconds)
+DURATION = 60 * 60 * 10 # Fetch data for 10 hours
 GPS_UNIX_OFFSET = 315964800 # Offset from Unix time to GPS time (1970-01-01 to 1980-01-06)
 
 # Add Unix time - might be easier than finding GPS start and end times manually
 
 # Can look at GUI to find best GPS start and end times for data retrieval
-gps_start = 1437852416 # Example fixed GPS start time (Jul 30th 2015) - change as needed
+gps_start = 1437929734 # Example fixed GPS start time (Jul 30th 2025) - change as needed
 gps_end = gps_start + DURATION # or can give a specific end time
 
 # Connect to NDS2 connection, retrieve data, and set parameters for gaps
@@ -42,6 +42,7 @@ else:
 # combine the buffers into a single array
 data = np.concatenate([buf.data for buf in buffers])
 sample_rate = buffers[0].sample_rate
+print('Fetched data')
        
 # timestamps for the data
 timestamps = []
@@ -51,11 +52,13 @@ for buf in buffers:
     timestamps.extend(t0 + k * dt for k in range(len(buf.data)))
     #timestamps.extend(np.arange(t0, t0 + dt * len(buf['data']), dt))
 timestamps = np.array(timestamps)
+print('Fetched timestamps')
 
 # Drop gaps in data
 valid = np.isfinite(data)
 data = data[valid]
 timestamps = timestamps[valid]
+print('Dropped gaps in data')
 
 # Create HDF5 file
 #filename = f'yaw_data_{int(time.time())}.hdf5'
