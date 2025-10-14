@@ -4,3 +4,6 @@ _pycache_
 __pycache__
 .DS_Store
 .ipynb_checkpoints/
+*.hdf5
+*.h5
+*.avi
