@@ -3,23 +3,23 @@ from epics import caget, caput
 import numpy as np
 
 # Config
-PD = 'Y1:RDS-PD' #PD: IOC prefix for photodetector module
+LASER = 'Y1:RDS-OUTS_LASER' #LASER: IOC prefix for laser module
 
 # parameters
-OUTPUT_PD = f'{PD}_OFFSET' # photodetector output (V)
+OUTPUT_LASER = f'{LASER}_OFFSET' # photodetector output (V)
 DWELL_TIME = 60.0 * 5 # time (s) to step down laser power
 
-OFFSET_VALUES = [1000, 500, 250, 100, 50, 10, 5, 1, 0] # offset values to step down through
+OFFSET_VALUES = [100, 50, 0 ] # offset values to step down through; make sure to correspond to 25 - 55 mA or 
 
 def main():
-    initial = caget(OUTPUT_PD)
+    initial = caget(OUTPUT_LASER)
     print("Beginning laser power step down...")
     print(f"Initial photodetector offset: {initial} counts")
     
     try:
         for offset in OFFSET_VALUES:
-            caput(OUTPUT_PD, float(offset))
-            readback = caget(OUTPUT_PD)
+            caput(OUTPUT_LASER, float(offset))
+            readback = caget(OUTPUT_LASER)
             print(f"Set photodetector offset to {offset} counts, readback: {readback} counts")
             time.sleep(DWELL_TIME)
         print("Laser power step down complete.")
