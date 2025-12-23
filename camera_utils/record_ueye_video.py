@@ -1,6 +1,10 @@
+import ctypes
 import cv2
 import numpy as np
 from pyueye import ueye
+from datetime import datetime
+
+# sometimes the working cam is the 2nd one and using hCam = ueye.HIDS(1) does not work
 
 # --- Camera Initialization ---
 hCam = ueye.HIDS(0)  # first camera
@@ -41,17 +45,20 @@ print("Exposure set to:", actual_exposure.value, "ms")
 
 # --- Start Capture ---
 ueye.is_CaptureVideo(hCam, ueye.IS_DONT_WAIT)
+ueye.is_FreezeVideo(hCam, ueye.IS_WAIT) # Capture one frame to ensure camera is ready
 
 # --- OpenCV Video Writer ---
 fps = 60.0   # use your camera’s max ROI frame rate
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter("output_roi.avi", fourcc, fps, (roi_w, roi_h))
+ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
 
 print("Streaming ROI... press 'q' to quit.")
 while True:
     # Copy ROI image directly from camera buffer
     array = ueye.get_data(MemPtr, roi_w, roi_h, 24, pitch=roi_w*3, copy=True)
     frame = np.reshape(array, (roi_h, roi_w, 3))
+    frame = cv2.flip(frame, -1)  # Flip vertically & horizontally
 
     # Save & show ROI
     out.write(frame)
@@ -64,4 +71,5 @@ while True:
 out.release()
 cv2.destroyAllWindows()
 ueye.is_StopLiveVideo(hCam, ueye.IS_FORCE_VIDEO_STOP)
+ueye.is_FreeImageMem(hCam, MemPtr, MemID) # Free image memory
 ueye.is_ExitCamera(hCam)
