@@ -19,6 +19,11 @@ def set_electrode_offsets(offsets):
     for chan in V_CHANS:
         caput(f'{chan}_OFFSET', float(offsets[chan]), wait=True, timeout=2.0)
 
+def zero_electrodes():
+    zeros = {ch: 0.0 for ch in V_CHANS}
+    set_electrode_offsets(zeros)
+    print("Electrode OFFSETS set to 0")
+
 # DRIVE module
 PV = 'Y1:RDS-OUTS_DRV' #PV: IOC prefix for oscillator module
 PV_ON = 'Y1:RDS-OUTS_DRVON'
@@ -41,8 +46,7 @@ SIN_PV = f'{PV}_SINGAIN' # sin gain (counts)
 COS_PV = f'{PV}_COSGAIN' # cos gain (counts)
 
 def dwell_time(freq_hz):
-    dt = N_CYCLES/ freq_hz
-    return dt
+    return N_CYCLES/ freq_hz
 
 def shutdown():
     caput(PV_ON, 0)
@@ -64,12 +68,14 @@ def main():
     try:
         for freq in np.arange(f_start, f_stop + 1e-6, f_step):
             caput(FREQ_PV, float(freq))
-            print(f"Frequency = {freq:.2f} Hz")
-            #time.sleep(dwell_time(freq))
+            dt = dwell_time(freq)
+            print(f"Frequency = {freq:.2f} Hz, dwell = {dt:.1f} s")
+            # time.sleep(dt)
         print("Sweep complete")
     except KeyboardInterrupt:
         print('\nSweep stopped by user.')
     finally:
+        zero_electrodes()
         if shutdown_after:
             shutdown()
         else:
