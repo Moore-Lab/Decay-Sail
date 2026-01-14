@@ -7,11 +7,13 @@ LASER = 'Y1:RDS-OUTS_LASER' #LASER: IOC prefix for laser module
 
 # parameters
 OUTPUT_LASER = f'{LASER}_OFFSET' # photodetector output (V)
-DWELL_TIME = 10.0 # * 60.0 # time (s) to step down laser power
+DWELL_TIME = 60.0* 30.0 # time (s) to step down laser power - consider making variable
 
-OFFSET_VALUES = [1800, 1750, 1700, 1650, 1600, 1550, 1500, 1450, 1400, 
-                 1350, 1300, 1250, 1200, 1100, 1050, 1000, 950, 900, 850, 
-                 800, 500, 0] # offset values to step down through; make sure to correspond to 25 - 55 mA or
+OFFSET_VALUES = [1800,1600,1400,1200, 1000, 900,800, 500, 0]
+
+# OFFSET_VALUES = [1800, 1750, 1700, 1650, 1600, 1550, 1500, 1450, 1400, 
+#                  1350, 1300, 1250, 1200, 1100, 1050, 1000, 950, 900, 850, 
+#                  800, 500, 0] # offset values to step down through; make sure to correspond to 25 - 55 mA or
 
 def safe_shutdown():
     caput(OUTPUT_LASER, 0)
@@ -33,7 +35,7 @@ def main():
         print('\nStep down stopped by user.')
         safe_shutdown()
     finally:
-        print('Final photodetector offset set to last value.')
+        print('Final laser offset set to last value.')
 
 if __name__== '__main__':
     main()

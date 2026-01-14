@@ -1,25 +1,24 @@
 import h5py
 import numpy as np
-import nds2
-import time
+import nds2, time, os
 from datetime import datetime
 
 # LIGO documentation about fetch function and gaps: https://nds.docs.ligo.org/nds2-client/Beta/User/html/classNDS_1_1abi__0_1_1connection.html#aabecab944720bb214069b7271edc6c63
 
 # configure the channel and duration
-CHANNEL = 'Y1:RDS-LES_YAW_MON_OUT_DQ' # specify the channel to fetch data from
-DURATION = 60 * 60 * 10 # Fetch data for 10 hours
+CHANNEL =  'Y1:RDS-LES_YAW_OUT_DQ' # specify the channel to fetch data from
+DURATION = 60 * 60 * 9 # Fetch data for 9 hours
 GPS_UNIX_OFFSET = 315964800 # Offset from Unix time to GPS time (1970-01-01 to 1980-01-06)
 # Add Unix time - might be easier than finding GPS start and end times manually
 
 # Can look at GUI to find best GPS start and end times for data retrieval
-gps_start = 1437929734 # Example fixed GPS start time (Jul 30th 2025) - change as needed
+gps_start = 1444695131 # Example fixed GPS start time - CHANGE as needed
 gps_end = gps_start + DURATION # or can give a specific end time
 
 # Connect to NDS2 connection, retrieve data, and set parameters for gaps
 conn = nds2.connection ('cymac1', 8088)
 conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
-conn.set_parameter('GAP_HANDLER', 'STATIC_HANDLER_NAN')# fill gaps with NaNs
+conn.set_parameter('GAP_HANDLER', 'STATIC_HANDLER_NAN') # fill gaps with NaNs
 
 # Verify what’s set
 print('ALLOW_DATA_ON_TAPE:', conn.get_parameter('ALLOW_DATA_ON_TAPE'))
@@ -28,12 +27,12 @@ print('Channel:', CHANNEL, type(CHANNEL))
 print('Start time:', gps_start, 'End time:', gps_end)
 print('Duration:', DURATION, 'seconds')
 
-# AI assisted code to help with chunked data retrieval -- TEST
-CHUNK_SEC  = 600                          # fetch in 10-minute slices (tune 60–1800)
-DROP_NANS  = True                         # drop NaNs (split into finite runs)
+# Assisted code to help with chunked data retrieval
+CHUNK_SEC  = 600 # fetch in 10-minute slices (tune 60–1800)
+DROP_NANS  = True  # drop NaNs (split into finite runs)
 WRITE_PER_SAMPLE_TIMESTAMPS = False # write timestamps for each sample (can be slow, so disable if not needed)
 
-# ---- prepare output ----
+# prepare output
 os.makedirs("data", exist_ok=True) # ensure the data directory exists
 filename = f"data/{CHANNEL.replace(':','_')}_{gps_start}_{gps_end}.h5"
 
@@ -76,7 +75,7 @@ with h5py.File(filename, 'w') as f:
         ds.resize((n0 + 1,))
         ds[n0] = val
 
-    # ---- chunked fetch & write ----
+    # chunked fetch & write
     t = gps_start
     total = 0
     fs_written = False
@@ -84,7 +83,7 @@ with h5py.File(filename, 'w') as f:
     while t < gps_end:
         stop = min(gps_end, t + CHUNK_SEC)
         try:
-            bufs = conn.fetch(t, stop, [CHANNEL])  # keep your working signature
+            bufs = conn.fetch(t, stop, [CHANNEL])  # keep working signature
         except Exception as e:
             print(f"[warn] fetch failed t={t} stop={stop}: {e}")
             t = stop
