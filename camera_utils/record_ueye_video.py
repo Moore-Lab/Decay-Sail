@@ -47,13 +47,34 @@ print("Exposure set to:", actual_exposure.value, "ms")
 ueye.is_CaptureVideo(hCam, ueye.IS_DONT_WAIT)
 ueye.is_FreezeVideo(hCam, ueye.IS_WAIT) # Capture one frame to ensure camera is ready
 
-# --- OpenCV Video Writer ---
-fps = 60.0   # use your camera’s max ROI frame rate
+# --- Query camera's reported frame rate ---
+reported_fps = ueye.double()
+ueye.is_GetFramesPerSecond(hCam, reported_fps)
+print(f"Camera reported FPS: {reported_fps.value:.1f}")
+
+# --- Calibration: measure actual frame rate before recording ---
+print("Calibrating frame rate (2 seconds)...")
+calibration_frames = 0
+calibration_start = datetime.now()
+calibration_duration = 2.0  # seconds
+
+while True:
+    array = ueye.get_data(MemPtr, roi_w, roi_h, 24, pitch=roi_w*3, copy=True)
+    calibration_frames += 1
+    elapsed = (datetime.now() - calibration_start).total_seconds()
+    if elapsed >= calibration_duration:
+        break
+
+actual_fps = calibration_frames / elapsed
+print(f"Measured actual FPS: {actual_fps:.1f}")
+
+# --- OpenCV Video Writer (using measured fps) ---
+fps = actual_fps
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
 
-print("Streaming ROI... press 'q' to quit.")
+print(f"Recording at {fps:.1f} fps... press 'q' to quit.")
 while True:
     # Copy ROI image directly from camera buffer
     array = ueye.get_data(MemPtr, roi_w, roi_h, 24, pitch=roi_w*3, copy=True)
