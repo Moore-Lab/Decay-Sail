@@ -1,7 +1,20 @@
+import signal
+import sys
 import cv2
 import numpy as np
 from pyueye import ueye
 from datetime import datetime
+
+def _cleanup_and_exit(sig, frame):
+    print("\nInterrupted — cleaning up...")
+    try:
+        cv2.destroyAllWindows()
+    except Exception:
+        pass
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, _cleanup_and_exit)
+signal.signal(signal.SIGTERM, _cleanup_and_exit)
 
 # sometimes the working cam is the 2nd one and using hCam = ueye.HIDS(1) does not work
 
@@ -22,6 +35,12 @@ rect_aoi.s32Width = roi_w
 rect_aoi.s32Height = roi_h
 ueye.is_AOI(hCam, ueye.IS_AOI_IMAGE_SET_AOI, rect_aoi, ueye.sizeof(rect_aoi))
 
+# --- Allocate single image buffer ---
+MemPtr = ueye.c_mem_p()
+MemID = ueye.int()
+ueye.is_AllocImageMem(hCam, roi_w, roi_h, 24, MemPtr, MemID)
+ueye.is_SetImageMem(hCam, MemPtr, MemID)
+
 # --- Set exposure ---
 desired_exposure_ms = 12.0
 actual_exposure = ueye.double(desired_exposure_ms)
@@ -29,62 +48,41 @@ ueye.is_Exposure(hCam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, actual_exposure, ueye.
 ueye.is_Exposure(hCam, ueye.IS_EXPOSURE_CMD_GET_EXPOSURE, actual_exposure, ueye.sizeof(actual_exposure))
 print("Exposure set to:", actual_exposure.value, "ms")
 
-# --- Allocate ring buffer (allows continuous streaming without dropped frames) ---
-NUM_BUFFERS = 10
-mem_list = []
-for _ in range(NUM_BUFFERS):
-    mem_ptr = ueye.c_mem_p()
-    mem_id = ueye.int()
-    ueye.is_AllocImageMem(hCam, roi_w, roi_h, 24, mem_ptr, mem_id)
-    ueye.is_AddToSequence(hCam, mem_ptr, mem_id)
-    mem_list.append((mem_ptr, mem_id))
-
-# --- Start live capture ---
-ueye.is_CaptureVideo(hCam, ueye.IS_DONT_WAIT)
-
-reported_fps = ueye.double()
-ueye.is_GetFramesPerSecond(hCam, reported_fps)
-print(f"Camera reported FPS: {reported_fps.value:.1f}")
-
-# --- Calibrate actual FPS by counting real frames from the ring buffer ---
-# is_WaitForNextImage blocks until a new frame arrives, so this counts
-# actual hardware frames, not buffer re-reads.
+# --- Calibrate actual FPS ---
+# is_FreezeVideo(IS_WAIT) triggers a hardware capture and blocks until the frame
+# is delivered, so each call counts exactly one real frame.
 print("Calibrating frame rate (2 seconds)...")
 calibration_frames = 0
 calibration_start = datetime.now()
 calibration_duration = 2.0
 
-img_ptr = ueye.c_mem_p()
-img_id = ueye.int()
-
 while True:
-    ret = ueye.is_WaitForNextImage(hCam, 1000, img_ptr, img_id)
-    if ret == ueye.IS_SUCCESS:
-        ueye.is_UnlockSeqBuf(hCam, img_id, img_ptr)
-        calibration_frames += 1
+    ueye.is_FreezeVideo(hCam, ueye.IS_WAIT)
+    calibration_frames += 1
     elapsed = (datetime.now() - calibration_start).total_seconds()
     if elapsed >= calibration_duration:
         break
 
 actual_fps = calibration_frames / elapsed
+# Fallback to exposure-based estimate if calibration gives an implausible result
+if actual_fps < 1.0 or actual_fps > 10000.0:
+    actual_fps = 1000.0 / actual_exposure.value
 print(f"Measured actual FPS: {actual_fps:.1f}")
 
 # --- OpenCV Video Writer ---
-# MJPG has no FPS/timebase restrictions unlike XVID/MPEG4 (which caps at ~65k denominator)
+# MJPG has no FPS/timebase restrictions unlike XVID/MPEG4
 fps = actual_fps
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
 
+if not out.isOpened():
+    raise RuntimeError(f"VideoWriter failed to open (fps={fps:.1f})")
+
 print(f"Recording at {fps:.1f} fps... press 'q' to quit.")
 while True:
-    ret = ueye.is_WaitForNextImage(hCam, 1000, img_ptr, img_id)
-    if ret != ueye.IS_SUCCESS:
-        continue
-
-    array = ueye.get_data(img_ptr, roi_w, roi_h, 24, pitch=roi_w * 3, copy=True)
-    ueye.is_UnlockSeqBuf(hCam, img_id, img_ptr)
-
+    ueye.is_FreezeVideo(hCam, ueye.IS_WAIT)
+    array = ueye.get_data(MemPtr, roi_w, roi_h, 24, pitch=roi_w * 3, copy=True)
     frame = np.reshape(array, (roi_h, roi_w, 3))
     frame = cv2.flip(frame, -1)  # Flip vertically & horizontally
 
@@ -97,8 +95,5 @@ while True:
 # --- Cleanup ---
 out.release()
 cv2.destroyAllWindows()
-ueye.is_StopLiveVideo(hCam, ueye.IS_FORCE_VIDEO_STOP)
-ueye.is_ClearSequence(hCam)
-for mem_ptr, mem_id in mem_list:
-    ueye.is_FreeImageMem(hCam, mem_ptr, mem_id)
+ueye.is_FreeImageMem(hCam, MemPtr, MemID)
 ueye.is_ExitCamera(hCam)
