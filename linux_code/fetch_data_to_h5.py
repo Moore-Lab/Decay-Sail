@@ -19,7 +19,7 @@ gps_end = gps_start + DURATION # or can give a specific end time
 # Connect to NDS2 connection, retrieve data, and set parameters for gaps
 conn = nds2.connection ('cymac1', 8088)
 conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
-conn.set_parameter('GAP_HANDLER', 'STATIC_HANDLER_NAN')# fill gaps with NaNs
+conn.set_parameter('GAP_HANDLER', 'STATIC_HANDLER_NAN') # fill gaps with NaNs
 
 # Verify what’s set
 print('ALLOW_DATA_ON_TAPE:', conn.get_parameter('ALLOW_DATA_ON_TAPE'))
@@ -28,12 +28,12 @@ print('Channel:', CHANNEL, type(CHANNEL))
 print('Start time:', gps_start, 'End time:', gps_end)
 print('Duration:', DURATION, 'seconds')
 
-# AI assisted code to help with chunked data retrieval -- TEST
-CHUNK_SEC  = 600                          # fetch in 10-minute slices (tune 60–1800)
-DROP_NANS  = True                         # drop NaNs (split into finite runs)
+# AI assisted code to help with chunked data retrieval and HDF5 storage
+CHUNK_SEC  = 600  # fetch in 10-minute slices (tune 60–1800)
+DROP_NANS  = True  # drop NaNs (split into finite runs)
 WRITE_PER_SAMPLE_TIMESTAMPS = False # write timestamps for each sample (can be slow, so disable if not needed)
 
-# ---- prepare output ----
+# prepare output
 os.makedirs("data", exist_ok=True) # ensure the data directory exists
 filename = f"data/{CHANNEL.replace(':','_')}_{gps_start}_{gps_end}.h5"
 
@@ -76,7 +76,7 @@ with h5py.File(filename, 'w') as f:
         ds.resize((n0 + 1,))
         ds[n0] = val
 
-    # ---- chunked fetch & write ----
+    # chunk loop
     t = gps_start
     total = 0
     fs_written = False
@@ -104,15 +104,15 @@ with h5py.File(filename, 'w') as f:
             dt = 1.0 / fs
             t0_buf = b.gps_seconds + b.gps_nanoseconds * 1e-9
 
-            if DROP_NANS and not np.all(np.isfinite(x)):
-                mask = np.isfinite(x)
+            if DROP_NANS and not np.all(np.isfinite(x)): # drop NaNs, split into finite runs
+                mask = np.isfinite(x) #
                 if not np.any(mask):
                     continue
-                idx = np.flatnonzero(mask)
-                cuts = np.flatnonzero(np.diff(idx) > 1) + 1
-                starts = np.r_[0, cuts]
-                stops  = np.r_[cuts, idx.size]
-                for s, e in zip(starts, stops):
+                idx = np.flatnonzero(mask) # indices of valid data
+                cuts = np.flatnonzero(np.diff(idx) > 1) + 1 # find gaps
+                starts = np.r_[0, cuts] # segment starts
+                stops  = np.r_[cuts, idx.size] # segment ends
+                for s, e in zip(starts, stops): # loop over segments
                     i0 = idx[s]
                     i1 = idx[e - 1] + 1
                     xr = x[i0:i1]
