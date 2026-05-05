@@ -18,11 +18,11 @@ ELECTRODE_OFFSETS = {'Y1:RDS-OUTS_V1':6400.0,
 def set_electrode_offsets(offsets):
     for chan in V_CHANS:
         caput(f'{chan}_OFFSET', float(offsets[chan]), wait=True, timeout=2.0)
+        print(f'Set {chan} OFFSET to {offsets[chan]} counts')
 
 def zero_electrodes():
     zeros = {ch: 0.0 for ch in V_CHANS}
     set_electrode_offsets(zeros)
-    print("Electrode OFFSETS set to 0")
 
 # DRIVE module
 PV = 'Y1:RDS-OUTS_DRV' #PV: IOC prefix for oscillator module
@@ -30,13 +30,13 @@ PV_ON = 'Y1:RDS-OUTS_DRVON'
 
 GAIN = 6400
 # DWELL_TIME = 10.0 # time (s) to hold each frequency step
-N_CYCLES = 60 # dwell, 60 cycles foreach frequency step
+N_CYCLES = 20 # dwell, 60 cycles foreach frequency step
 
 # sweep parameters
-f_start = 0.9 #0.2 # Hz
+f_start = 0.8 #0.2 # Hz
 f_stop = 5.0 # Hz
 f_step = 0.05 # Hz
-shutdown_after = True # if True, turn off oscillator at end of sweep
+shutdown_after = True# if True, turn off oscillator at end of sweep
 
 # associated EPICS record variable names
 #ENABLE_PV = f'{PV_ON}' # Drive on/off [0,1] 
@@ -53,13 +53,20 @@ def shutdown():
     caput(SIN_PV, 0)
     caput(COS_PV, 0)
     caput(FREQ_PV, 0.0)
+
+    sin_after = caget(SIN_PV)
+    cos_after = caget(COS_PV)
+    print(f'After zeroing, SIN gain: {sin_after} counts, COS gain: {cos_after} counts')
     print('\nOscillator disabled, outputs zeroed')
 
 def main():
-    set_electrode_offsets(ELECTRODE_OFFSETS)
     # turn on ramping for smoothly modulating to next f_step
+    caput(TRAMP_PV, 0.0) # set to 0 initially to set phase to 0
+    caput(FREQ_PV, f_start) # set initial frequency
+    time.sleep(1.5) # short delay to ensure freq is set before enabling
+    set_electrode_offsets(ELECTRODE_OFFSETS)
+    caput(TRAMP_PV, 1) # ramp time (s) for freq and/or gain changes
     caput(PV_ON, 1)
-    caput(TRAMP_PV, 0)
     # set gains
     caput(SIN_PV, GAIN)
     caput(COS_PV, GAIN)
@@ -70,8 +77,8 @@ def main():
             caput(FREQ_PV, float(freq))
             dt = dwell_time(freq)
             print(f"Frequency = {freq:.2f} Hz, dwell = {dt:.1f} s")
-            # time.sleep(dt)
-        print("Sweep complete")
+            time.sleep(dt)
+        print(f"Sweep complete")
     except KeyboardInterrupt:
         print('\nSweep stopped by user.')
     finally:
