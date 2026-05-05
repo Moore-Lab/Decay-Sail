@@ -36,7 +36,12 @@ N_CYCLES = 20 # dwell, 60 cycles foreach frequency step
 f_start = 0.8 #0.2 # Hz
 f_stop = 5.0 # Hz
 f_step = 0.05 # Hz
-shutdown_after = True# if True, turn off oscillator at end of sweep
+shutdown_after = True # if True, turn off oscillator at end of sweep
+
+# kick parameters
+KICK_FREQ     = 1.0  # Hz - fixed drive frequency before sweep (ideally near resonance)
+KICK_DURATION = 5.0  # seconds
+kick_only     = False # if True, kick and stop without sweeping
 
 # associated EPICS record variable names
 #ENABLE_PV = f'{PV_ON}' # Drive on/off [0,1] 
@@ -46,7 +51,13 @@ SIN_PV = f'{PV}_SINGAIN' # sin gain (counts)
 COS_PV = f'{PV}_COSGAIN' # cos gain (counts)
 
 def dwell_time(freq_hz):
-    return N_CYCLES/ freq_hz
+    return N_CYCLES / freq_hz
+
+def kick():
+    print(f"Kick: driving at {KICK_FREQ} Hz for {KICK_DURATION} s to establish rotation...")
+    caput(FREQ_PV, float(KICK_FREQ))
+    time.sleep(KICK_DURATION)
+    print("Kick complete.")
 
 def shutdown():
     caput(PV_ON, 0)
@@ -70,7 +81,13 @@ def main():
     # set gains
     caput(SIN_PV, GAIN)
     caput(COS_PV, GAIN)
-    print(f"Gains set to +/-{GAIN:.1f} counts.Press Ctrl-C to stop.  Begin sweep...")
+    print(f"Gains set to +/-{GAIN:.1f} counts. Press Ctrl-C to stop.")
+    kick()
+    if kick_only:
+        if shutdown_after:
+            shutdown()
+        return
+    print("Begin sweep...")
     # freq sweep
     try:
         for freq in np.arange(f_start, f_stop + 1e-6, f_step):
@@ -82,7 +99,7 @@ def main():
     except KeyboardInterrupt:
         print('\nSweep stopped by user.')
     finally:
-        zero_electrodes()
+        # zero_electrodes()
         if shutdown_after:
             shutdown()
         else:
