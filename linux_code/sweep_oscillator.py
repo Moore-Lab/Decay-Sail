@@ -30,18 +30,19 @@ PV_ON = 'Y1:RDS-OUTS_DRVON'
 
 GAIN = 6400
 # DWELL_TIME = 10.0 # time (s) to hold each frequency step
-N_CYCLES = 20 # dwell, 60 cycles foreach frequency step
+N_CYCLES = 60 # dwell, 60 cycles foreach frequency step
 
 # sweep parameters
-f_start = 0.8 #0.2 # Hz
-f_stop = 5.0 # Hz
-f_step = 0.05 # Hz
-shutdown_after = True # if True, turn off oscillator at end of sweep
+f_start = 0.7 #0.2 # Hz
+f_stop = 8.0 # Hz
+f_step = 0.0025 # Hz
+shutdown_after = False # if True, turn off oscillator at end of sweep
 
 # kick parameters
-KICK_FREQ     = 1.0  # Hz - fixed drive frequency before sweep (ideally near resonance)
-KICK_DURATION = 5.0  # seconds
-kick_only     = False # if True, kick and stop without sweeping
+KICK_GAIN = 6400
+KICK_FREQ = 0.7  # Hz - fixed drive frequency before sweep (ideally near resonance)
+KICK_DURATION = 45.0  # seconds
+kick_only = True # if True, kick and stop without sweeping
 
 # associated EPICS record variable names
 #ENABLE_PV = f'{PV_ON}' # Drive on/off [0,1] 
@@ -54,9 +55,13 @@ def dwell_time(freq_hz):
     return N_CYCLES / freq_hz
 
 def kick():
+    caput(SIN_PV, KICK_GAIN)
+    caput(COS_PV, KICK_GAIN)
     print(f"Kick: driving at {KICK_FREQ} Hz for {KICK_DURATION} s to establish rotation...")
     caput(FREQ_PV, float(KICK_FREQ))
     time.sleep(KICK_DURATION)
+    caput(SIN_PV, GAIN)
+    caput(COS_PV, GAIN)
     print("Kick complete.")
 
 def shutdown():
@@ -86,6 +91,7 @@ def main():
     if kick_only:
         if shutdown_after:
             shutdown()
+            zero_electrodes()
         return
     print("Begin sweep...")
     # freq sweep
@@ -99,7 +105,7 @@ def main():
     except KeyboardInterrupt:
         print('\nSweep stopped by user.')
     finally:
-        # zero_electrodes()
+        zero_electrodes()
         if shutdown_after:
             shutdown()
         else:
