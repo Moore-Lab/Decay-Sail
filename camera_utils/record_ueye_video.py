@@ -1,9 +1,18 @@
+import argparse
 import signal
 import sys
 import cv2
 import numpy as np
 from pyueye import ueye
 from datetime import datetime
+
+parser = argparse.ArgumentParser()
+parser.add_argument('mode', choices=['image', 'record', 'data'],
+                    help='image=view only, record=view+save, data=save only (headless)')
+args = parser.parse_args()
+
+SHOW  = args.mode in ('image', 'record')
+SAVE  = args.mode in ('record', 'data')
 
 def _cleanup_and_exit(sig, frame):
     print("\nInterrupted — cleaning up...")
@@ -70,30 +79,37 @@ if actual_fps < 1.0 or actual_fps > 10000.0:
 print(f"Measured actual FPS: {actual_fps:.1f}")
 
 # --- OpenCV Video Writer ---
-# MJPG has no FPS/timebase restrictions unlike XVID/MPEG4
 fps = actual_fps
-fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
+if SAVE:
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
+    if not out.isOpened():
+        raise RuntimeError(f"VideoWriter failed to open (fps={fps:.1f})")
+    print(f"Recording to output_roi_{ts_start}.avi at {fps:.1f} fps...")
 
-if not out.isOpened():
-    raise RuntimeError(f"VideoWriter failed to open (fps={fps:.1f})")
+if SHOW:
+    print("Displaying live feed — press 'q' to quit.")
+else:
+    print(f"Running headless at {fps:.1f} fps — press Ctrl-C to stop.")
 
-print(f"Recording at {fps:.1f} fps... press 'q' to quit.")
 while True:
     ueye.is_FreezeVideo(hCam, ueye.IS_WAIT)
     array = ueye.get_data(MemPtr, roi_w, roi_h, 24, pitch=roi_w * 3, copy=True)
     frame = np.reshape(array, (roi_h, roi_w, 3))
     frame = cv2.flip(frame, -1)  # Flip vertically & horizontally
 
-    out.write(frame)
-    cv2.imshow("Hardware ROI Stream", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    if SAVE:
+        out.write(frame)
+    if SHOW:
+        cv2.imshow("Hardware ROI Stream", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 # --- Cleanup ---
-out.release()
-cv2.destroyAllWindows()
+if SAVE:
+    out.release()
+if SHOW:
+    cv2.destroyAllWindows()
 ueye.is_FreeImageMem(hCam, MemPtr, MemID)
 ueye.is_ExitCamera(hCam)
