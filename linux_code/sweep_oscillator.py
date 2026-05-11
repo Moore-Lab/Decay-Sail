@@ -76,40 +76,42 @@ def shutdown():
     print('\nOscillator disabled, outputs zeroed')
 
 def main():
-    # turn on ramping for smoothly modulating to next f_step
-    caput(TRAMP_PV, 0.0) # set to 0 initially to set phase to 0
-    caput(FREQ_PV, f_start) # set initial frequency
-    time.sleep(1.5) # short delay to ensure freq is set before enabling
+    caput(TRAMP_PV, 0.0)
+    caput(FREQ_PV, f_start)
+    time.sleep(1.5)
     set_electrode_offsets(ELECTRODE_OFFSETS)
-    caput(TRAMP_PV, 1) # ramp time (s) for freq and/or gain changes
+    caput(TRAMP_PV, 1)
     caput(PV_ON, 1)
-    # set gains
     caput(SIN_PV, GAIN)
     caput(COS_PV, GAIN)
     print(f"Gains set to +/-{GAIN:.1f} counts. Press Ctrl-C to stop.")
-    kick()
-    if kick_only:
-        if shutdown_after:
-            shutdown()
-            zero_electrodes()
-        return
-    print("Begin sweep...")
-    # freq sweep
+
+    do_shutdown = True  # false only when sweep completes normally with shutdown_after=False
+
     try:
+        kick()
+
+        if kick_only:
+            return
+
+        print("Begin sweep...")
         for freq in np.arange(f_start, f_stop + 1e-6, f_step):
             caput(FREQ_PV, float(freq))
             dt = dwell_time(freq)
             print(f"Frequency = {freq:.2f} Hz, dwell = {dt:.1f} s")
             time.sleep(dt)
-        print(f"Sweep complete")
-    except KeyboardInterrupt:
-        print('\nSweep stopped by user.')
-    finally:
-        zero_electrodes()
-        if shutdown_after:
-            shutdown()
-        else:
+        print("Sweep complete")
+
+        if not shutdown_after:
+            do_shutdown = False
             print('Oscillator left enabled at last frequency.')
+
+    except KeyboardInterrupt:
+        print('\nStopped by user.')
+    finally:
+        if do_shutdown:
+            zero_electrodes()
+            shutdown()
 
 if __name__== '__main__':
     main()
