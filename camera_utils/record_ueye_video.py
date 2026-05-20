@@ -35,7 +35,7 @@ ueye.is_SetColorMode(hCam, ueye.IS_CM_BGR8_PACKED)
 ueye.is_SetDisplayMode(hCam, ueye.IS_SET_DM_DIB)
 
 # --- Define hardware ROI (x, y, width, height) ---
-roi_x, roi_y, roi_w, roi_h = 440, 250, 560, 510
+roi_x, roi_y, roi_w, roi_h = 520, 250, 500, 500
 
 rect_aoi = ueye.IS_RECT()
 rect_aoi.s32X = roi_x
@@ -51,7 +51,7 @@ ueye.is_AllocImageMem(hCam, roi_w, roi_h, 24, MemPtr, MemID)
 ueye.is_SetImageMem(hCam, MemPtr, MemID)
 
 # --- Set exposure ---
-desired_exposure_ms = 12.0
+desired_exposure_ms = 15.0
 actual_exposure = ueye.double(desired_exposure_ms)
 ueye.is_Exposure(hCam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, actual_exposure, ueye.sizeof(actual_exposure))
 ueye.is_Exposure(hCam, ueye.IS_EXPOSURE_CMD_GET_EXPOSURE, actual_exposure, ueye.sizeof(actual_exposure))
