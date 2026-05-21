@@ -1,0 +1,80 @@
+# Laser-cutting graphite eddy-current disks
+
+Files for cutting graphite eddy-current-suppression disks on a Monport
+50 W fiber laser. The disks carry radial slots so that circumferential
+eddy currents are broken.
+
+Lab notebook:
+https://www.notion.so/moorelab/Laser-cutting-graphite-335c5d00acc280099dcaf80ba0349b76
+
+## Disk design
+
+`disk_full.dxf` is the current design:
+
+- 3.25 mm OD (1.625 mm radius)
+- 0.55 mm radius inner hole (no central star pattern)
+- 16 radial slots, from r = 0.75 mm out to the rim (r = 1.625 mm) so no
+  intact eddy-current ring remains around the perimeter
+- Slots are 75 µm wide, cut as 4 parallel passes at 25 µm spacing — the
+  verified working kerf pattern
+- 200 µm structural gap between the inner cutout and the slot inner ends
+  keeps the wedges attached to a central core during cutting
+
+The design uses three EZCAD2 pens:
+
+| Pen     | Color (ACI) | What it cuts                                  |
+|---------|-------------|-----------------------------------------------|
+| INSIDE  | blue (5)    | 16 slots + inner circle cutout                |
+| OUTSIDE | black (7)   | outer perimeter (4-line kerf, growing outward)|
+| DELAY   | yellow (2)  | one circle at r = 2.5 mm; 0 %-power pause pen  |
+
+The DELAY pen is a smoke-clear pause: at 0 % power the galvos traverse
+but the laser does not fire. See `pen_settings.txt` for exact pen
+parameters.
+
+## Cutting recipe
+
+Verified through 0.5 mm graphite without damaging the aluminium backing:
+
+- Pattern: 4 parallel cuts at 25 µm spacing = 75 µm kerf
+- Per pen: Loop Count 20, Speed 2000 mm/s, Power 75 %
+- Mark Count ~20–30 cycles
+
+## Z stage
+
+The graphite sits on a manual lead-screw Z stage (~0.5 mm/rev) driven by
+a Kysan 1124090 NEMA 17 stepper, an Arduino Uno, and an Adafruit Motor
+Shield v2.3. The stepper connects to the M3/M4 terminals; the shield
+needs an external ~12 V supply. At 200 steps/rev in single-step mode
+this gives ~2.5 µm/step.
+
+`z_control.py` is the serial client (115200 baud, newline-terminated).
+It auto-detects the Arduino port (`Z_PORT` env var, then a known
+Arduino USB vendor ID, then a lone port). Commands:
+
+| Command | Action                                  |
+|---------|-----------------------------------------|
+| `+N`    | step +N steps                           |
+| `-N`    | step -N steps                           |
+| `Z<f>`  | move `<f>` mm, signed (e.g. `Z0.05`)    |
+| `R`     | release coils                           |
+| `S<n>`  | set RPM (1–300)                         |
+| `?`     | print status                            |
+
+```
+python z_control.py          # interactive REPL
+python z_control.py "Z 0.05" # single command
+```
+
+## Files
+
+- `disk_full.dxf` — the main file to cut (three pens)
+- `disk_full_preview.png` — visual preview of the pattern
+- `pen_settings.txt` — EZCAD2 pen parameters
+- `generate_eddy_current_disk.py` — generates the disk DXFs
+- `z_control.py` — serial client for the Arduino Z stage
+- `arduino_z_stage/arduino_z_stage.ino` — Arduino sketch
+- `outline_2pen_working.dxf` — outline-only test file (verify the
+  perimeter cut before running the full pattern)
+- `slots.dxf`, `outline*.dxf`, `eddy_current_disk*` — earlier
+  iterations, kept for reference
