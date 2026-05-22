@@ -1,0 +1,52 @@
+EZCAD2 Pen Settings for slotted_disk_3p5.dxf
+=============================================
+ONE slotted graphite disk, finished OD = 3.5 mm, inner hole
+radius = 0.55 mm, 16 radial slots extending to the
+outer edge (no eddy-current ring remains).
+
+Same verified through-cut recipe used elsewhere in this folder:
+  4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
+  2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
+
+Kerf correction is applied so the finished disk edges land exactly at
+the nominal radii (assuming a 20 um kerf).
+
+Three pens / layers in the DXF:
+  Blue   (ACI 5)  INSIDE   slots + inner cutout
+  Black  (ACI 7)  OUTSIDE  outer perimeter
+  Yellow (ACI 2)  DELAY    off-part circle, no marking (galvo-traverse pause)
+
+
+-----------------------------------------------------------------
+PEN 1: INSIDE   (BLUE entities)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  20
+  End TC:      0 ms  (DELAY pen handles the pause)
+
+
+-----------------------------------------------------------------
+PEN 2: OUTSIDE   (BLACK entities)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  20
+  End TC:      0 ms
+
+
+-----------------------------------------------------------------
+PEN 3: DELAY   (YELLOW entity)
+-----------------------------------------------------------------
+  Power:       0 %                  (laser does NOT fire; galvos only)
+  Speed:       15.7 mm/s   (circumference = 15.71 mm,
+                                    so one pass takes 1.00 s)
+  Loop Count:  1
+
+
+-----------------------------------------------------------------
+GLOBAL SETTINGS  (F2 Mark dialog)
+-----------------------------------------------------------------
+  Mark Count:  20-30
+  Pen order in pen list (drag vertically -- top runs first):
+    1. INSIDE   2. OUTSIDE   3. DELAY
