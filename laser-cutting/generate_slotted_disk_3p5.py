@@ -9,10 +9,9 @@ Uses the verified working kerf pattern (4 cuts at 25 um spacing = 75 um
 kerf) for both the slot sides and the perimeter, plus kerf correction
 so the finished edges land exactly at the nominal radii.
 
-Three pens, same convention as disk_full.dxf:
+Two pens:
   INSIDE  (blue,  ACI 5) -- slots + inner circle cutout
   OUTSIDE (black, ACI 7) -- outer perimeter
-  DELAY   (yellow,ACI 2) -- one off-part circle for the smoke-clear pause
 
 Outputs:
   slotted_disk_3p5.dxf
@@ -40,8 +39,6 @@ KERF              = 0.020                  # ~20 um laser kerf
 KERF_STEP         = 0.025                  # 25 um between parallel cuts
 KERF_LINES        = 4                      # 4 lines per cut group
 SLOT_WIDTH        = (KERF_LINES - 1) * KERF_STEP   # 75 um nominal slot width
-
-DELAY_RADIUS      = 2.50                   # off-part pause circle
 
 
 # -- Kerf-corrected cut radii ----------------------------------------
@@ -119,7 +116,6 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
 doc = ezdxf.new("R2010")
 doc.layers.add("INSIDE",  color=5)        # blue
 doc.layers.add("OUTSIDE", color=7)        # black
-doc.layers.add("DELAY",   color=2)        # yellow
 msp = doc.modelspace()
 
 # Trackers for the preview
@@ -145,10 +141,6 @@ for r in interleaved(OUTER_CUT_RADII):
     msp.add_circle((0, 0), r, dxfattribs={"layer": "OUTSIDE", "color": 7})
     preview_circles.append((r, "OUTSIDE"))
 
-# Delay circle (off the part)
-msp.add_circle((0, 0), DELAY_RADIUS, dxfattribs={"layer": "DELAY", "color": 2})
-preview_circles.append((DELAY_RADIUS, "DELAY"))
-
 doc.saveas("slotted_disk_3p5.dxf")
 print("Saved slotted_disk_3p5.dxf")
 print(f"  Finished OD = {FINISHED_OD} mm  "
@@ -163,7 +155,6 @@ print(f"  Outer cut radii  (um): "
 
 
 # -- Pen settings ----------------------------------------------------
-delay_circ = 2 * np.pi * DELAY_RADIUS
 pen_settings = f"""\
 EZCAD2 Pen Settings for slotted_disk_3p5.dxf
 =============================================
@@ -178,10 +169,9 @@ Same verified through-cut recipe used elsewhere in this folder:
 Kerf correction is applied so the finished disk edges land exactly at
 the nominal radii (assuming a {KERF*1000:.0f} um kerf).
 
-Three pens / layers in the DXF:
+Two pens / layers in the DXF:
   Blue   (ACI 5)  INSIDE   slots + inner cutout
   Black  (ACI 7)  OUTSIDE  outer perimeter
-  Yellow (ACI 2)  DELAY    off-part circle, no marking (galvo-traverse pause)
 
 
 -----------------------------------------------------------------
@@ -190,7 +180,7 @@ PEN 1: INSIDE   (BLUE entities)
   Power:       75 %
   Speed:       2000 mm/s
   Loop Count:  20
-  End TC:      0 ms  (DELAY pen handles the pause)
+  End TC:      0 ms
 
 
 -----------------------------------------------------------------
@@ -203,20 +193,11 @@ PEN 2: OUTSIDE   (BLACK entities)
 
 
 -----------------------------------------------------------------
-PEN 3: DELAY   (YELLOW entity)
------------------------------------------------------------------
-  Power:       0 %                  (laser does NOT fire; galvos only)
-  Speed:       {delay_circ:.1f} mm/s   (circumference = {delay_circ:.2f} mm,
-                                    so one pass takes 1.00 s)
-  Loop Count:  1
-
-
------------------------------------------------------------------
 GLOBAL SETTINGS  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  20-30
   Pen order in pen list (drag vertically -- top runs first):
-    1. INSIDE   2. OUTSIDE   3. DELAY
+    1. INSIDE   2. OUTSIDE
 """
 with open("slotted_disk_3p5_pen_settings.txt", "w") as f:
     f.write(pen_settings)
@@ -225,7 +206,7 @@ print("Saved slotted_disk_3p5_pen_settings.txt")
 
 # -- Preview ---------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black", "DELAY": "gold"}
+layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black"}
 
 ax = axes[0]
 ax.add_patch(plt.Circle((0, 0), FINISHED_OR,
@@ -236,7 +217,7 @@ for p1, p2, layer in preview_lines:
 for r, layer in preview_circles:
     ax.add_patch(plt.Circle((0, 0), r, fill=False,
                             ec=layer_colors[layer], lw=0.6, alpha=0.9))
-m = DELAY_RADIUS + 0.2
+m = OUTER_CUT_RADII[-1] + 0.3
 ax.set_xlim(-m, m); ax.set_ylim(-m, m); ax.set_aspect("equal")
 ax.set_xlabel("mm"); ax.set_ylabel("mm")
 ax.set_title(f"slotted_disk_3p5.dxf -- finished OD = {FINISHED_OD} mm")
