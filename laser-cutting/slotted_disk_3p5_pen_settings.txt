@@ -4,11 +4,12 @@ ONE slotted graphite disk, finished OD = 3.5 mm, inner hole
 radius = 0.55 mm, 16 radial slots extending to the
 outer edge (no eddy-current ring remains).
 
-The two slots on the horizontal axis (at angles 0 and pi) are slightly
-WIDER (125 um vs 75 um), extend all the way IN to the inner
-hole (so the sail tab can sit in them), and are assigned to their own
-pen so they can be cut at HALF the cycles -> they only go partway
-through the graphite thickness.
+The two slots on the horizontal axis (at angles 0 and pi) get an
+EXTRA wider cut on a separate pen, OVERLAID on the regular slot cuts.
+INSIDE still cuts all 16 slots through; PARTIAL adds a 125 um wide
+overlay that extends in to the inner hole (so the sail tab can sit
+in the resulting wider partial-depth groove). Run PARTIAL at half
+the cycles of the other pens.
 
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
