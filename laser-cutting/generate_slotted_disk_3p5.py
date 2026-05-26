@@ -9,18 +9,23 @@ Uses the verified working kerf pattern (4 cuts at 25 um spacing = 75 um
 kerf) for both the slot sides and the perimeter, plus kerf correction
 so the finished edges land exactly at the nominal radii.
 
-Three pens:
-  INSIDE  (blue,  ACI 5) -- all 16 regular slots + inner circle cutout
-                            (cut through)
+Four pens (split so each can be tuned independently to keep the disk
+intact -- earlier the combined cuts at angle 0 / pi went through too
+deep and broke the disk in half along that axis):
+
+  INSIDE  (blue,  ACI 5) -- 14 regular through-cut slots (every angle
+                            EXCEPT the horizontal axis) + inner hole
   OUTSIDE (black, ACI 7) -- outer perimeter
-  PARTIAL (red,   ACI 1) -- 2 slightly-wider extra slots on the
-                            horizontal axis (angles 0 and pi),
-                            overlaid on the INSIDE slots. These
-                            extend in to the inner circle (no inner
-                            end cap -- they open into the hole) so
-                            the sail tab can sit in them. Cut at
-                            half the Mark Count of the other pens
-                            so they only widen the slot part-way
+  AXIS    (green, ACI 3) -- 2 regular-width slots on the horizontal
+                            axis (angles 0 and pi); same kerf as
+                            INSIDE but on its own pen so its cycle
+                            count can be reduced
+  PARTIAL (red,   ACI 1) -- 2 slightly-wider extra cuts overlaid on
+                            the AXIS slots; extend in to the inner
+                            circle (no inner end cap -- they open
+                            into the hole) so the sail tab can sit
+                            in them. Cut at a reduced Loop Count so
+                            this pen only widens the slot part-way
                             through the graphite thickness.
 
 Outputs:
@@ -139,9 +144,10 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
 
 # -- Build the DXF ---------------------------------------------------
 doc = ezdxf.new("R2010")
-doc.layers.add("INSIDE",  color=5)        # blue
-doc.layers.add("OUTSIDE", color=7)        # black
-doc.layers.add("PARTIAL", color=1)        # red -- wider partial-depth slots
+doc.layers.add("INSIDE",  color=5)        # blue -- 14 non-horizontal slots
+doc.layers.add("OUTSIDE", color=7)        # black -- outer perimeter
+doc.layers.add("AXIS",    color=3)        # green -- 2 horizontal-axis regular slots
+doc.layers.add("PARTIAL", color=1)        # red -- 2 horizontal-axis wider overlay
 msp = doc.modelspace()
 
 # Trackers for the preview
@@ -149,27 +155,34 @@ preview_lines   = []   # (p1, p2, layer)
 preview_circles = []   # (r, layer)
 
 # Slots
-# Every angle gets the regular through-cut slot on INSIDE.
-# The two horizontal-axis angles ALSO get a wider partial-depth slot
-# on PARTIAL (overlays the INSIDE slot, widens it, and extends in
-# to the inner hole). The INSIDE pen still cuts those slots through.
+# Non-horizontal angles -> regular through-cut on INSIDE.
+# Horizontal-axis angles -> regular-width through-cut on AXIS (own pen
+# so its cycle count can be tuned down) PLUS the wider partial-depth
+# overlay on PARTIAL that extends into the inner hole.
 slot_angles = np.linspace(0, 2 * np.pi, N_SLOTS, endpoint=False)
 for idx, a in enumerate(slot_angles):
-    # Regular through-cut slot (every angle, INSIDE pen)
-    for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
-                             SLOT_WIDTH, KERF_STEP,
-                             cap_inner=True, cap_outer=False):
-        msp.add_line(p1, p2, dxfattribs={"layer": "INSIDE", "color": 5})
-        preview_lines.append((p1, p2, "INSIDE"))
-
-    # Wider partial-depth slot (PARTIAL pen, only for horizontal axis)
     if idx in PARTIAL_SLOT_INDICES:
+        # Horizontal axis: through-cut on AXIS, plus wider overlay on PARTIAL
+        for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
+                                 SLOT_WIDTH, KERF_STEP,
+                                 cap_inner=True, cap_outer=False):
+            msp.add_line(p1, p2,
+                         dxfattribs={"layer": "AXIS", "color": 3})
+            preview_lines.append((p1, p2, "AXIS"))
         for p1, p2 in slot_lines(a, PARTIAL_SLOT_R_INNER, SLOT_R_OUTER,
                                  PARTIAL_SLOT_WIDTH, KERF_STEP,
                                  cap_inner=False, cap_outer=False):
             msp.add_line(p1, p2,
                          dxfattribs={"layer": "PARTIAL", "color": 1})
             preview_lines.append((p1, p2, "PARTIAL"))
+    else:
+        # All other angles: regular through-cut on INSIDE
+        for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
+                                 SLOT_WIDTH, KERF_STEP,
+                                 cap_inner=True, cap_outer=False):
+            msp.add_line(p1, p2,
+                         dxfattribs={"layer": "INSIDE", "color": 5})
+            preview_lines.append((p1, p2, "INSIDE"))
 
 # Inner circle cutout (4 circles growing inward, interleaved order)
 for r in interleaved(INNER_CUT_RADII):
@@ -188,10 +201,13 @@ print(f"  Finished OD = {FINISHED_OD} mm  "
 print(f"  Finished inner hole r = {FINISHED_INNER_R} mm  "
       f"(outermost INSIDE cut at r = {INNER_CUT_R0*1000:.1f} um)")
 print(f"  {N_SLOTS} slots, r = {SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm")
-print(f"  Regular slots (INSIDE, blue): {SLOT_WIDTH*1000:.0f} um wide, "
-      f"{KERF_LINES} cuts each")
-print(f"  Wider partial slots (PARTIAL, red): {PARTIAL_SLOT_WIDTH*1000:.0f} um wide, "
-      f"{PARTIAL_KERF_LINES} cuts each, at angles 0 and pi, "
+print(f"  INSIDE  (blue):  14 slots, {SLOT_WIDTH*1000:.0f} um wide, "
+      f"{KERF_LINES} cuts each (every angle except horizontal)")
+print(f"  AXIS    (green): 2 slots on horizontal axis, "
+      f"{SLOT_WIDTH*1000:.0f} um wide, {KERF_LINES} cuts each "
+      f"(same kerf as INSIDE)")
+print(f"  PARTIAL (red):   2 wider overlays on horizontal axis, "
+      f"{PARTIAL_SLOT_WIDTH*1000:.0f} um wide, {PARTIAL_KERF_LINES} cuts each, "
       f"r = {PARTIAL_SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm "
       f"(opens into inner hole)")
 print(f"  Inner cut radii  (um): "
@@ -208,12 +224,15 @@ ONE slotted graphite disk, finished OD = {FINISHED_OD} mm, inner hole
 radius = {FINISHED_INNER_R} mm, {N_SLOTS} radial slots extending to the
 outer edge (no eddy-current ring remains).
 
-The two slots on the horizontal axis (at angles 0 and pi) get an
-EXTRA wider cut on a separate pen, OVERLAID on the regular slot cuts.
-INSIDE still cuts all 16 slots through; PARTIAL adds a {PARTIAL_SLOT_WIDTH*1000:.0f} um wide
-overlay that extends in to the inner hole (so the sail tab can sit
-in the resulting wider partial-depth groove). Run PARTIAL at half
-the cycles of the other pens.
+The two slots on the horizontal axis (angles 0 and pi) are split into
+TWO separate pens so each can be tuned independently -- earlier the
+combined cuts went too deep there and broke the disk along the axis.
+
+  - AXIS    cuts the regular-width slot at those two angles
+  - PARTIAL adds a wider overlay that extends into the inner hole
+            so the sail tab can sit in the resulting groove
+
+Both should be run at REDUCED Loop Count compared to the other pens.
 
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
@@ -222,23 +241,15 @@ Same verified through-cut recipe used elsewhere in this folder:
 Kerf correction is applied so the finished disk edges land exactly at
 the nominal radii (assuming a {KERF*1000:.0f} um kerf).
 
-Three pens / layers in the DXF:
+Four pens / layers in the DXF:
   Blue   (ACI 5)  INSIDE   14 regular slots + inner cutout
   Black  (ACI 7)  OUTSIDE  outer perimeter
-  Red    (ACI 1)  PARTIAL  2 wider slots on the horizontal axis (partial depth)
+  Green  (ACI 3)  AXIS     2 regular-width slots on the horizontal axis
+  Red    (ACI 1)  PARTIAL  2 wider overlay cuts on the horizontal axis
 
 
 -----------------------------------------------------------------
-PEN 1: INSIDE   (BLUE entities)
------------------------------------------------------------------
-  Power:       75 %
-  Speed:       2000 mm/s
-  Loop Count:  20
-  End TC:      0 ms
-
-
------------------------------------------------------------------
-PEN 2: OUTSIDE   (BLACK entities)
+PEN 0: INSIDE   (BLUE)   -- 14 non-horizontal slots + inner cutout
 -----------------------------------------------------------------
   Power:       75 %
   Speed:       2000 mm/s
@@ -247,20 +258,32 @@ PEN 2: OUTSIDE   (BLACK entities)
 
 
 -----------------------------------------------------------------
-PEN 3: PARTIAL   (RED entities)
+PEN 1: OUTSIDE   (BLACK)   -- outer perimeter
 -----------------------------------------------------------------
-  Same parameters as INSIDE/OUTSIDE, but HALF the Loop Count so this
-  pen only cuts partway through the graphite:
-
   Power:       75 %
   Speed:       2000 mm/s
-  Loop Count:  10   (= half of the other pens' 20)
+  Loop Count:  20
   End TC:      0 ms
 
-  Alternative: leave Loop Count = 20 and run the file twice -- first
-  pass with PARTIAL enabled, then disable PARTIAL and run again with
-  the same Mark Count. Either way works; pen-level Loop Count is
-  simpler.
+
+-----------------------------------------------------------------
+PEN 2: PARTIAL   (RED)   -- 2 wider horizontal-axis overlays
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  5-10  (tune so the slot widens but doesn't go through)
+  End TC:      0 ms
+
+
+-----------------------------------------------------------------
+PEN 3: AXIS   (GREEN)   -- 2 regular-width horizontal-axis slots
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  10-15 (tune so the slot goes through but doesn't keep
+                      ablating after -- previously combining this with
+                      PARTIAL at 20 broke the disk in half)
+  End TC:      0 ms
 
 
 -----------------------------------------------------------------
@@ -268,7 +291,7 @@ GLOBAL SETTINGS  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  20-30
   Pen order in pen list (drag vertically -- top runs first):
-    1. INSIDE   2. PARTIAL   3. OUTSIDE
+    1. INSIDE   2. AXIS   3. PARTIAL   4. OUTSIDE
 """
 with open("slotted_disk_3p5_pen_settings.txt", "w") as f:
     f.write(pen_settings)
@@ -277,7 +300,8 @@ print("Saved slotted_disk_3p5_pen_settings.txt")
 
 # -- Preview ---------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black", "PARTIAL": "tab:red"}
+layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black",
+                "AXIS": "tab:green", "PARTIAL": "tab:red"}
 
 ax = axes[0]
 ax.add_patch(plt.Circle((0, 0), FINISHED_OR,
