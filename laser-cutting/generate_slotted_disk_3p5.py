@@ -13,9 +13,13 @@ Three pens:
   INSIDE  (blue,  ACI 5) -- 14 regular slots + inner circle cutout
   OUTSIDE (black, ACI 7) -- outer perimeter
   PARTIAL (red,   ACI 1) -- 2 slightly-wider slots on the horizontal
-                            axis (angles 0 and pi). Intended to be
-                            cut at half the Mark Count of the other
-                            pens so they only go part-way through.
+                            axis (angles 0 and pi). These extend all
+                            the way IN to the inner circle (no inner
+                            end cap -- they open into the hole) so
+                            the sail tab can sit in them. Intended
+                            to be cut at half the Mark Count of the
+                            other pens so they only go part-way
+                            through the graphite thickness.
 
 Outputs:
   slotted_disk_3p5.dxf
@@ -53,6 +57,11 @@ SLOT_WIDTH        = (KERF_LINES - 1) * KERF_STEP   # 75 um nominal slot width
 PARTIAL_SLOT_INDICES = [0, 8]              # angles 0 and pi (16 slots total)
 PARTIAL_KERF_LINES   = 6
 PARTIAL_SLOT_WIDTH   = (PARTIAL_KERF_LINES - 1) * KERF_STEP   # 125 um
+# Inner end of partial slots reaches past the inner hole edge so the
+# slot opens directly into the inner hole (no end cap needed). Drop
+# 50 um inside the finished inner edge to guarantee overlap with the
+# inner-hole cuts.
+PARTIAL_SLOT_R_INNER = FINISHED_INNER_R - 0.05    # = 0.50 mm
 
 
 # -- Kerf-corrected cut radii ----------------------------------------
@@ -142,11 +151,15 @@ slot_angles = np.linspace(0, 2 * np.pi, N_SLOTS, endpoint=False)
 for idx, a in enumerate(slot_angles):
     if idx in PARTIAL_SLOT_INDICES:
         sw, layer, color = PARTIAL_SLOT_WIDTH, "PARTIAL", 1
+        r_in = PARTIAL_SLOT_R_INNER                 # opens into inner hole
+        cap_in = False                              # no inner end cap
     else:
         sw, layer, color = SLOT_WIDTH,        "INSIDE",  5
-    for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
+        r_in = SLOT_R_INNER
+        cap_in = True
+    for p1, p2 in slot_lines(a, r_in, SLOT_R_OUTER,
                              sw, KERF_STEP,
-                             cap_inner=True, cap_outer=False):
+                             cap_inner=cap_in, cap_outer=False):
         msp.add_line(p1, p2, dxfattribs={"layer": layer, "color": color})
         preview_lines.append((p1, p2, layer))
 
@@ -170,7 +183,9 @@ print(f"  {N_SLOTS} slots, r = {SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm")
 print(f"  Regular slots (INSIDE, blue): {SLOT_WIDTH*1000:.0f} um wide, "
       f"{KERF_LINES} cuts each")
 print(f"  Wider partial slots (PARTIAL, red): {PARTIAL_SLOT_WIDTH*1000:.0f} um wide, "
-      f"{PARTIAL_KERF_LINES} cuts each, at angles 0 and pi")
+      f"{PARTIAL_KERF_LINES} cuts each, at angles 0 and pi, "
+      f"r = {PARTIAL_SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm "
+      f"(opens into inner hole)")
 print(f"  Inner cut radii  (um): "
       f"{[round(r*1000,1) for r in INNER_CUT_RADII]}")
 print(f"  Outer cut radii  (um): "
@@ -186,9 +201,10 @@ radius = {FINISHED_INNER_R} mm, {N_SLOTS} radial slots extending to the
 outer edge (no eddy-current ring remains).
 
 The two slots on the horizontal axis (at angles 0 and pi) are slightly
-WIDER ({PARTIAL_SLOT_WIDTH*1000:.0f} um vs {SLOT_WIDTH*1000:.0f} um) and assigned to their own pen
-so they can be cut at HALF the cycles -> they only go partway through
-the graphite thickness.
+WIDER ({PARTIAL_SLOT_WIDTH*1000:.0f} um vs {SLOT_WIDTH*1000:.0f} um), extend all the way IN to the inner
+hole (so the sail tab can sit in them), and are assigned to their own
+pen so they can be cut at HALF the cycles -> they only go partway
+through the graphite thickness.
 
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),

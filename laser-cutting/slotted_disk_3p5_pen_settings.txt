@@ -5,9 +5,10 @@ radius = 0.55 mm, 16 radial slots extending to the
 outer edge (no eddy-current ring remains).
 
 The two slots on the horizontal axis (at angles 0 and pi) are slightly
-WIDER (125 um vs 75 um) and assigned to their own pen
-so they can be cut at HALF the cycles -> they only go partway through
-the graphite thickness.
+WIDER (125 um vs 75 um), extend all the way IN to the inner
+hole (so the sail tab can sit in them), and are assigned to their own
+pen so they can be cut at HALF the cycles -> they only go partway
+through the graphite thickness.
 
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
