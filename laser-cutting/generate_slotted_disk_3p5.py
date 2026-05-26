@@ -9,9 +9,13 @@ Uses the verified working kerf pattern (4 cuts at 25 um spacing = 75 um
 kerf) for both the slot sides and the perimeter, plus kerf correction
 so the finished edges land exactly at the nominal radii.
 
-Two pens:
-  INSIDE  (blue,  ACI 5) -- slots + inner circle cutout
+Three pens:
+  INSIDE  (blue,  ACI 5) -- 14 regular slots + inner circle cutout
   OUTSIDE (black, ACI 7) -- outer perimeter
+  PARTIAL (red,   ACI 1) -- 2 slightly-wider slots on the horizontal
+                            axis (angles 0 and pi). Intended to be
+                            cut at half the Mark Count of the other
+                            pens so they only go part-way through.
 
 Outputs:
   slotted_disk_3p5.dxf
@@ -39,6 +43,16 @@ KERF              = 0.020                  # ~20 um laser kerf
 KERF_STEP         = 0.025                  # 25 um between parallel cuts
 KERF_LINES        = 4                      # 4 lines per cut group
 SLOT_WIDTH        = (KERF_LINES - 1) * KERF_STEP   # 75 um nominal slot width
+
+# Partial-depth wider slots on the horizontal axis ------------------
+# These two slots get a third pen so they can be configured separately
+# (half the Mark Count -> only cuts part-way through the graphite).
+# Widening: 6 cuts at 25 um = 125 um (1.67x the regular 75 um); the
+# closest "1.5x as wide" we can do without changing the verified
+# 25-um-step kerf pattern.
+PARTIAL_SLOT_INDICES = [0, 8]              # angles 0 and pi (16 slots total)
+PARTIAL_KERF_LINES   = 6
+PARTIAL_SLOT_WIDTH   = (PARTIAL_KERF_LINES - 1) * KERF_STEP   # 125 um
 
 
 # -- Kerf-corrected cut radii ----------------------------------------
@@ -116,6 +130,7 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
 doc = ezdxf.new("R2010")
 doc.layers.add("INSIDE",  color=5)        # blue
 doc.layers.add("OUTSIDE", color=7)        # black
+doc.layers.add("PARTIAL", color=1)        # red -- wider partial-depth slots
 msp = doc.modelspace()
 
 # Trackers for the preview
@@ -124,12 +139,16 @@ preview_circles = []   # (r, layer)
 
 # Slots
 slot_angles = np.linspace(0, 2 * np.pi, N_SLOTS, endpoint=False)
-for a in slot_angles:
+for idx, a in enumerate(slot_angles):
+    if idx in PARTIAL_SLOT_INDICES:
+        sw, layer, color = PARTIAL_SLOT_WIDTH, "PARTIAL", 1
+    else:
+        sw, layer, color = SLOT_WIDTH,        "INSIDE",  5
     for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
-                             SLOT_WIDTH, KERF_STEP,
+                             sw, KERF_STEP,
                              cap_inner=True, cap_outer=False):
-        msp.add_line(p1, p2, dxfattribs={"layer": "INSIDE", "color": 5})
-        preview_lines.append((p1, p2, "INSIDE"))
+        msp.add_line(p1, p2, dxfattribs={"layer": layer, "color": color})
+        preview_lines.append((p1, p2, layer))
 
 # Inner circle cutout (4 circles growing inward, interleaved order)
 for r in interleaved(INNER_CUT_RADII):
@@ -148,6 +167,10 @@ print(f"  Finished OD = {FINISHED_OD} mm  "
 print(f"  Finished inner hole r = {FINISHED_INNER_R} mm  "
       f"(outermost INSIDE cut at r = {INNER_CUT_R0*1000:.1f} um)")
 print(f"  {N_SLOTS} slots, r = {SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm")
+print(f"  Regular slots (INSIDE, blue): {SLOT_WIDTH*1000:.0f} um wide, "
+      f"{KERF_LINES} cuts each")
+print(f"  Wider partial slots (PARTIAL, red): {PARTIAL_SLOT_WIDTH*1000:.0f} um wide, "
+      f"{PARTIAL_KERF_LINES} cuts each, at angles 0 and pi")
 print(f"  Inner cut radii  (um): "
       f"{[round(r*1000,1) for r in INNER_CUT_RADII]}")
 print(f"  Outer cut radii  (um): "
@@ -162,6 +185,11 @@ ONE slotted graphite disk, finished OD = {FINISHED_OD} mm, inner hole
 radius = {FINISHED_INNER_R} mm, {N_SLOTS} radial slots extending to the
 outer edge (no eddy-current ring remains).
 
+The two slots on the horizontal axis (at angles 0 and pi) are slightly
+WIDER ({PARTIAL_SLOT_WIDTH*1000:.0f} um vs {SLOT_WIDTH*1000:.0f} um) and assigned to their own pen
+so they can be cut at HALF the cycles -> they only go partway through
+the graphite thickness.
+
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
   2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
@@ -169,9 +197,10 @@ Same verified through-cut recipe used elsewhere in this folder:
 Kerf correction is applied so the finished disk edges land exactly at
 the nominal radii (assuming a {KERF*1000:.0f} um kerf).
 
-Two pens / layers in the DXF:
-  Blue   (ACI 5)  INSIDE   slots + inner cutout
+Three pens / layers in the DXF:
+  Blue   (ACI 5)  INSIDE   14 regular slots + inner cutout
   Black  (ACI 7)  OUTSIDE  outer perimeter
+  Red    (ACI 1)  PARTIAL  2 wider slots on the horizontal axis (partial depth)
 
 
 -----------------------------------------------------------------
@@ -193,11 +222,28 @@ PEN 2: OUTSIDE   (BLACK entities)
 
 
 -----------------------------------------------------------------
+PEN 3: PARTIAL   (RED entities)
+-----------------------------------------------------------------
+  Same parameters as INSIDE/OUTSIDE, but HALF the Loop Count so this
+  pen only cuts partway through the graphite:
+
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  10   (= half of the other pens' 20)
+  End TC:      0 ms
+
+  Alternative: leave Loop Count = 20 and run the file twice -- first
+  pass with PARTIAL enabled, then disable PARTIAL and run again with
+  the same Mark Count. Either way works; pen-level Loop Count is
+  simpler.
+
+
+-----------------------------------------------------------------
 GLOBAL SETTINGS  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  20-30
   Pen order in pen list (drag vertically -- top runs first):
-    1. INSIDE   2. OUTSIDE
+    1. INSIDE   2. PARTIAL   3. OUTSIDE
 """
 with open("slotted_disk_3p5_pen_settings.txt", "w") as f:
     f.write(pen_settings)
@@ -206,7 +252,7 @@ print("Saved slotted_disk_3p5_pen_settings.txt")
 
 # -- Preview ---------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black"}
+layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black", "PARTIAL": "tab:red"}
 
 ax = axes[0]
 ax.add_patch(plt.Circle((0, 0), FINISHED_OR,

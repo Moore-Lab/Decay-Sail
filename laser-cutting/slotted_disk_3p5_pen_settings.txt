@@ -4,6 +4,11 @@ ONE slotted graphite disk, finished OD = 3.5 mm, inner hole
 radius = 0.55 mm, 16 radial slots extending to the
 outer edge (no eddy-current ring remains).
 
+The two slots on the horizontal axis (at angles 0 and pi) are slightly
+WIDER (125 um vs 75 um) and assigned to their own pen
+so they can be cut at HALF the cycles -> they only go partway through
+the graphite thickness.
+
 Same verified through-cut recipe used elsewhere in this folder:
   4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
   2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
@@ -11,9 +16,10 @@ Same verified through-cut recipe used elsewhere in this folder:
 Kerf correction is applied so the finished disk edges land exactly at
 the nominal radii (assuming a 20 um kerf).
 
-Two pens / layers in the DXF:
-  Blue   (ACI 5)  INSIDE   slots + inner cutout
+Three pens / layers in the DXF:
+  Blue   (ACI 5)  INSIDE   14 regular slots + inner cutout
   Black  (ACI 7)  OUTSIDE  outer perimeter
+  Red    (ACI 1)  PARTIAL  2 wider slots on the horizontal axis (partial depth)
 
 
 -----------------------------------------------------------------
@@ -35,8 +41,25 @@ PEN 2: OUTSIDE   (BLACK entities)
 
 
 -----------------------------------------------------------------
+PEN 3: PARTIAL   (RED entities)
+-----------------------------------------------------------------
+  Same parameters as INSIDE/OUTSIDE, but HALF the Loop Count so this
+  pen only cuts partway through the graphite:
+
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  10   (= half of the other pens' 20)
+  End TC:      0 ms
+
+  Alternative: leave Loop Count = 20 and run the file twice -- first
+  pass with PARTIAL enabled, then disable PARTIAL and run again with
+  the same Mark Count. Either way works; pen-level Loop Count is
+  simpler.
+
+
+-----------------------------------------------------------------
 GLOBAL SETTINGS  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  20-30
   Pen order in pen list (drag vertically -- top runs first):
-    1. INSIDE   2. OUTSIDE
+    1. INSIDE   2. PARTIAL   3. OUTSIDE
