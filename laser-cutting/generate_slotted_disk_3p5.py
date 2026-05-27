@@ -1,28 +1,25 @@
 """
 Generate a DXF for cutting ONE slotted graphite disk:
   - Finished outer diameter: 3.5 mm
-  - 16 radial slots extending all the way to the outer edge
+  - Inner hole radius: 0.55 mm (1.1 mm OD hole)
+  - 16 symmetric radial slots extending all the way to the outer edge
     (no eddy-current ring remains)
-  - Open central hole
 
-Uses the verified working kerf pattern (4 cuts at 25 um spacing = 75 um
-kerf) for both the slot sides and the perimeter, plus kerf correction
-so the finished edges land exactly at the nominal radii.
+All cuts now use a 6-line kerf pattern (125 um wide) -- the previous
+4-line / 75 um pattern was too narrow to fit the sail tab, and the
+various "partial" / "asymmetric extra-wide slot" tricks broke the
+disk. By making every slot 6 lines wide, the disk stays symmetric
+AND the sail can be sized to fit.
 
-Three pens:
-  INSIDE  (blue,  ACI 5) -- all 16 regular through-cut slots + inner hole
+The slot inner radius is shifted outward so the material bridge
+between adjacent slots at the slot inner end (the thinnest spot --
+arc length r*Delta_theta - slot_width) is the same as the 4-line
+baseline (r = 0.75 mm, w = 75 um). Inner hole and outer perimeter
+finished dimensions are unchanged.
+
+Two pens:
+  INSIDE  (blue,  ACI 5) -- 16 slots + inner circle cutout
   OUTSIDE (black, ACI 7) -- outer perimeter
-  PARTIAL (red,   ACI 1) -- 2 wider partial-depth slots, ROTATED
-                            between the deep slots (at half the slot
-                            spacing, so they don't overlap any deep
-                            cut). Extend in to the inner circle so
-                            the sail tab can sit in them. Cut at a
-                            reduced Loop Count so this pen only goes
-                            partway through the graphite thickness.
-
-Previously the partial slot overlapped a through-cut slot, and the
-combined cycles cut all the way through and broke the disk. Putting
-the partial slot in the gap between two deep slots avoids that.
 
 Outputs:
   slotted_disk_3p5.dxf
@@ -36,56 +33,36 @@ import matplotlib.pyplot as plt
 
 # -- Finished geometry (all in mm) -----------------------------------
 FINISHED_OD       = 3.5
-FINISHED_OR       = FINISHED_OD / 2.0     # 1.75 mm
-
-# Inner hole + slot layout (same scheme as disk_full.dxf)
-FINISHED_INNER_R  = 0.55                   # nominal inner hole radius
-RING_GAP          = 0.20                   # 200 um gap between inner cutout
-                                           # and slot inner ends
-SLOT_R_INNER      = FINISHED_INNER_R + RING_GAP  # = 0.75 mm
+FINISHED_OR       = FINISHED_OD / 2.0       # 1.75 mm
+FINISHED_INNER_R  = 0.55                     # inner hole radius
 N_SLOTS           = 16
 
-# Kerf pattern (verified through-cut recipe)
-KERF              = 0.020                  # ~20 um laser kerf
-KERF_STEP         = 0.025                  # 25 um between parallel cuts
-KERF_LINES        = 4                      # 4 lines per cut group
-SLOT_WIDTH        = (KERF_LINES - 1) * KERF_STEP   # 75 um nominal slot width
+# Kerf pattern -- now 6 lines on every cut group ---------------------
+KERF              = 0.020                    # ~20 um laser kerf
+KERF_STEP         = 0.025                    # 25 um between parallel cuts
+KERF_LINES        = 6                        # was 4 in the original
+SLOT_WIDTH        = (KERF_LINES - 1) * KERF_STEP   # = 125 um
 
-# Partial-depth wider slots on a separate axis ----------------------
-# Placed at HALF the regular slot spacing offset (so they sit in the
-# gap between adjacent through-cut slots and don't get any extra
-# ablation on top of an existing slot). The sail tab seats in these.
-# Widening: 6 cuts at 25 um = 125 um (1.67x the regular 75 um); the
-# closest "1.5x as wide" we can do without changing the verified
-# 25-um-step kerf pattern.
-PARTIAL_KERF_LINES   = 6
-PARTIAL_SLOT_WIDTH   = (PARTIAL_KERF_LINES - 1) * KERF_STEP   # 125 um
-# Two partial slots, rotated by half the slot spacing from the
-# horizontal axis so they sit BETWEEN deep slots (not on top of any).
-_HALF_SPACING        = np.pi / N_SLOTS
-PARTIAL_SLOT_ANGLES  = [_HALF_SPACING, np.pi + _HALF_SPACING]
-# Inner end of partial slots reaches past the inner hole edge so the
-# slot opens directly into the inner hole (no end cap needed). Drop
-# 50 um inside the finished inner edge to guarantee overlap with the
-# inner-hole cuts.
-PARTIAL_SLOT_R_INNER = FINISHED_INNER_R - 0.05    # = 0.50 mm
+# Slot inner radius is shifted outward so the inner-end arc bridge
+# between adjacent slots ( = r*(2*pi/N) - slot_width ) is the same as
+# the 4-line baseline ( r = 0.75 mm, w = 75 um ).
+SLOT_ANGULAR_SPACING = 2 * np.pi / N_SLOTS
+_BASELINE_INNER_R    = 0.75
+_BASELINE_WIDTH      = 0.075                 # = (4-1) * KERF_STEP
+SLOT_R_INNER         = _BASELINE_INNER_R \
+                       + (SLOT_WIDTH - _BASELINE_WIDTH) / SLOT_ANGULAR_SPACING
 
 
 # -- Kerf-corrected cut radii ----------------------------------------
-# Outer perimeter: the finished edge is the inner kerf wall of the
-# innermost cut. To land at FINISHED_OR exactly, innermost cut is at
-# FINISHED_OR + KERF/2.
-OUTER_CUT_R0      = FINISHED_OR + KERF / 2.0           # innermost outer cut
+# Outer perimeter: finished edge = inner kerf wall of innermost cut
+OUTER_CUT_R0      = FINISHED_OR + KERF / 2.0
 OUTER_CUT_RADII   = [OUTER_CUT_R0 + i * KERF_STEP for i in range(KERF_LINES)]
 
-# Inner hole: the finished inner edge is the outer kerf wall of the
-# outermost (largest) inner cut. To land at FINISHED_INNER_R exactly,
-# outermost inner cut is at FINISHED_INNER_R - KERF/2.
-INNER_CUT_R0      = FINISHED_INNER_R - KERF / 2.0      # outermost inner cut
+# Inner hole: finished inner edge = outer kerf wall of outermost cut
+INNER_CUT_R0      = FINISHED_INNER_R - KERF / 2.0
 INNER_CUT_RADII   = [INNER_CUT_R0 - i * KERF_STEP for i in range(KERF_LINES)]
 
-# Slots run from SLOT_R_INNER out to the innermost perimeter cut so the
-# wedges are definitely severed by the OUTSIDE pen.
+# Slots run to the innermost perimeter cut so the wedges separate
 SLOT_R_OUTER      = OUTER_CUT_R0
 
 
@@ -106,8 +83,8 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
                cap_inner=True, cap_outer=False):
     """
     Build the line segments for one radial slot:
-      - 4 parallel radial lines at 25 um spacing
-      - Interleaved transverse end-cap lines at the inner end
+      - parallel radial lines at KERF_STEP spacing
+      - interleaved transverse end-cap lines at the inner end
     """
     c, s = np.cos(angle), np.sin(angle)
     r_hat = np.array([c, s])
@@ -116,14 +93,12 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
     hw = slot_width / 2.0
     lines = []
 
-    # Parallel radial lines (interleaved transverse positions)
     for off in interleaved_offsets(slot_width, step):
         shift = t_hat * off
         p1 = r_hat * r_inner + shift
         p2 = r_hat * r_outer + shift
         lines.append((tuple(p1), tuple(p2)))
 
-    # End caps: parallel transverse lines recessed into the slot
     n_cap = int(round(slot_width / step))
     cap_positions = [i * step for i in range(n_cap + 1)]
     cap_order = interleaved(cap_positions)
@@ -144,16 +119,14 @@ def slot_lines(angle, r_inner, r_outer, slot_width, step,
 
 # -- Build the DXF ---------------------------------------------------
 doc = ezdxf.new("R2010")
-doc.layers.add("INSIDE",  color=5)        # blue -- all 16 deep slots
-doc.layers.add("OUTSIDE", color=7)        # black -- outer perimeter
-doc.layers.add("PARTIAL", color=1)        # red -- 2 wider slots between deep slots
+doc.layers.add("INSIDE",  color=5)        # blue
+doc.layers.add("OUTSIDE", color=7)        # black
 msp = doc.modelspace()
 
-# Trackers for the preview
-preview_lines   = []   # (p1, p2, layer)
-preview_circles = []   # (r, layer)
+preview_lines   = []
+preview_circles = []
 
-# All 16 regular through-cut slots on INSIDE
+# All 16 slots on INSIDE pen
 slot_angles = np.linspace(0, 2 * np.pi, N_SLOTS, endpoint=False)
 for a in slot_angles:
     for p1, p2 in slot_lines(a, SLOT_R_INNER, SLOT_R_OUTER,
@@ -162,39 +135,36 @@ for a in slot_angles:
         msp.add_line(p1, p2, dxfattribs={"layer": "INSIDE", "color": 5})
         preview_lines.append((p1, p2, "INSIDE"))
 
-# Two wider partial-depth slots at angles BETWEEN the deep slots
-for a in PARTIAL_SLOT_ANGLES:
-    for p1, p2 in slot_lines(a, PARTIAL_SLOT_R_INNER, SLOT_R_OUTER,
-                             PARTIAL_SLOT_WIDTH, KERF_STEP,
-                             cap_inner=False, cap_outer=False):
-        msp.add_line(p1, p2, dxfattribs={"layer": "PARTIAL", "color": 1})
-        preview_lines.append((p1, p2, "PARTIAL"))
-
-# Inner circle cutout (4 circles growing inward, interleaved order)
+# Inner circle cutout (interleaved)
 for r in interleaved(INNER_CUT_RADII):
     msp.add_circle((0, 0), r, dxfattribs={"layer": "INSIDE", "color": 5})
     preview_circles.append((r, "INSIDE"))
 
-# Outer perimeter (4 circles growing outward, interleaved order)
+# Outer perimeter (interleaved)
 for r in interleaved(OUTER_CUT_RADII):
     msp.add_circle((0, 0), r, dxfattribs={"layer": "OUTSIDE", "color": 7})
     preview_circles.append((r, "OUTSIDE"))
 
 doc.saveas("slotted_disk_3p5.dxf")
+
+# Inner-end arc bridge between adjacent slots (sanity-check)
+_bridge_old = _BASELINE_INNER_R * SLOT_ANGULAR_SPACING - _BASELINE_WIDTH
+_bridge_new = SLOT_R_INNER       * SLOT_ANGULAR_SPACING - SLOT_WIDTH
+
 print("Saved slotted_disk_3p5.dxf")
 print(f"  Finished OD = {FINISHED_OD} mm  "
       f"(innermost OUTSIDE cut at r = {OUTER_CUT_R0*1000:.1f} um)")
 print(f"  Finished inner hole r = {FINISHED_INNER_R} mm  "
       f"(outermost INSIDE cut at r = {INNER_CUT_R0*1000:.1f} um)")
-print(f"  {N_SLOTS} slots, r = {SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm")
-print(f"  INSIDE  (blue): {N_SLOTS} slots, {SLOT_WIDTH*1000:.0f} um wide, "
-      f"{KERF_LINES} cuts each")
-print(f"  PARTIAL (red):  2 wider slots, {PARTIAL_SLOT_WIDTH*1000:.0f} um wide, "
-      f"{PARTIAL_KERF_LINES} cuts each, "
-      f"at angles {[round(float(np.degrees(a)), 2) for a in PARTIAL_SLOT_ANGLES]} deg "
-      f"(between deep slots), r = "
-      f"{PARTIAL_SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm "
-      f"(opens into inner hole)")
+print(f"  {N_SLOTS} slots, r = {SLOT_R_INNER:.3f} .. {SLOT_R_OUTER:.3f} mm "
+      f"(length {SLOT_R_OUTER - SLOT_R_INNER:.3f} mm)")
+print(f"  All cuts: {KERF_LINES} parallel cuts at {KERF_STEP*1000:.0f} um "
+      f"= {SLOT_WIDTH*1000:.0f} um kerf")
+print(f"  Slot inner radius shifted "
+      f"{_BASELINE_INNER_R*1000:.0f} -> {SLOT_R_INNER*1000:.0f} um "
+      f"to preserve inner-end material bridge")
+print(f"  Inner-end bridge length: baseline {_bridge_old*1000:.1f} um, "
+      f"new {_bridge_new*1000:.1f} um")
 print(f"  Inner cut radii  (um): "
       f"{[round(r*1000,1) for r in INNER_CUT_RADII]}")
 print(f"  Outer cut radii  (um): "
@@ -206,38 +176,30 @@ pen_settings = f"""\
 EZCAD2 Pen Settings for slotted_disk_3p5.dxf
 =============================================
 ONE slotted graphite disk, finished OD = {FINISHED_OD} mm, inner hole
-radius = {FINISHED_INNER_R} mm, {N_SLOTS} radial slots extending to the
-outer edge (no eddy-current ring remains).
+radius = {FINISHED_INNER_R} mm, {N_SLOTS} symmetric radial slots extending to
+the outer edge (no eddy-current ring remains).
 
-The two wider PARTIAL slots are now placed BETWEEN the deep slots
-(offset by half the slot spacing, {180/N_SLOTS:.2f} deg from the horizontal axis).
-That way they don't overlap any through-cut and don't accumulate extra
-ablation that previously broke the disk.
+All cuts use a {KERF_LINES}-line / {SLOT_WIDTH*1000:.0f} um kerf pattern (was 4-line / 75 um).
+The slot inner radius is shifted outward from {_BASELINE_INNER_R} to
+{SLOT_R_INNER:.3f} mm so the material bridge between adjacent slots at
+the slot inner end is the same as the 4-line baseline (about
+{_bridge_new*1000:.0f} um arc length). Inner hole and outer perimeter
+finished dimensions are unchanged.
 
-Same verified through-cut recipe used elsewhere in this folder:
-  4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
-  2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
+Same through-cut recipe as before, but {KERF_LINES} cuts now:
+  {KERF_LINES} cuts at 25 um spacing ({SLOT_WIDTH*1000:.0f} um kerf), 20 processes
+  (Loop Count), 2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
 
 Kerf correction is applied so the finished disk edges land exactly at
 the nominal radii (assuming a {KERF*1000:.0f} um kerf).
 
-Three pens / layers in the DXF:
-  Blue   (ACI 5)  INSIDE   all {N_SLOTS} deep slots + inner cutout
+Two pens / layers in the DXF:
+  Blue   (ACI 5)  INSIDE   {N_SLOTS} slots + inner cutout
   Black  (ACI 7)  OUTSIDE  outer perimeter
-  Red    (ACI 1)  PARTIAL  2 wider partial-depth slots between deep slots
 
 
 -----------------------------------------------------------------
-PEN 0: INSIDE   (BLUE)   -- {N_SLOTS} deep slots + inner cutout
------------------------------------------------------------------
-  Power:       75 %
-  Speed:       2000 mm/s
-  Loop Count:  20
-  End TC:      0 ms
-
-
------------------------------------------------------------------
-PEN 1: OUTSIDE   (BLACK)   -- outer perimeter
+PEN 0: INSIDE   (BLUE)
 -----------------------------------------------------------------
   Power:       75 %
   Speed:       2000 mm/s
@@ -246,11 +208,11 @@ PEN 1: OUTSIDE   (BLACK)   -- outer perimeter
 
 
 -----------------------------------------------------------------
-PEN 2: PARTIAL   (RED)   -- 2 wider between-slot partial cuts
+PEN 1: OUTSIDE   (BLACK)
 -----------------------------------------------------------------
   Power:       75 %
   Speed:       2000 mm/s
-  Loop Count:  5-10 (tune so the slot widens but doesn't go through)
+  Loop Count:  20
   End TC:      0 ms
 
 
@@ -259,7 +221,7 @@ GLOBAL SETTINGS  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  20-30
   Pen order in pen list (drag vertically -- top runs first):
-    1. INSIDE   2. PARTIAL   3. OUTSIDE
+    1. INSIDE   2. OUTSIDE
 """
 with open("slotted_disk_3p5_pen_settings.txt", "w") as f:
     f.write(pen_settings)
@@ -268,8 +230,7 @@ print("Saved slotted_disk_3p5_pen_settings.txt")
 
 # -- Preview ---------------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black",
-                "PARTIAL": "tab:red"}
+layer_colors = {"INSIDE": "tab:blue", "OUTSIDE": "black"}
 
 ax = axes[0]
 ax.add_patch(plt.Circle((0, 0), FINISHED_OR,
@@ -283,7 +244,8 @@ for r, layer in preview_circles:
 m = OUTER_CUT_RADII[-1] + 0.3
 ax.set_xlim(-m, m); ax.set_ylim(-m, m); ax.set_aspect("equal")
 ax.set_xlabel("mm"); ax.set_ylabel("mm")
-ax.set_title(f"slotted_disk_3p5.dxf -- finished OD = {FINISHED_OD} mm")
+ax.set_title(f"slotted_disk_3p5.dxf -- finished OD = {FINISHED_OD} mm, "
+             f"{SLOT_WIDTH*1000:.0f}-um slots")
 ax.grid(True, alpha=0.3)
 
 ax = axes[1]
@@ -295,7 +257,7 @@ for p1, p2, layer in preview_lines:
 for r, layer in preview_circles:
     ax.add_patch(plt.Circle((0, 0), r, fill=False,
                             ec=layer_colors[layer], lw=0.7, alpha=0.9))
-ax.set_xlim(-0.15, 0.15); ax.set_ylim(0.45, 0.95)
+ax.set_xlim(-0.2, 0.2); ax.set_ylim(0.45, 1.05)
 ax.set_aspect("equal")
 ax.set_xlabel("mm"); ax.set_ylabel("mm")
 ax.set_title("Zoom -- slot inner end + inner cutout boundary")
