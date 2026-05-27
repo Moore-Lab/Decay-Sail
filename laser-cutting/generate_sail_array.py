@@ -3,13 +3,23 @@ Generate sail_array.dxf -- 10 copies of the chosen sail geometry
 for cutting on 1.5 mil aluminum foil. Stacked vertically, 1 mm
 between each sail.
 
-Chosen geometry (after the mechanical-fit test):
-  - 2 x 2 mm wings
-  - 3 mm wing-to-wing gap (7 mm total width)
-  - 0.5 mm tall strut connecting the wings
-  - 1.1 mm wide x 0.5 mm deep tab (fits diametrically in disk's
-    central hole, flush bottom)
-  - Single-line outline cut (foil is thin enough)
+Updated design (no central tab; two side tabs straddle the disk and
+slot into two opposite radial slots):
+
+  +--------+              +--------+
+  |        |              |        |
+  |  sq1   |   strut bar  |  sq2   |     <- 2 x 2 mm wings + thin strut
+  |        |              |        |
+  +--------+--------------+--------+
+           |              |
+         tab|              |tab            <- 0.75 mm wide x 0.4 mm
+           +--+        +--+                deep tabs at the BOTTOM-INSIDE
+              <- 1.75->                    of each wing; 1.75 mm inside
+                                           space between them
+
+The 1.75 mm inside space matches the inner-end diameter of the radial
+slots on slotted_disk_3p5.dxf, so the two tabs drop into opposite
+slots and the sail straddles the disk's central hole.
 """
 
 import ezdxf
@@ -17,39 +27,58 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 
 # -- Sail dimensions (mm) -------------------------------------------
-WING_SIZE     = 2.0     # upsized from the test cut
-GAP           = 3.0     # 2 + 3 + 2 = 7 mm total width
-TAB_WIDTH     = 1.3     # central hole measured ~1.4 mm top / 1.2 mm bot,
-                        # so 1.3 mm is the average -- wedges in part way
-TAB_DEPTH     = 0.3     # shortened from 0.5 mm; 1.3 mm tab can't reach the
-                        # narrow bottom of the conical hole anyway (only the
-                        # top ~0.25 mm of the hole is wider than 1.3 mm)
-STRUT_HEIGHT  = 0.5
+WING_SIZE       = 2.0      # square wing side
+STRUT_HEIGHT    = 0.5      # thin band joining the two wings
 
-N_SAILS       = 10
-LAYOUT_GAP    = 1.0     # spacing between adjacent sails in the array
+SIDE_TAB_WIDTH  = 0.75     # each tab's horizontal extent in flat layout
+SIDE_TAB_DEPTH  = 0.4      # how far each tab drops below the bar
+INSIDE_SPACE    = 1.75     # gap between the two tabs' inner edges
+                           # (= 2 x slot inner radius on the disk)
+
+# Derived: tab outer edges = wing inner edges
+_TAB_OUTER_X    = INSIDE_SPACE / 2 + SIDE_TAB_WIDTH    # = 1.625
+_TAB_INNER_X    = INSIDE_SPACE / 2                     # = 0.875
+
+N_SAILS         = 10
+LAYOUT_GAP      = 1.0      # spacing between sails in the array
 
 
-def sail_outline(g, s, x_offset=0.0, y_offset=0.0):
-    """CCW outline of a single sail (wings + strut + tab)."""
-    xL = -g / 2 - s
-    xR =  g / 2 + s
+def sail_outline(x_offset=0.0, y_offset=0.0):
+    """
+    CCW polygon of one sail in flat layout. Origin = center of the bar
+    bottom; y points up (wings above), y < 0 = tabs below.
+    """
+    s   = WING_SIZE
+    h_in  = _TAB_INNER_X        # tab inner edge x
+    h_out = _TAB_OUTER_X        # tab outer edge x = wing inner edge x
+    h_sq  = h_out + s           # wing outer edge x
+    d     = SIDE_TAB_DEPTH
+
     pts = [
-        (xL,             0),
-        (-g / 2,         0),
-        (-TAB_WIDTH / 2, 0),
-        (-TAB_WIDTH / 2, -TAB_DEPTH),
-        ( TAB_WIDTH / 2, -TAB_DEPTH),
-        ( TAB_WIDTH / 2, 0),
-        ( g / 2,         0),
-        (xR,             0),
-        (xR,             s),
-        ( g / 2,         s),
-        ( g / 2,         STRUT_HEIGHT),
-        (-g / 2,         STRUT_HEIGHT),
-        (-g / 2,         s),
-        (xL,             s),
+        # Left wing: top-left -> down left edge
+        (-h_sq,  s),
+        (-h_sq,  0),
+        # Bottom edge of left wing, then down into left tab
+        (-h_out, 0),
+        (-h_out, -d),
+        (-h_in,  -d),
+        (-h_in,  0),
+        # Bar bottom (gap between tabs)
+        ( h_in,  0),
+        # Right tab: down, across, up
+        ( h_in,  -d),
+        ( h_out, -d),
+        ( h_out, 0),
+        # Right wing: bottom, right side, top
+        ( h_sq,  0),
+        ( h_sq,  s),
+        ( h_out, s),
+        # Down to strut top, across, back up to left wing top
+        ( h_out, STRUT_HEIGHT),
+        (-h_out, STRUT_HEIGHT),
+        (-h_out, s),
     ]
+    # Closing edge goes from (-h_out, s) back to (-h_sq, s)
     return [(x + x_offset, y + y_offset) for x, y in pts]
 
 
@@ -61,8 +90,8 @@ msp = doc.modelspace()
 y_baseline = 0.0
 preview_polys = []
 for i in range(N_SAILS):
-    y_off = y_baseline + TAB_DEPTH
-    outline = sail_outline(GAP, WING_SIZE, x_offset=0.0, y_offset=y_off)
+    y_off = y_baseline + SIDE_TAB_DEPTH   # tab bottom sits at y_baseline
+    outline = sail_outline(x_offset=0.0, y_offset=y_off)
     msp.add_lwpolyline(outline, close=True,
                        dxfattribs={"layer": "CUT", "color": 7})
     preview_polys.append(outline)
@@ -70,30 +99,35 @@ for i in range(N_SAILS):
 
 doc.saveas("sail_array.dxf")
 
-total_w = GAP + 2 * WING_SIZE
+total_w = 2 * (_TAB_OUTER_X + WING_SIZE)
 total_h = y_baseline - LAYOUT_GAP
-print(f"Saved sail_array.dxf -- {N_SAILS} sails, "
-      f"wing {WING_SIZE} mm, gap {GAP} mm (total width {total_w} mm)")
-print(f"  Bounding box: {total_w:.1f} mm x {total_h:.1f} mm")
+print(f"Saved sail_array.dxf -- {N_SAILS} sails")
+print(f"  Wing:           {WING_SIZE} x {WING_SIZE} mm")
+print(f"  Strut height:   {STRUT_HEIGHT} mm")
+print(f"  Side tab:       {SIDE_TAB_WIDTH} mm wide x {SIDE_TAB_DEPTH} mm deep")
+print(f"  Inside space:   {INSIDE_SPACE} mm (between the two tabs)")
+print(f"  Total width:    {total_w:.2f} mm")
+print(f"  Bounding box:   {total_w:.2f} mm x {total_h:.2f} mm")
 
 
 # -- Pen settings ---------------------------------------------------
 pen_settings = f"""\
 EZCAD2 Pen Settings for sail_array.dxf
 =======================================
-{N_SAILS} copies of the chosen sail geometry on 1.5 mil (38 um)
+{N_SAILS} copies of the updated sail geometry on 1.5 mil (38 um)
 aluminum foil:
   - {WING_SIZE} x {WING_SIZE} mm wings
-  - {GAP} mm wing-to-wing gap ({total_w} mm total width)
   - {STRUT_HEIGHT} mm strut between wings
-  - {TAB_WIDTH} mm wide x {TAB_DEPTH} mm deep tab (flush in disk
-    central hole)
+  - Two side tabs at the bottom-inside of each wing,
+    {SIDE_TAB_WIDTH} mm wide x {SIDE_TAB_DEPTH} mm deep, {INSIDE_SPACE} mm inside space
+    (drops into two opposite radial slots on the slotted disk)
+  - Total width {total_w:.2f} mm
   - Single-line outline cut
 
 Layout: vertically stacked, {LAYOUT_GAP} mm between sails.
-Bounding box: {total_w:.1f} mm x {total_h:.1f} mm.
+Bounding box: {total_w:.2f} mm x {total_h:.2f} mm.
 
-Use the same Al-foil recipe that worked for sail_test.dxf:
+Same Al-foil recipe as the previous sail_array.dxf cut:
 
 -----------------------------------------------------------------
 PEN 1: CUT   (BLACK entities)
@@ -110,7 +144,7 @@ GLOBAL  (F2 Mark dialog)
 -----------------------------------------------------------------
   Mark Count:  1-3   (whatever worked on the test)
 
-Same fixturing as the test cut: tape the foil flat to a sacrificial
+Same fixturing as before: tape the foil flat to a sacrificial
 backing, focus on the foil surface, no/gentle air assist.
 """
 with open("sail_array_pen_settings.txt", "w") as f:
@@ -132,8 +166,7 @@ ax.set_ylim(min(ys) - m, max(ys) + m)
 ax.set_aspect("equal")
 ax.set_xlabel("mm")
 ax.set_ylabel("mm")
-ax.set_title(f"sail_array.dxf -- {N_SAILS} sails, "
-             f"wing {WING_SIZE} mm, gap {GAP} mm")
+ax.set_title(f"sail_array.dxf -- {N_SAILS} sails, two side tabs")
 ax.grid(True, alpha=0.3)
 fig.tight_layout()
 fig.savefig("sail_array_preview.png", dpi=160, bbox_inches="tight")
