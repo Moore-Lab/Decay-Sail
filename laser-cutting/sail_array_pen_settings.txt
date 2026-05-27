@@ -1,0 +1,34 @@
+EZCAD2 Pen Settings for sail_array.dxf
+=======================================
+10 copies of the updated sail geometry on 1.5 mil (38 um)
+aluminum foil:
+  - 2.0 x 2.0 mm wings
+  - 0.5 mm strut between wings
+  - Two side tabs at the bottom-inside of each wing,
+    0.75 mm wide x 0.4 mm deep, 1.75 mm inside space
+    (drops into two opposite radial slots on the slotted disk)
+  - Total width 7.25 mm
+  - Single-line outline cut
+
+Layout: vertically stacked, 1.0 mm between sails.
+Bounding box: 7.25 mm x 33.00 mm.
+
+Same Al-foil recipe as the previous sail_array.dxf cut:
+
+-----------------------------------------------------------------
+PEN 1: CUT   (BLACK entities)
+-----------------------------------------------------------------
+  Power:       60-75 %        (whatever cut the test cleanly)
+  Speed:       1000 mm/s
+  Frequency:   30-50 kHz
+  Loop Count:  5-10
+  Start TC:    0 ms
+  End TC:      0 ms
+
+-----------------------------------------------------------------
+GLOBAL  (F2 Mark dialog)
+-----------------------------------------------------------------
+  Mark Count:  1-3   (whatever worked on the test)
+
+Same fixturing as before: tape the foil flat to a sacrificial
+backing, focus on the foil surface, no/gentle air assist.

@@ -1,0 +1,49 @@
+EZCAD2 Pen Settings for slotted_disk_3p5.dxf
+=============================================
+ONE slotted graphite disk, finished OD = 3.5 mm, inner hole
+radius = 0.55 mm, 16 symmetric radial slots extending to
+the outer edge (no eddy-current ring remains).
+
+All cuts use a 6-line / 125 um kerf pattern (was 4-line / 75 um).
+The slot inner radius is shifted outward from 0.75 to
+0.877 mm so the material bridge between adjacent slots at
+the slot inner end is the same as the 4-line baseline (about
+220 um arc length). Inner hole and outer perimeter
+finished dimensions are unchanged.
+
+Same through-cut recipe as before, but 6 cuts now:
+  6 cuts at 25 um spacing (125 um kerf), 20 processes
+  (Loop Count), 2000 mm/s, 75 % power, Mark Count ~ 20-30 cycles.
+
+Kerf correction is applied so the finished disk edges land exactly at
+the nominal radii (assuming a 20 um kerf).
+
+Two pens / layers in the DXF:
+  Blue   (ACI 5)  INSIDE   16 slots + inner cutout
+  Black  (ACI 7)  OUTSIDE  outer perimeter
+
+
+-----------------------------------------------------------------
+PEN 0: INSIDE   (BLUE)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  20
+  End TC:      0 ms
+
+
+-----------------------------------------------------------------
+PEN 1: OUTSIDE   (BLACK)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Loop Count:  20
+  End TC:      0 ms
+
+
+-----------------------------------------------------------------
+GLOBAL SETTINGS  (F2 Mark dialog)
+-----------------------------------------------------------------
+  Mark Count:  20-30
+  Pen order in pen list (drag vertically -- top runs first):
+    1. INSIDE   2. OUTSIDE

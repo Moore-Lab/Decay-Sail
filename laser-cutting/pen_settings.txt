@@ -1,0 +1,90 @@
+EZCAD2 Pen Settings for disk_full.dxf
+======================================
+Based on the verified through-cut recipe from lab notes:
+  4 cuts at 25 µm spacing (75 µm total kerf width),
+  20 processes (Loop Count), 2000 mm/s, 75% power,
+  Mark Count ~20-30 cycles → through 0.5 mm graphite,
+  no damage to Al backing.
+
+GEOMETRY (R = 1.625 mm = 3.25 mm OD)
+  Inner hole radius (nominal): 0.55 mm
+  Slots: 16 radial, from r = 0.750 mm
+         to r = 1.625 mm (extends to outer edge)
+  Slot width: 75 µm (4 parallel cuts at 25 µm spacing)
+  Outer perimeter: 4 circles at r = [1.625, 1.65, 1.675, 1.7] mm
+  Delay circle: r = 2.5 mm (off the workpiece)
+
+The DXF has THREE colored layers, each on its own pen:
+  Blue   (ACI 5) — INSIDE  pen: slots + inner cutout
+  Black  (ACI 7) — OUTSIDE pen: outer perimeter
+  Yellow (ACI 2) — DELAY   pen: optional pause (no marking)
+
+
+-----------------------------------------------------------------
+PEN 1: INSIDE   (BLUE entities)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Frequency:   your usual MOPA/Q-switch frequency
+  Loop Count:  20      (matches "20 processes" in working recipe)
+  Start TC:    0 ms
+  End TC:      0 ms    (rely on DELAY pen instead)
+
+
+-----------------------------------------------------------------
+PEN 2: OUTSIDE   (BLACK entities)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Frequency:   same as INSIDE
+  Loop Count:  20
+  Start TC:    0 ms
+  End TC:      0 ms
+
+
+-----------------------------------------------------------------
+PEN 3: DELAY   (YELLOW entity)
+-----------------------------------------------------------------
+  Power:       0 %       (laser does NOT fire — galvos traverse only)
+  Speed:       15.7 mm/s   (delay circle circumference is
+                                       15.71 mm so 1 pass at this
+                                       speed takes 1.00 s)
+  Frequency:   any
+  Loop Count:  1
+
+  Notes:
+    - The delay circle has circumference 2π × 2.5 mm
+      = 15.71 mm. Time per pass = circumference / speed.
+    - For longer pauses, slow this pen down (e.g. speed = 7.9
+      mm/s gives 2.0 s; speed = 31.4 mm/s gives 0.5 s).
+    - To disable the delay entirely, set Loop Count = 0 on this pen
+      (or untick it in the pen list).
+
+
+-----------------------------------------------------------------
+GLOBAL SETTINGS  (F2 Mark dialog)
+-----------------------------------------------------------------
+  Mark Count:  20-30      (each cycle does 20 INSIDE passes, then 20
+                           OUTSIDE passes, then 1 DELAY pause; start at
+                           20, add more if not through)
+
+  Pen ORDER in pen list (drag vertically — top runs first):
+    1. INSIDE  (slots + inner cutout — biggest material removal)
+    2. OUTSIDE (perimeter — frees the disk)
+    3. DELAY   (smoke clears before next cycle starts)
+
+
+-----------------------------------------------------------------
+NOTES
+-----------------------------------------------------------------
+- Kerf width: ~20 µm. The disk's actual OD will end up ~10 µm smaller
+  than nominal (so ~4.48 mm). Bump FULL_OUTER_RADIUS up by 10 µm
+  in generate_eddy_current_disk.py if you need exact 4.5 mm.
+- After all INSIDE cuts are done, the disk is in 16 wedges held
+  together by the inner annular core (between the inner cutout and
+  the slot inner ends). The OUTSIDE cut frees them all from the
+  substrate.
+- The 200 µm gap between the inner cutout and slot inner ends keeps
+  the wedges attached to the central core during cutting.
+- Same recipe should work for outline_2pen_working.dxf if you want
+  to test the perimeter cut by itself first.

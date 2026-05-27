@@ -1,0 +1,33 @@
+EZCAD2 Pen Settings for solid_disks.dxf
+========================================
+Four SOLID graphite disks (no slots), finished OD = 2.5, 3.0, 3.5, 4.0 mm,
+corner-packed into a 7.81 x 7.81 mm square (500 um
+between adjacent disks). Goal: find which OD gives the best magnetic
+levitation height.
+
+Same verified through-cut recipe as disk_full.dxf:
+  4 cuts at 25 um spacing (75 um kerf), 20 processes (Loop Count),
+  2000 mm/s, 75% power, Mark Count ~20-30 cycles.
+
+Kerf note: the innermost cut circle is KERF/2 = 10 um larger
+than the finished radius, so the finished disk edges land at exactly
+2.5 / 3.0 / 3.5 / 4.0 mm OD. If the cut kerf differs from 20 um,
+adjust KERF in generate_solid_disks.py and re-run.
+
+The DXF has ONE colored layer on a single pen:
+  Black (ACI 7) -- CUT pen: all four 4-circle perimeters
+
+-----------------------------------------------------------------
+PEN 1: CUT   (BLACK entities)
+-----------------------------------------------------------------
+  Power:       75 %
+  Speed:       2000 mm/s
+  Frequency:   your usual MOPA/Q-switch frequency
+  Loop Count:  20
+  Start TC:    0 ms
+  End TC:      0 ms
+
+-----------------------------------------------------------------
+GLOBAL SETTINGS  (F2 Mark dialog)
+-----------------------------------------------------------------
+  Mark Count:  20-30
