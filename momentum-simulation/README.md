@@ -159,3 +159,105 @@ I_total (disk + sail) used: 1.88 × 10⁻¹¹ kg·m²; r_c = 2.625 mm; F = ⟨p_
    against SRIM for Kapton specifically if precision matters.
 4. The β recoils (²¹²Pb→²¹²Bi, ²⁰⁸Tl→²⁰⁸Pb, ²¹²Bi→²¹²Po) are ignored;
    they carry < 1 MeV/c each and don't shift the result.
+
+---
+
+# Spin-down measurement: thermal-noise floor & signal model
+
+`thermal_noise_spindown.py` computes the thermal-noise limit on ω for
+a rotor in equilibrium at T = 300 K with damping rate γ = 1/(10 min),
+and compares it against the expected ω(t) curve as Pb-212 activity
+decays away with its 10.6 hr half-life.
+
+## Setup
+
+We use the moment of inertia of the disk+sail assembly (`I_total =
+1.88 × 10⁻¹¹ kg·m²` from the MoI calc) and the per-decay momentum
+above (`5.08 × 10⁻²⁰ N/Bq` per wing face). Two-wing pinwheel sail
+with both wings carrying activity → torque doubles:
+
+> α(t) = 2 F r_c / I_total = (1.42 × 10⁻¹¹ rad/s² per Bq/wing) · A(t)
+
+Since **γ ≫ λ_Pb212 (10 min vs 10.6 hr → ratio ≈ 92×)**, the rotor
+tracks the source adiabatically:
+
+> **ω_ss(t) ≈ α(t) / γ = (8.5 × 10⁻⁹ rad/s per Bq/wing) · A(0) · e^(−λ_Pb212 t)**
+
+So the "spin-down measurement" amounts to logging ω(t) and watching
+its exponential decay with the Pb-212 half-life.
+
+## Thermal noise
+
+The PSD of ω from the fluctuation-dissipation theorem (one-sided):
+
+$$S_\omega(f) = \frac{4 k_B T\, \gamma}{I\,(\gamma^2 + (2\pi f)^2)}$$
+
+![omega PSD](omega_psd.png)
+
+The corner frequency is γ/(2π) ≈ 0.27 mHz. Below that the noise PSD
+is flat at `S_ω(0) = 4k_B T / (I γ) ≈ 5.3 × 10⁻⁷ rad²/s²/Hz`; above,
+it falls as 1/f².
+
+Equipartition gives the instantaneous RMS:
+
+> σ_ω (instantaneous) = √(k_B T / I) = **1.48 × 10⁻⁵ rad/s**
+
+Averaging ω over a window T_obs reduces the RMS (Ornstein-Uhlenbeck
+result, exact for any γT_obs):
+
+$$\sigma^2_{\langle\omega\rangle_T} = \frac{2\,\sigma_\text{inst}^2}{(\gamma T)^2}\bigl(\gamma T - 1 + e^{-\gamma T}\bigr)$$
+
+For T_obs ≫ 1/γ this is `σ_inst · √(2 / γT_obs)`. Numerical values:
+
+| T_obs | σ_ω (rad/s) | Min detectable A (Bq/wing, SNR=1) |
+|---|---|---|
+| 1 min  | 1.46 × 10⁻⁵ | 1700 |
+| 10 min | 1.27 × 10⁻⁵ | 1500 |
+| 1 hr   | 7.83 × 10⁻⁶ | 920 |
+| 1 day  | 1.74 × 10⁻⁶ | 200 |
+| 5 days | 7.82 × 10⁻⁷ | 90 |
+
+## Signal vs. noise
+
+ω(t) for a few initial activities (per wing), with averaged noise
+floors overlaid:
+
+![spin-down signal](spindown_signal.png)
+
+The slope of each line equals -λ_Pb212 ≈ -1.81 × 10⁻⁵ /s
+(half-life 10.6 hr) — independent of activity, only the offset shifts.
+**A measured ω(t) curve with the right slope is the smoking gun**
+for the alpha-decay-driven torque.
+
+For the supplementary's ~200 Bq/mm² implantation level, ω_ss(0) ≈
+1.7 × 10⁻⁶ rad/s, which is at the day-long-average noise floor.
+That's borderline detectable but workable: a few-day integration with
+exponential-decay fitting beats a single-point SNR check by a large
+factor since the model has only ~2 free parameters (initial activity
+and time origin) against many independent ω measurements.
+
+## Detection threshold
+
+![detection threshold](detectability.png)
+
+The dashed reference lines show typical activities you might
+realistically achieve. At ~1 day of integration the supplementary's
+~200 Bq/mm² implantation crosses the SNR = 1 line; longer integration
+buys you another factor of ~10 in sensitivity before the activity
+itself has decayed away significantly.
+
+## Knobs in `thermal_noise_spindown.py`
+
+- `GAMMA` — rotational damping rate. Lower γ (better vacuum or
+  better-balanced rotor) gives lower thermal noise and proportionally
+  larger ω_ss for the same torque. Threshold A scales as γ³ᐟ² (signal
+  → A/γ; noise → √(1/γ) at fixed T_obs).
+- `T_KELVIN` — bath temp; σ_ω goes as √T.
+- `I_TOTAL` — assembly moment of inertia. Larger I lowers σ_ω as
+  1/√I but lowers signal as 1/I → threshold A goes as I^½.
+- `PZ_PER_DECAY`, `R_C` — from the per-decay momentum calc above.
+
+This is a **necessary** check (thermal noise must be below the
+signal), but **not sufficient** — additional noise sources to worry
+about: 1/f from trap-position drift, vibration coupling into rotation,
+gas pressure changes shifting γ during the measurement, etc.
