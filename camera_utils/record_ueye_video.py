@@ -1,10 +1,18 @@
 import argparse
 import signal
 import sys
+import time
 import cv2
 import numpy as np
 from pyueye import ueye
-from datetime import datetime
+from datetime import datetime, timezone
+
+# GPS epoch offset: seconds from Unix epoch (1970-01-01) to GPS epoch (1980-01-06),
+# minus 18 leap seconds (GPS time does not include leap seconds).
+_GPS_UNIX_OFFSET = 315964800 - 18
+
+def gps_now():
+    return int(time.time()) - _GPS_UNIX_OFFSET
 
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['image', 'record', 'data'],
@@ -62,13 +70,13 @@ print("Exposure set to:", actual_exposure.value, "ms")
 # is delivered, so each call counts exactly one real frame.
 print("Calibrating frame rate (2 seconds)...")
 calibration_frames = 0
-calibration_start = datetime.now()
+calibration_start = datetime.now(timezone.utc)
 calibration_duration = 2.0
 
 while True:
     ueye.is_FreezeVideo(hCam, ueye.IS_WAIT)
     calibration_frames += 1
-    elapsed = (datetime.now() - calibration_start).total_seconds()
+    elapsed = (datetime.now(timezone.utc) - calibration_start).total_seconds()
     if elapsed >= calibration_duration:
         break
 
@@ -81,12 +89,14 @@ print(f"Measured actual FPS: {actual_fps:.1f}")
 # --- OpenCV Video Writer ---
 fps = actual_fps
 if SAVE:
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    ts_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    out = cv2.VideoWriter(f"output_roi_{ts_start}.avi", fourcc, fps, (roi_w, roi_h))
+    fourcc   = cv2.VideoWriter_fourcc(*'MJPG')
+    gps_start = gps_now()
+    filename  = f"output_roi_gps{gps_start}.avi"
+    out = cv2.VideoWriter(filename, fourcc, fps, (roi_w, roi_h))
     if not out.isOpened():
         raise RuntimeError(f"VideoWriter failed to open (fps={fps:.1f})")
-    print(f"Recording to output_roi_{ts_start}.avi at {fps:.1f} fps...")
+    utc_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    print(f"Recording to {filename}  ({utc_str})  at {fps:.1f} fps...")
 
 if SHOW:
     print("Displaying live feed — press 'q' to quit.")
