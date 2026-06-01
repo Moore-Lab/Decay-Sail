@@ -65,6 +65,7 @@ def kick():
     print("Kick complete.")
 
 def shutdown():
+    zero_electrodes()
     caput(PV_ON, 0)
     caput(SIN_PV, 0)
     caput(COS_PV, 0)
@@ -111,7 +112,6 @@ def main():
         do_shutdown = True
     finally:
         if do_shutdown:
-            zero_electrodes()
             shutdown()
 
 if __name__== '__main__':
