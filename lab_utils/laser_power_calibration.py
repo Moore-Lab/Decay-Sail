@@ -75,9 +75,15 @@ def main():
             t_set = datetime.now(timezone.utc)
             caput(OUTPUT_LASER, float(level), wait=True, timeout=2.0)
             readback = caget(OUTPUT_LASER)
-            print(f"\n[{i+1}/{len(LEVELS)}] set {level} counts (readback {readback}); "
-                  f"settling {SETTLE_S:.0f} s...")
-            time.sleep(SETTLE_S)
+            print(f"\n[{i+1}/{len(LEVELS)}] >>> LEVEL CHANGED to {level} counts "
+                  f"(readback {readback}) <<<")
+            remaining = SETTLE_S
+            while remaining > 0:
+                chunk = min(15.0, remaining)
+                print(f"    settling... {remaining:.0f} s left", flush=True)
+                time.sleep(chunk)
+                remaining -= chunk
+            print(f"\a  READY -- read the meter now ({level} counts)")
 
             entry = input(f"  power reading in mW (blank = skip, 'q' = finish early): ").strip()
             if entry.lower() == 'q':
