@@ -54,9 +54,30 @@ p.add_argument('--outdir', type=str, default='.', help='directory for recordings
 p.add_argument('--jpeg-quality', type=int, default=80, help='JPEG quality 1-100 (default 80)')
 p.add_argument('--duration', type=float, default=0.0,
                help='auto-stop after N seconds (default 0 = run until Ctrl-C)')
+p.add_argument('--show', action='store_true',
+               help='pop up a live window like the uEye image mode '
+                    '(needs a graphical display; use --mjpeg over plain SSH)')
+p.add_argument('--flip-v', action='store_true',
+               help='flip the image top<->bottom to match the physical view. Applied at '
+                    'the source (hardware ReverseY if available, else software) so the '
+                    'recording, snapshot, stream, AND raw array all share one orientation '
+                    '-- important so a future feedback tracker sees the same frame.')
+p.add_argument('--flip-h', action='store_true',
+               help='flip the image left<->right (hardware ReverseX if available, else '
+                    'software). NOTE: a single flip (-v OR -h) mirrors the image and so '
+                    'reverses the apparent sense of rotation; combining -v AND -h is a '
+                    '180 deg rotation that preserves rotation direction.')
 args = p.parse_args()
 
 SNAP = bool(args.snapshot)
+
+# A pop-up window needs an X/Wayland display. Fail early with a clear message
+# instead of the cryptic Qt "could not connect to display" abort.
+if args.show and not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+    sys.exit("--show needs a graphical display, but none was found ($DISPLAY unset).\n"
+             "  * At the worker2 console/desktop it will work.\n"
+             "  * Over SSH, either forward X (ssh -Y worker2) or, better, use --mjpeg\n"
+             "    and open http://localhost:8080/ (or http://worker2:8080/) in a browser.")
 
 
 # ------------------------------------------------------------------ shared frame
@@ -92,7 +113,20 @@ def make_handler(hub):
             pass  # keep the console quiet
 
         def do_GET(self):
-            if self.path in ('/', '/stream', '/stream.mjpg'):
+            if self.path == '/':
+                # HTML wrapper: browsers render MJPEG reliably inside an <img>,
+                # even when they refuse the raw multipart stream as a top page.
+                page = (b"<!doctype html><html><head><meta charset='utf-8'>"
+                        b"<title>Basler live</title><style>html,body{margin:0;"
+                        b"height:100%;background:#111;display:flex;align-items:center;"
+                        b"justify-content:center}img{max-width:100%;max-height:100vh}"
+                        b"</style></head><body><img src='/stream'></body></html>")
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(page)))
+                self.end_headers()
+                self.wfile.write(page)
+            elif self.path in ('/stream', '/stream.mjpg'):
                 self.send_response(200)
                 self.send_header('Age', '0')
                 self.send_header('Cache-Control', 'no-cache, private')
@@ -149,6 +183,37 @@ info = cam.GetDeviceInfo()
 print(f"Opened {info.GetModelName()} (serial {info.GetSerialNumber()})")
 
 cam.PixelFormat.Value = 'Mono8'
+
+# NOTE (2026-07-23): the chamber-view orientation is ALREADY SOLVED IN HARDWARE.
+# This camera (acA1440-220um serial 40103621) has ReverseX+ReverseY (a 180deg
+# rotation, matching the physical chamber) saved in its UserSet1, which is the
+# power-up default (UserSetDefault=UserSet1). So with NO flags the camera already
+# serves the correct orientation and every tool that opens it inherits the same
+# frame. The --flip-v/--flip-h flags below are therefore usually unnecessary --
+# they're kept as a recovery path if the camera is ever reset to factory default,
+# and as documentation. A single flip mirrors the image (reverses rotation sense);
+# both flips = 180deg rotation (preserves rotation direction). To revert the
+# hardware default: set UserSetDefault=Default (or ReverseX/Y False + re-save).
+#
+# vertical flip (top<->bottom). Prefer the sensor's hardware ReverseY so the raw
+# res.Array is already flipped -- then every consumer, including any future feedback
+# tracker, sees one identical orientation. Fall back to a per-frame software flip if
+# the camera doesn't expose the feature.
+sw_flip_v = sw_flip_h = False
+if args.flip_v:
+    try:
+        cam.ReverseY.Value = True
+        print("  ReverseY (hardware vertical flip) enabled")
+    except Exception:
+        sw_flip_v = True
+        print("  ReverseY not available; using software vertical flip")
+if args.flip_h:
+    try:
+        cam.ReverseX.Value = True
+        print("  ReverseX (hardware horizontal flip) enabled")
+    except Exception:
+        sw_flip_h = True
+        print("  ReverseX not available; using software horizontal flip")
 
 # hardware ROI (must respect the sensor's offset/size increments; set offsets to 0
 # first so a new width/height can't collide with the old offset range).
@@ -228,7 +293,9 @@ signal.signal(signal.SIGTERM, _stop)
 strategy = (pylon.GrabStrategy_OneByOne if args.record
             else pylon.GrabStrategy_LatestImageOnly)
 cam.StartGrabbing(strategy)
-print("Running headless -- Ctrl-C to stop.")
+if args.show:
+    print("  live window   -> 'Basler live' (press q in the window to quit)")
+print(f"Running{' with live window' if args.show else ' headless'} -- Ctrl-C to stop.")
 
 jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, int(args.jpeg_quality)]
 last_snap = 0.0
@@ -239,6 +306,10 @@ try:
         res = cam.RetrieveResult(2000, pylon.TimeoutHandling_ThrowException)
         if res.GrabSucceeded():
             frame = res.Array                      # 2-D Mono8
+            if sw_flip_v:
+                frame = cv2.flip(frame, 0)         # flip top<->bottom (x-axis)
+            if sw_flip_h:
+                frame = cv2.flip(frame, 1)         # flip left<->right (y-axis)
             n += 1
             if writer is not None:
                 writer.write(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))
@@ -256,6 +327,10 @@ try:
                             f.write(jpeg)
                         os.replace(tmp, args.snapshot)   # atomic
                         last_snap = now
+            if args.show:
+                cv2.imshow('Basler live', frame)
+                if (cv2.waitKey(1) & 0xFF) == ord('q'):
+                    running['go'] = False
         res.Release()
         if args.duration and (time.time() - t0) >= args.duration:
             break
@@ -269,4 +344,6 @@ finally:
         writer.release()
     if server is not None:
         server.shutdown()
+    if args.show:
+        cv2.destroyAllWindows()
     print(f"\nStopped. {n} frames in {dt:.1f}s ({n/dt:.1f} fps effective).")
