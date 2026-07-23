@@ -40,8 +40,11 @@ p.add_argument('--gain', type=float, default=0.0, help='gain in dB (default 0)')
 p.add_argument('--fps', type=float, default=30.0,
                help='cap acquisition frame rate (default 30; raise usbfs_memory_mb '
                     'to 1000 before going much above ~60). Use 0 for uncapped.')
-p.add_argument('--roi', type=str, default=None,
-               help='hardware ROI as x,y,w,h (default full frame)')
+p.add_argument('--roi', type=str, default='544,332,256,392',
+               help='hardware ROI as x,y,w,h. Default 544,332,256,392 crops to the rotor '
+                    '+ electrodes (glare clipped). NOTE: with the hardware flip active the '
+                    'sensor is mirrored BEFORE the AOI, so x,y are DISPLAY (post-flip) '
+                    'coords, not raw sensor coords. Pass 0,0,1440,1080 for the full frame.')
 p.add_argument('--snapshot', type=str, default='/dev/shm/basler_latest.jpg',
                help='path for the latest-frame JPEG (default /dev/shm/basler_latest.jpg); '
                     'set to "" to disable')
