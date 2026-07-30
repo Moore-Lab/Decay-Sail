@@ -111,56 +111,47 @@ constant-speed runs so the drive is spectrally clean.
 (Charge-dipole torque for q ~ 1e6 e, d ~ 0.3 mm is comparable at the low end; all
 E-at-rotor values carry the screening uncertainty of Sec. 1.)
 
-## 7. Planar under-rotor electrodes (see `planar_drive_estimates.py`)
+## 7. Outcome: the planar stator (built)
 
-Replacing the side posts with a patterned electrode layer (thin flex PCB / metallized
-kapton on the magnet face, rotor floating ~0.3 mm above it) changes the physics from a
-screened far field to a parallel-plate capacitor: E_normal ~ V/h ~ 3e5 V/m at 100 V.
-The drive becomes a **variable-capacitance electrostatic motor**: the rotor's
-bottom-surface angular asymmetry (slots, sail footprint) makes the rotor-electrode
-capacitance angle-dependent and tau = (1/2)(dC/dtheta)V^2.
+Sections 1-6 diagnosed the side-post drive; the conclusion was to move the
+electrodes underneath the rotor. That design is now complete and documented in
+`flex_design/flex_spec.md`, with the code and fab package in the
+[Decay-Sail repo](https://github.com/Moore-Lab/Decay-Sail/tree/main/stator_flex).
+Summary of what changed relative to the analysis above:
 
-Rough numbers at 100 V with the existing slot geometry: **tau ~ 2e-10 N m — about four
-orders of magnitude above the side posts.** Consequences: capture bandwidth ~0.7 Hz
-(fixed-frequency starts at <~0.5 Hz just work), 0->10 Hz ramp in ~15 s, full-torque
-reversal from 10 Hz in ~15 s, drag-limited max locked speed of order 1e2 Hz.
+- **Mechanism:** electrodes under the rotor form a parallel-plate capacitor
+  (E ~ V/h ~ 3e5 V/m instead of a few hundred V/m at the rotor), and the torque
+  becomes variable-capacitance, `tau = 1/2 (dC/dtheta) V^2` — charge-independent
+  and reproducible, unlike either synchronous mechanism of Sec. 2.
+- **Drive harmonic:** Fourier analysis of the real rotor DXF
+  (`flex_design/analyze_snowflake_dxf.py`) shows the Snowflake V1.3 underside
+  modulation is in the **m = 8 family**, not the m = 12 the drawing note
+  implies. Folding in gap attenuation exp(-m h / r), m = 8 is the fab-robust
+  optimum. Implemented as 24 sectors, 15 deg pitch, 3-phase.
+- **Torque:** ~1.5e-11 N m at 200 V with a 0.1 mm shim (h ~ 0.27 mm) —
+  about 300x the side posts. Capture bandwidth 0.41 Hz mechanical (vs 5-70 mHz),
+  so fixed-frequency starts below ~0.4 Hz simply work and a ramp to 10 Hz takes
+  ~2.6 min. Reverse by swapping two phases.
+- **The gap is the dominant knob:** h = 0.37 -> 0.27 mm is worth 3x. A shim disk
+  under the board centre sets it.
 
-Design points:
-- **Sector count must match the rotor symmetry.** 4 quadrants at 90 deg cannot make a
-  rotating m=2 pattern (same theorem as the posts) — with a 2-fold rotor (pinwheel) use
-  **6 sectors driven 3-phase** (or 8 sectors in quadrature). 4 quadrants only couple to
-  the rotor's m=1 content.
-- **Vertical pull sets the voltage ceiling:** F = eps0 E^2 A/2 is ~3% of rotor weight at
-  100 V, ~50% at ~400 V. Quadrature/3-phase drive keeps sum(V^2) constant, so the pull
-  is static (no vertical shaking); it lowers the levitation height slightly.
-- Practicalities: PCB thickness eats into the 0.41 mm clearance (0.1 mm flex leaves
-  ~0.3 mm); minimize exposed dielectric between sectors (patch charging); the same pads
-  double as charge sensor, tilt/height trim, and lateral damper; ground them during
-  science runs to kill drive systematics. dC/dtheta should be computed properly from
-  slotted_disk_3p5.dxf with a BEM/COMSOL pass before committing to a layout.
+The lossy-dielectric induction-motor variant (old Sec. 8) was not pursued: it
+needs surface resistivity ~1e9-1e10 ohm m, which is unstable in vacuum, and a
+charge-trapping layer on the rotor conflicts with the charge control needed for
+the Pb-212 measurement. The capacitance motor gives deterministic starts without
+modifying the rotor at all.
 
-## 8. Lossy-dielectric coating on the rotor bottom (induction motor)
+## 8. Still-valid diagnostics from the post era
 
-A **lossless** dielectric coating does nothing useful: a uniform coating on a circular
-disk has no azimuthal asymmetry, and polarization with no loss gives no average torque.
-The interesting version is a **lossy** layer: induced charge lags the traveling
-potential wave by the charge-relaxation time tau_c = eps/sigma, giving a genuine
-asynchronous induction torque, peaked when omega_slip * tau_c ~ 1:
+These remain the right measurements to confirm the mechanism once the stator is
+installed (they now apply to the stator drive):
 
-- Peak torque with matched loss: ~1e-9 N m at 100 V (tangential Maxwell stress
-  ~0.1 N/m^2 over the disk) — same order as the capacitance motor.
-- **Self-starting at any drive frequency, no capture problem, direction reverses
-  instantly with the field's sense of rotation** — operationally the nicest possible
-  behavior.
-- The catch: matched loss requires resistivity ~1e9-1e10 ohm m ("antistatic" range;
-  kapton at 1e15 is far too insulating, graphite far too conductive). Surface/bulk
-  conductivity in that range is notoriously humidity- and temperature-dependent and
-  tends to fall in vacuum, so the torque peak is material-uncertain.
-- A charge-trapping dielectric on the rotor also conflicts with the experiment's charge
-  control requirements (patch potentials, slow charge relaxation when you need to add
-  back alpha charge) and adds a random-torque systematic.
-
-**Recommendation:** planar sector electrodes + bare graphite (capacitance motor) with a
-frequency ramp or camera commutation gives deterministic starts and ~15 s reversals
-without any new rotor coating; keep the lossy coating as a fallback to test on a dummy
-rotor if a self-starting open-loop drive turns out to be worth the systematics.
+1. **Voltage scaling:** max sustainable ramp rate vs drive voltage. Quadratic
+   confirms the capacitance/induced-dipole mechanism.
+2. **Charge dependence:** repeat after adding/removing charge with UV/filament.
+   No change -> capacitance motor, i.e. reproducible indefinitely.
+3. **Detent structure:** with the stator, energising one phase should snap the
+   rotor into one of 8 detents, and stepping A->B->C should walk it 15 deg per
+   step. This directly calibrates tau_max.
+4. **Slip angle:** camera angle minus known drive phase while locked gives the
+   full torque curve tau(delta) for free.

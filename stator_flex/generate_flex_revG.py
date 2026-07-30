@@ -219,12 +219,20 @@ checks = [
 for name, v in checks:
     print(f"  {name:44s} {v:6.3f} mm  {'OK' if v >= 0.079 else 'FAIL'}")
 
-A1SQ, I_TOT = 0.438, 1.88e-11
-for label, tau_raw in [("no shim, h~0.37", 3.37e-12), ("shim<=Ø5.8, h~0.27", 9.81e-12)]:
-    tau = tau_raw * A1SQ * 4
-    print(f"{label} mm, 200 V: tau ~ {tau:.1e} N m, "
-          f"0->10 Hz {2*np.pi*10/(0.5*tau/I_TOT)/60:.1f} min")
-eps0, h, a = 8.854e-12, 0.31e-3, 0.60e-3
+A1SQ, I_TOT = 0.438, 1.88e-11     # 3-phase stator rotating-wave amplitude^2
+# cap: fraction of the rotor's available m=8 coupling seen by the electrode
+# annulus at this gap (coupling_vs_radius.py); tau_raw is the full-coupling
+# value from analyze_snowflake_dxf.py at 100 V
+print(f"\nDrive performance (3-phase m=8, annulus {R_IN:.2f}-{R_OUT:.2f} mm):")
+for label, tau_raw, cap in [("no shim,    h=0.37", 3.37e-12, 0.842),
+                            ("0.1mm shim, h=0.27", 9.81e-12, 0.894)]:
+    for V in (100, 200):
+        tau = tau_raw * A1SQ * cap * (V / 100) ** 2
+        om = np.sqrt(M * tau / I_TOT)
+        print(f"  {label} mm, {V:3d} V: tau = {tau:.2e} N m, capture "
+              f"{om/2/np.pi:.2f} Hz, 0->10 Hz mech "
+              f"{2*np.pi*10/(0.5*tau/I_TOT)/60:5.1f} min")
+eps0, h, a = 8.854e-12, 0.31e-3, R_CTR * 1e-3
 Ez = 10.0 / h * (1 - h / np.sqrt(h**2 + a**2))
 kz = 9.89e-6 * (2 * np.pi * 15.0) ** 2
 print(f"CTR charge drive, 10 V: E_z ~ {Ez:.2e} V/m; F/e = {Ez*1.602e-19:.1e} N; "

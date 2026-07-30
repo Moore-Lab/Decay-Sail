@@ -23,10 +23,13 @@ all the checks follow. Nothing is hand-drawn.
 - 24 sectors on a 15 deg pitch, driven 3-phase, synthesise the rotating m = 8
   potential. **Rotor speed = f_electrical / 8.** Reverse by swapping two phases.
 
-| Configuration (200 V) | tau_max | capture | 0 -> 10 Hz mech |
-|---|---|---|---|
-| no shim, h ~ 0.37 mm | ~6e-12 N m | 0.25 Hz | ~7 min |
-| 0.1 mm shim, h ~ 0.27 mm | ~1.7e-11 N m | 0.43 Hz | ~2.3 min |
+| Gap h | Drive | tau_max | capture | 0 -> 10 Hz mech |
+|---|---|---|---|---|
+| 0.37 mm (no shim) | 200 V | 5.0e-12 N m | 0.23 Hz | 7.9 min |
+| **0.27 mm (0.1 mm shim)** | **200 V** | **1.5e-11 N m** | **0.41 Hz** | **2.6 min** |
+
+(Includes the 3-phase stator amplitude and the 84-89% of the rotor's available
+coupling that the electrode annulus actually sees. Torque scales as V^2.)
 
 Torque scales as V^2 and rises steeply as the rotor-electrode gap `h` shrinks:
 **the shim under the board centre is the main tuning knob**, worth 2-3x.
@@ -51,6 +54,15 @@ available m = 8 coupling; inner edge is at the 0.08 mm minimum-copper limit),
 0.10 mm gaps, no ground copper inside the active area (it would screen the drive
 field), bottom copper kept clear of the grounded magnet except the contact ring.
 
+## Figures
+
+| | |
+|---|---|
+| ![board in CAD](figures/cad_assembly.png) | ![gerber check](figures/flexG_gerber_check.png) |
+| Board mounted on the PEEK plate (CAD) | Gerbers read back and rasterised |
+| ![rotor harmonics](figures/snowflake_harmonics.png) | ![coupling vs radius](figures/coupling_vs_radius.png) |
+| Rotor harmonic content: the m=8 family | How much torque the annulus captures |
+
 ## Files
 
 | File | What it does |
@@ -64,7 +76,7 @@ field), bottom copper kept clear of the grounded magnet except the contact ring.
 | `emit_fusion_scr.py` | optional: Fusion Electronics build script |
 | `flex_spec.md` | full design spec, operating protocol, first-article tests |
 | `spinup_note.md` | why the side posts were unreliable; mechanism analysis |
-| `fab/` | Gerbers, drill file, PCBWay design rules, fab notes — ready to order |
+| `fab/` | Gerbers, one plated drill file (64 holes), PCBWay design rules, fab notes — ready to order |
 | `inputs/` | rotor and mounting-plate DXFs the design is derived from |
 
 ## Reproducing
