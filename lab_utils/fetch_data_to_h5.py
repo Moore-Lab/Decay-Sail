@@ -6,14 +6,29 @@ from datetime import datetime
 # LIGO documentation about fetch function and gaps: https://nds.docs.ligo.org/nds2-client/Beta/User/html/classNDS_1_1abi__0_1_1connection.html#aabecab944720bb214069b7271edc6c63
 
 # configure the channel and duration
-CHANNEL =  'Y1:RDS-LES_YAW_OUT_DQ' # specify the channel to fetch data from
-DURATION = 60 * 60 * 9 # Fetch data for 9 hours
+CHANNEL =  'Y1:RDS-LES_PIT_OUT_DQ' # specify the channel to fetch data from
 GPS_UNIX_OFFSET = 315964800 # Offset from Unix time to GPS time (1970-01-01 to 1980-01-06)
 # Add Unix time - might be easier than finding GPS start and end times manually
 
-# Can look at GUI to find best GPS start and end times for data retrieval
-gps_start = 1444695131 # Example fixed GPS start time - CHANGE as needed
-gps_end = gps_start + DURATION # or can give a specific end time
+# 2026-07-02 spindown run, EXTENSION window.
+# The already-exported PIT/YAW files (gps 1467041418-1467054018.0) show the disk
+# still fully driven right up to the last available sample at 18:50 cymac UTC --
+# no spindown visible in that file. This window picks up right where that one
+# stopped and adds a 3h margin to try to actually capture the free decay.
+# Run this multiple times, swapping CHANNEL each time:
+#   'Y1:RDS-LES_PIT_OUT_DQ', 'Y1:RDS-LES_YAW_IN1_DQ',
+#   'Y1:RDS-OUTS_V1_OUT_DQ', 'Y1:RDS-OUTS_V2_OUT_DQ',
+#   'Y1:RDS-OUTS_V3_OUT_DQ', 'Y1:RDS-OUTS_V4_OUT_DQ'
+# NOTE: known electrode issue this run -- V1/V2 keep showing signal longer than
+# V3/V4, i.e. the four channels do NOT turn off simultaneously. Need all four
+# (not just V1) to find the true final drive-off; the notebook's current
+# V1-only detection will be misleading here.
+# Also still need V1-V4 for the ORIGINAL window (gps_start=1467041418,
+# gps_end=1467054018) to confirm what the electrodes were doing during the
+# 17:53-18:15 on/off-looking cluster seen in PIT/YAW.
+gps_start = 1467053418   # 18:50:00 cymac UTC 2026-07-02 (where prior export ends)
+gps_end   = 1467064218   # 21:50:00 cymac UTC 2026-07-02 (+3h margin)
+DURATION  = gps_end - gps_start
 
 # Connect to NDS2 connection, retrieve data, and set parameters for gaps
 conn = nds2.connection ('cymac1', 8088)
