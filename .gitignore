@@ -7,3 +7,7 @@ __pycache__
 *.hdf5
 *.h5
 *.avi
+
+# local data cache pulled from Dropbox + generated analysis figures
+analysis/_pd_cache/
+analysis/laser_dark_vs_on_*.png
