@@ -135,6 +135,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 
 | constant | value | valid for | note |
 |---|---|---|---|
+| commanded→power | 11.87 µW/count above 735 | ≤ 07-20 | **~44% high on 08-03** — see below |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; ~1.6 µW/√Hz post-tilt |
 | `I_KGM2` | 1.88e-11 | assumed | from `momentum-simulation/thermal_noise_spindown.py`, never measured |
@@ -157,6 +158,26 @@ Revisit both once the new stage is installed and τ re-measured.
 
 ---
 
+## Throughput discrepancy — commanded counts vs delivered power
+
+On the 2026-08-03 run the laser was commanded to **1400 counts**. The 2026-07-20
+calibration (11.87 µW/count above a 735-count threshold) predicts **7.89 mW**; the PD
+read 1550 counts, which at the 283 counts/mW measured against the Ophir on 07-28 / 07-31
+is **5.48 mW** — the commanded figure is **~44% high**.
+
+The commanded calibration is self-consistent for July: it reproduces the step table's
+1600 cts = 10.34 mW (as 10.27) and 1400 cts = 8.0 mW exactly. So it was right *then*.
+The PD figure is the better anchored one now — 5.5 mW sits between the two meter
+calibration points and the chain measured 1.4% linear across them.
+
+So throughput to the chamber appears to have dropped ~30% between 07-20 and 08-03.
+Candidates: the 07-27 realignment, the PBS pickoff diverting its share, or drift in the
+laser itself. **Unresolved** — re-running `lab_utils/laser_power_calibration.py` would
+settle it, and until then commanded counts should not be converted to power for any
+post-07-27 dataset.
+
+---
+
 ## Open items
 
 - [ ] Clean post-tilt γ measurement — driven-relaxation fit to the 08-03 decay, or a
@@ -170,5 +191,8 @@ Revisit both once the new stage is installed and τ re-measured.
 - [ ] Tilt the ND filter to break the air-gap etalon.
 - [ ] Commanded laser counts before and after the 08-03 step (PD went 2359 → 1545).
 - [ ] Get the pressure gauge logging.
+- [ ] Re-run `lab_utils/laser_power_calibration.py` — the commanded-count→power
+      calibration is ~44% high against the PD on 08-03 (see above). Until it is redone,
+      commanded counts cannot be converted to power for post-07-27 data.
 - [ ] Measure `I` directly rather than inheriting it — the electrode drive gives it from
       the high-frequency asymptote of χ(f).
