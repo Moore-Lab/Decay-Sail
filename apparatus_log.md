@@ -125,7 +125,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 | 3 mW dark / ON | 07-27 → 07-29 | removed same day | good | at chamber, head-on |
 | 10 mW noise run | 07-31 → 08-02 | no | good | at chamber, head-on |
 | spindown (electrode drive-off) | 08-03 → 08-04 | no | good | PBS251 pickoff |
-| stability run | 08-04 → 08-05 | no | good | PBS251 pickoff |
+| stability run (1600 cts) | 08-04 → 08-05 | no | good | PBS251 pickoff |
 
 τ_free = 67.65 min applies **only to the first row**.
 
@@ -135,7 +135,8 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 
 | constant | value | valid for | note |
 |---|---|---|---|
-| commanded→power | 11.87 µW/count above 735 | ≤ 07-20 | **~44% high on 08-03** — see below |
+| commanded→power | 11.87 µW/count above 735 | **still good** | verified to 3.6% by direct measurement 08-03 |
+| PD counts/mW | 283 | 07-28 → 07-31 only | **203 on 08-03** (−28%); use measured chamber power |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
 | `I_KGM2` | 1.88e-11 | assumed | from `momentum-simulation/thermal_noise_spindown.py`, never measured |
@@ -158,23 +159,35 @@ Revisit both once the new stage is installed and τ re-measured.
 
 ---
 
-## Throughput discrepancy — commanded counts vs delivered power
+## PD scale shift — the PD, not the commanded calibration
 
-On the 2026-08-03 run the laser was commanded to **1400 counts**. The 2026-07-20
-calibration (11.87 µW/count above a 735-count threshold) predicts **7.89 mW**; the PD
-read 1550 counts, which at the 283 counts/mW measured against the Ophir on 07-28 / 07-31
-is **5.48 mW** — the commanded figure is **~44% high**.
+On the 2026-08-03 run the laser was commanded to **1400 counts** and the chamber power
+was **measured at 7.62 mW**. The 2026-07-20 commanded-count calibration
+(11.87 µW/count above a 735-count threshold) predicts 7.89 mW — **agreement to 3.6%**,
+inside its own repeatability. **That calibration is sound.**
 
-The commanded calibration is self-consistent for July: it reproduces the step table's
-1600 cts = 10.34 mW (as 10.27) and 1400 cts = 8.0 mW exactly. So it was right *then*.
-The PD figure is the better anchored one now — 5.5 mW sits between the two meter
-calibration points and the chain measured 1.4% linear across them.
+What moved is the PD. It read 1550 counts for that 7.62 mW, i.e. **203 counts/mW**,
+against **280.6** (07-28) and **284.6** (07-31) measured head-on against the Ophir. The
+PD has lost **~28% of its response relative to chamber power**, between 07-31 and 08-03
+— which is when the PBS pickoff was installed.
 
-So throughput to the chamber appears to have dropped ~30% between 07-20 and 08-03.
-Candidates: the 07-27 realignment, the PBS pickoff diverting its share, or drift in the
-laser itself. **Unresolved** — re-running `lab_utils/laser_power_calibration.py` would
-settle it, and until then commanded counts should not be converted to power for any
-post-07-27 dataset.
+- **Use measured chamber power** for post-08-03 datasets, not the 283 counts/mW scale.
+- The PD remains fine as a *relative* monitor (its 1.4% linearity was measured across
+  3–10 mW); it is the absolute scale that has shifted.
+- Worth finding out *why* — a 28% change in the PD's share of the beam suggests its tap
+  was disturbed when the PBS went in.
+
+### Consequence: the laser torque has dropped too
+
+The 08-03 fit gives a drive torque of 2.03e-14 N·m at 7.62 mW, i.e. **2.66e-15 N·m/mW**
+against the July calibration of **1.19e-14 N·m/mW** — **4.5× lower** (4.5–5.4× across the
+f_ss method spread).
+
+Combined with damping 6.4× worse, the sustainable rotation rate
+`f_ss = κP/(2πIγ)` is **~29× lower than in July**. That is why the laser could not hold
+the rotor at a power that would have worked before the tilt stage came out, and it is a
+torque-coupling change as well as a damping change — worth separating once the new stage
+is in.
 
 ---
 
@@ -191,8 +204,10 @@ post-07-27 dataset.
 - [ ] Tilt the ND filter to break the air-gap etalon.
 - [ ] Commanded laser counts before and after the 08-03 step (PD went 2359 → 1545).
 - [ ] Get the pressure gauge logging.
-- [ ] Re-run `lab_utils/laser_power_calibration.py` — the commanded-count→power
-      calibration is ~44% high against the PD on 08-03 (see above). Until it is redone,
-      commanded counts cannot be converted to power for post-07-27 data.
+- [ ] Find out why the PD lost ~28% of its response relative to chamber power when the
+      PBS pickoff was installed — was its tap disturbed? Re-anchor counts/mW against the
+      Ophir head-on.
+- [ ] Separate the 4.5× torque-per-mW drop into beam-geometry vs sail-alignment causes
+      once the new tilt stage is in.
 - [ ] Measure `I` directly rather than inheriting it — the electrode drive gives it from
       the high-frequency asymptote of χ(f).
