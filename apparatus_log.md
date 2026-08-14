@@ -46,13 +46,20 @@ The chamber no longer has the tilt stage. The damping constant is **worse** as a
   power-noise requirement `δP_req = S_N/(∂N/∂P)` moves with it — **0.735 µW/√Hz at
   τ = 67.65 min becomes ~1.6 µW/√Hz at τ = 14.5 min**. The rotor response corner γ/2π
   moves ~0.039 → ~0.18 mHz.
-- **Measured post-change value: τ = 10.5 ± 0.2 min** (`spindown_20260803.ipynb`), from a
-  driven-relaxation fit `f_ss + (f₀−f_ss)e^(−γt)` — the laser is on throughout, so the
-  free-decay formula `γ = −(df/dt)/f` reads `γ − A/f` and understates γ (it gives ~11.6
-  min). Two independent methods bracket it at 10.24–10.54 min; the ~3% spread between
-  them exceeds the 0.06 min statistical error, hence ±0.2. **Damping is 6.4× worse than
-  with the tilt stage**, giving a thermal floor 2.53× higher and a requirement of
-  ~1.86 µW/√Hz in that configuration.
+- **Measured post-change value: τ = 10.5 ± 0.1 min** (`spindown_20260803.ipynb`). The
+  electrodes drove the rotor at 3.9000 Hz phase-locked and switched off at t = 31.94 min;
+  the laser stayed on, so the decay is fitted as a driven relaxation
+  `f_ss + (f₀−f_ss)e^(−γt)`. The free-decay formula `γ = −(df/dt)/f` reads `γ − A/f` when
+  a drive is present and returns ~11.1 min. Curve fit and model-independent regression
+  agree to 0.1% (10.54 / 10.55 min). **Damping is 6.4× worse than with the tilt stage**,
+  giving a thermal floor 2.53× higher and a requirement of ~1.86 µW/√Hz in that
+  configuration.
+- **Harmonic caution for all YAW work.** The dominant YAW line is the sail's **second**
+  harmonic — two wings pass the sensor per revolution — so the Hilbert locks to 2× the
+  rotation rate. Confirmed against the known electrode drive: the 3.898 Hz line equals
+  the 3.9000 Hz drive to 0.05%, and 7.797 Hz is 2×. γ is immune (all harmonics decay at
+  the same rate) but every *rate* must be divided by 2. Getting this wrong pushed the two
+  γ methods 3% apart and doubled the fit residual; fixing it brought them to 0.1%.
 - Still worth a deliberate **laser-off** spindown once the new stage is in, so the simple
   free-decay model applies and no drive term has to be fitted alongside γ.
 - Note on timing: this happened the same day the 3 mW DARK record began (20:51 UTC), so
