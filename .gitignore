@@ -11,3 +11,5 @@ __pycache__
 # local data cache pulled from Dropbox + generated analysis figures
 analysis/_pd_cache/
 analysis/laser_dark_vs_on_*.png
+# generated diagnostic figures
+analysis/spindown_*_overview.png
