@@ -44,8 +44,8 @@ The chamber no longer has the tilt stage. The damping constant is **worse** as a
   everything after this point.
 - **Propagates to:** the thermal torque floor `S_N = √(4k_BTγI)` scales as √γ, so the
   power-noise requirement `δP_req = S_N/(∂N/∂P)` moves with it — **0.735 µW/√Hz at
-  τ = 67.65 min becomes ~1.6 µW/√Hz at τ = 14.5 min**. The rotor response corner γ/2π
-  moves ~0.039 → ~0.18 mHz.
+  τ = 67.65 min becomes ~1.86 µW/√Hz at the measured τ = 10.5 min**. The rotor response
+  corner γ/2π moves 0.039 → 0.25 mHz.
 - **Measured post-change value: τ = 10.5 ± 0.1 min** (`spindown_20260803.ipynb`). The
   electrodes drove the rotor at 3.9000 Hz phase-locked and switched off at t = 31.94 min;
   the laser stayed on, so the decay is fitted as a driven relaxation
@@ -124,7 +124,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 | laser step-down | 07-05 → 07-09 | **yes** | misaligned + LN amp | none |
 | 3 mW dark / ON | 07-27 → 07-29 | removed same day | good | at chamber, head-on |
 | 10 mW noise run | 07-31 → 08-02 | no | good | at chamber, head-on |
-| spindown (accidental) | 08-03 → 08-04 | no | good | PBS251 pickoff |
+| spindown (electrode drive-off) | 08-03 → 08-04 | no | good | PBS251 pickoff |
 | stability run | 08-04 → 08-05 | no | good | PBS251 pickoff |
 
 τ_free = 67.65 min applies **only to the first row**.
@@ -137,7 +137,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 |---|---|---|---|
 | commanded→power | 11.87 µW/count above 735 | ≤ 07-20 | **~44% high on 08-03** — see below |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
-| `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; ~1.6 µW/√Hz post-tilt |
+| `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
 | `I_KGM2` | 1.88e-11 | assumed | from `momentum-simulation/thermal_noise_spindown.py`, never measured |
 | `KAPPA_PD_OLD` | 7.35e-16 N·m/count | step-down gain only | do not reuse post-amp-removal |
 
