@@ -762,6 +762,11 @@ def main():
 
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
+    # SIGHUP too: a 20-minute run is long enough that the terminal can be closed,
+    # or an ssh session drop, while electrodes are energised. Without this the
+    # process dies on the default SIGHUP action and leaves them live.
+    if hasattr(signal, 'SIGHUP'):
+        signal.signal(signal.SIGHUP, _signal_handler)
 
     if DRY_RUN:
         print('DRY RUN -- no hardware will be touched. Pass --live to drive.\n')
