@@ -455,6 +455,21 @@ def cmd_calibrate(args):
     return 0
 
 
+def _phase_index(spec):
+    """'A'/'B'/'C' or an electrode number -> index into PHASE_*, or None if the
+    number is not one of the three phases (e.g. the centre electrode)."""
+    s = str(spec).strip().upper()
+    if s in PHASE_NAMES:
+        return PHASE_NAMES.index(s)
+    try:
+        n = int(s)
+    except ValueError:
+        raise SystemExit(f"--phase must be A/B/C or an electrode number 1-4, got '{spec}'")
+    if n < 1 or n > 4:
+        raise SystemExit(f"--phase electrode number must be 1-4, got {n}")
+    return PHASE_ELECTRODES.index(n) if n in PHASE_ELECTRODES else None
+
+
 def cmd_detent(args):
     """First-article test 3 -- and the one measurement the missing shim does not
     degrade, because it is pure DC: no ramp, no capture bandwidth, no timing.
@@ -472,13 +487,57 @@ def cmd_detent(args):
         return 1
     banner(args.counts, 0.0)
     print(f'\nDC detent test: {args.counts:.0f} counts, {args.dwell:.0f} s per step')
-    print(f'  {360.0 / M_DRIVE:.1f} deg mech between detents, '
-          f'{120.0 / M_DRIVE:.1f} deg mech per A->B->C step')
-    print('  Watch the rotor (or the camera) -- you are looking for a discrete '
-          'snap,\n  then a repeatable 15 deg walk.\n')
+    print(f'  {360.0 / M_DRIVE:.1f} deg mech between detents')
+    if args.phase is None:
+        print(f'  {120.0 / M_DRIVE:.1f} deg mech per A->B->C step')
+        print('  Watch the rotor (or the camera) -- you are looking for a discrete '
+              'snap,\n  then a repeatable 15 deg walk.\n')
+    else:
+        print('  Watch for CAPTURE: a moving rotor going quiet and staying quiet\n'
+              '  while the electrode is on, then picking up again on release.\n')
 
     guard_oscillator()
     previous = guard_tramp()
+
+    # --phase: repeated INDEPENDENT capture attempts on ONE electrode.
+    #
+    # The A->B->C walk cannot compare electrodes fairly. Whether a detent captures
+    # depends on where the rotor is and how fast it is moving when the field
+    # switches on, not on torque alone -- so in a walk the first electrode gets a
+    # settled rotor and the later ones get one that the earlier steps just stirred
+    # up. On 2026-08-21 V2 captured (rms 22.5 -> 8.6) while V3 and V4 appeared to
+    # do nothing, but they only ever saw the hard case. This gives each electrode
+    # the same test: energise, hold, release, let it recover, repeat.
+    if args.phase is not None:
+        idx = _phase_index(args.phase)
+        pv = PHASE_PVS[idx] if idx is not None else \
+            f'{PREFIX}_V{int(args.phase)}_OFFSET'
+        label = (f'phase {PHASE_NAMES[idx]} (V{PHASE_ELECTRODES[idx]})'
+                 if idx is not None else f'V{int(args.phase)}')
+        print(f'\n  single-electrode test: {label}, {args.cycles} attempt(s) of '
+              f'{args.dwell:.0f} s\n  with {args.release:.0f} s grounded between, so '
+              f'each attempt is independent.')
+        try:
+            for cycle in range(args.cycles):
+                if _STOPPING:
+                    raise KeyboardInterrupt
+                put(pv, args.counts, wait=True, echo=False)
+                print(f'  attempt {cycle + 1}/{args.cycles}  {label} ON '
+                      f'({args.counts:.0f} cts) for {args.dwell:.0f} s')
+                if not DRY_RUN:
+                    time.sleep(args.dwell)
+                zero_all(echo=False)
+                print(f'    released, {args.release:.0f} s grounded')
+                if not DRY_RUN and cycle < args.cycles - 1:
+                    time.sleep(args.release)
+        except KeyboardInterrupt:
+            print('\n  stopped by user.')
+        finally:
+            zero_all(echo=False)
+            restore_tramp(previous)
+            print('  all electrodes at 0 counts, TRAMP restored.')
+        return 0
+
     order = [0, 2, 1] if args.reverse else [0, 1, 2]
     try:
         for cycle in range(args.cycles):
@@ -648,8 +707,19 @@ def build_parser():
     sp = sub.add_parser('detent', help='first-article DC detent test')
     sp.add_argument('--counts', type=float, default=DEFAULT_AMP)
     sp.add_argument('--dwell', type=float, default=20.0, help='s per step')
-    sp.add_argument('--cycles', type=int, default=3)
+    sp.add_argument('--cycles', type=int, default=3,
+                    help='A->B->C walks (or, with --phase, capture attempts)')
     sp.add_argument('--reverse', action='store_true')
+    sp.add_argument('--phase', default=None, metavar='A|B|C|1-4',
+                    help='energise ONE electrode instead of walking A->B->C, '
+                         'repeatedly, releasing between attempts. This is how you '
+                         'compare electrodes fairly -- in a walk, the first one gets '
+                         'a settled rotor and the rest get one the earlier steps just '
+                         'stirred up. Accepts the centre electrode too, which should '
+                         'show NO capture at any drive level if it really is the '
+                         'centre disk.')
+    sp.add_argument('--release', type=float, default=20.0,
+                    help='s grounded between attempts (default 20)')
 
     sp = ac_opts(sub.add_parser('hold', help='fixed-frequency three-phase'))
     sp.add_argument('-f', '--freq', type=float, default=0.02,
