@@ -13,3 +13,14 @@ analysis/_pd_cache/
 analysis/laser_dark_vs_on_*.png
 # generated diagnostic figures
 analysis/spindown_*_overview.png
+
+# personal Claude Code config (absolute paths, per-machine)
+.claude/
+
+# notebook figure dumps + regenerable analysis figures
+plots/
+output.png
+7-2-drives.png
+ringdown_0730.png
+analysis/q_vs_pressure*.png
+analysis/levitation_*.png
