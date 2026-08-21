@@ -88,7 +88,22 @@ TRAMP_PV = f'{PV}_TRAMP'
 M_DRIVE = 8              # rotor speed = f_elec / M_DRIVE; also the detent count
 I_KGM2  = 1.88e-11       # ASSUMED, never measured (see apparatus_log.md)
 GAP_MM  = 0.27           # 0.27 with the 0.1 mm shim, 0.37 without
-DRIVE_COUNTS = 6400.0    # peak amplitude per phase
+DRIVE_COUNTS = 6400.0    # peak AC amplitude per phase
+
+# DC pedestal per phase. NOT a workaround for a unipolar amplifier -- it is what
+# switches the m=8 torque channel on. Expanding tau = 1/2 (dC/dtheta) V^2 for
+# V_k = V_dc + V_ac*cos(phi + delta_k) over the 24-sector/3-phase pattern gives two
+# channels, and both lock the rotor at the same speed f_elec/8:
+#     rotor m=8   <- amplitude V_dc * V_ac   (winds 1x per electrical cycle)
+#     rotor m=16  <- amplitude V_ac^2        (winds 2x per electrical cycle)
+# At V_dc = 0 the m=8 channel vanishes identically, leaving only m=16 -- which is the
+# stronger rotor harmonic but suffers twice the gap attenuation exp(-m h / r).
+# Maximising V_dc*V_ac subject to V_dc + V_ac <= V_max gives V_dc = V_ac = V_max/2,
+# hence DRIVE_DC == DRIVE_COUNTS: the same 6400/6400 split sweep_oscillator.py
+# already used on the old posts. Override with --dc only to separate the two
+# channels -- m=8 scales with V_dc, m=16 does not.
+DRIVE_DC = DRIVE_COUNTS
+
 TORQUE_MARGIN = 0.5      # fraction of tau_max used while ramping ("<=50%")
 
 # tau_max at 100 V, from the design notes. Torque goes as V^2.
@@ -155,8 +170,17 @@ def phase_gains(reverse=False):
 # ===========================================================================
 # EPICS
 # ===========================================================================
+# Dry-run shadow of the control system: every put is remembered so a later get reads
+# it back. Without this, get() always returned its default, current_f_mech() always
+# read 0.0, and `spindown`, `reverse` and `stop` all bailed out with "drive is at
+# zero" -- the three commands most worth rehearsing were the three the dry run could
+# not exercise. Seeded from --dry-freq so they have a running rotor to act on.
+_DRY_STATE: dict = {}
+
+
 def put(pv, value, wait=False):
     if DRY_RUN:
+        _DRY_STATE[pv] = float(value)
         print(f'    [dry-run] {pv} <- {value}')
         return
     caput(pv, float(value), wait=wait, timeout=2.0)
@@ -164,8 +188,9 @@ def put(pv, value, wait=False):
 
 def get(pv, default=0.0):
     if DRY_RUN:
-        print(f'    [dry-run] read {pv}')
-        return default
+        value = _DRY_STATE.get(pv, default)
+        print(f'    [dry-run] read {pv} -> {value}')
+        return value
     return caget(pv)
 
 
@@ -218,7 +243,19 @@ def ramp(f_from, f_to, rate, label='Ramping'):
 
 
 def enable(reverse=False):
+    """Bring the drive up: DC pedestal, phase gains, oscillator on.
+
+    The pedestal is applied HERE rather than once at setup because
+    ground_phases() zeroes the offsets and both `stop` and the Ctrl-C handler call
+    it. Setting it only at setup meant every run after the first drove bipolar and
+    silently lost the m=8 channel -- the drive would look correct and just be
+    mysteriously feeble, and weaker after a restart than on the first run.
+    """
     put(TRAMP_PV, 0.0)
+    for name in ('A', 'B', 'C'):
+        put(PHASE_OFFSET_PVS[name], DRIVE_DC)
+    print(f'  DC pedestal {DRIVE_DC:.0f} counts/phase -> swing '
+          f'[{DRIVE_DC - DRIVE_COUNTS:.0f}, {DRIVE_DC + DRIVE_COUNTS:.0f}]')
     set_phase_gains(DRIVE_COUNTS, reverse)
     put(PV_ON, 1)
 
@@ -235,7 +272,10 @@ def drive_limits():
 def banner():
     volts, tau, f_cap, rate = drive_limits()
     print('=' * 68)
-    print(f'  drive      {DRIVE_COUNTS:.0f} counts = {volts:.1f} V   gap {GAP_MM} mm')
+    print(f'  drive      {DRIVE_COUNTS:.0f} counts AC on {DRIVE_DC:.0f} DC '
+          f'= {volts:.1f} V pk   gap {GAP_MM} mm')
+    if DRIVE_DC == 0:
+        print('  ! DC pedestal is 0 -- the m=8 torque channel is OFF, only m=16 drives')
     print(f'  tau_max    {tau:.2e} N*m')
     print(f'  capture    {f_cap:.3f} Hz mech   (start below this from rest)')
     print(f'  max ramp   {rate:.4f} Hz mech/s at {TORQUE_MARGIN:.0%} torque margin')
@@ -448,6 +488,14 @@ def build_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--live', action='store_true',
                    help='actually drive the hardware (default is a dry run)')
+    p.add_argument('--dc', type=float, default=None,
+                   help=f'DC pedestal per phase in counts (default {DRIVE_DC:.0f} = '
+                        f'the AC amplitude, which maximises the m=8 torque). Vary '
+                        f'this at fixed amplitude to separate the torque channels: '
+                        f'm=8 scales with it, m=16 does not.')
+    p.add_argument('--dry-freq', type=float, default=1.0, metavar='HZ',
+                   help='mechanical frequency the DRY RUN pretends the rotor is at, '
+                        'so spindown/reverse/stop can be rehearsed (default 1.0)')
     sub = p.add_subparsers(dest='cmd', required=True)
 
     def common(sp, freq_default=None, freq_help='target, Hz MECHANICAL'):
@@ -495,18 +543,24 @@ def build_parser():
 
 
 def main():
-    global DRY_RUN
+    global DRY_RUN, DRIVE_DC
     args = build_parser().parse_args()
     DRY_RUN = not args.live
+    if args.dc is not None:
+        DRIVE_DC = args.dc
     if DRY_RUN:
-        print('DRY RUN -- no hardware will be touched. Pass --live to drive.\n')
+        _DRY_STATE[FREQ_PV] = M_DRIVE * args.dry_freq
+        _DRY_STATE[PV_ON] = 1.0 if args.dry_freq else 0.0
+        print('DRY RUN -- no hardware will be touched. Pass --live to drive.')
+        print(f'  assuming the rotor is at {args.dry_freq:.3f} Hz mech '
+              f'(--dry-freq); reads are shadowed, not from EPICS.\n')
     elif caput is None:
         print('pyepics is not installed -- cannot drive. Run this on cymac1.')
         return 1
 
     handler = {'status': cmd_status, 'spinup': cmd_spinup, 'hold': cmd_hold,
-               'reverse': cmd_reverse, 'sweep': cmd_sweep, 'detent': cmd_detent,
-               'stop': cmd_stop}[args.cmd]
+               'spindown': cmd_spindown, 'reverse': cmd_reverse, 'sweep': cmd_sweep,
+               'detent': cmd_detent, 'stop': cmd_stop}[args.cmd]
     try:
         return handler(args) or 0
     except KeyboardInterrupt:
