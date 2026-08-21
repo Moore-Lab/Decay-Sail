@@ -105,6 +105,54 @@ the head-on meter nonetheless agreed to 0.2% at 0.3–1 mHz on the 07-28 run, so
 etalon is not dominating at those frequencies — but it remains a candidate for
 anomalies at the count levels above.
 
+### 2026-08-21 — first stator drive that measurably moved the rotor
+
+First runs of `lab_utils/stator_epics_drive.py` (EPICS-only, offsets on the electrode
+filter modules). Two DC detent runs, `--cycles 1 --dwell 180`, laser OFF, no shim
+(gap 0.37 mm), rotor already librating from earlier activity. Video via
+`grab_basler.py --record --fps 10`, analysed with `camera_utils/analyze_detent_video.py`.
+
+| electrode | 6400 counts | 3200 counts |
+|---|---|---|
+| pre-drive | rms 22.5 | rms 19.9 |
+| **A (V2)** | **rms 8.6 — captured, 2.6x quieter** | rms 19.8 — no effect |
+| B (V3) | rms 24.0 | rms 21.2 |
+| C (V4) | rms 23.0 | rms 23.7 |
+| post-drive | rms 21.1 | rms 23.8 |
+
+**The result: at 6400 counts, energising V2 collapsed the rotor's motion 2.6x and held
+it quiet for the full 180 s; switching the detent to V3 kicked it straight back up.
+That is a detent capturing a moving rotor — a static torque the four side posts could
+not produce at any drive level.** At 3200 counts the same electrode did nothing.
+
+**So the capture threshold for the rotor's libration energy that day lies between 3200
+and 6400 counts.** Since tau ~ V^2 that is a factual bracket on the drive torque, and
+the first quantitative statement this apparatus has made about the stator. It does not
+yet give tau in N*m, because `VOLTS_PER_COUNT` is still unmeasured.
+
+**What did NOT work.** Extracting a libration frequency to get tau from
+`tau = (2 pi f)^2 I / m`. PC1 explains only ~30% of the masked variance and the peak
+frequencies scatter (0.25, 0.38, 0.77, 1.2, 1.3 Hz) with no consistent scaling between
+the two drive levels — the motion is multi-mode, not one clean oscillator. Treat the
+capture bracket as the result and the frequencies as not yet interpretable.
+
+**Two analysis traps, both hit for real before being caught** (guards now built into
+`analyze_detent_video.py`, which prints both on every run):
+
+1. Selecting the highest-variance pixels finds steep spoke edges, where the ~0.14%
+   lamp ripple looks like large motion. This produced a confident and entirely wrong
+   "the rotor oscillates at 0.78 Hz" from a clip in which nothing moved.
+2. Coherence with frame brightness does **not** prove artefact: the rotor is a few
+   percent of the frame, so real motion modulates the frame mean too. The correct
+   discriminator is **localisation** — on-rotor vs off-rotor change ratio, 9.4x and
+   19.0x on these two runs. Illumination lights the static mounts as well; motion does
+   not.
+
+Rotor motion persisted well after the drive was grounded, as expected with no laser
+and hence no optical damping. `V{n}_TRAMP` was found at 1.0 s on all four electrodes,
+which silently distorts any software-generated sinusoid; the drive script now zeroes it
+for the duration of a run and restores it after.
+
 ---
 
 ## Vacuum
@@ -211,3 +259,16 @@ is in.
       once the new tilt stage is in.
 - [ ] Measure `I` directly rather than inheriting it — the electrode drive gives it from
       the high-frequency asymptote of χ(f).
+- [ ] Measure `VOLTS_PER_COUNT` (`stator_epics_drive.py calibrate` + a meter on the
+      amplifier output). Until then the 3200–6400 count capture bracket cannot be turned
+      into a torque in N·m. The old placeholder 0.03125 is provably wrong — it implies
+      200 V at 6400 counts on an amplifier that stops at ~80 V.
+- [ ] Narrow the capture bracket: detent runs at 4000 / 4800 / 5600 counts against a
+      comparable starting libration amplitude. Note the threshold depends on the rotor's
+      energy at the time, so record the pre-drive rms for each.
+- [ ] Settle which `V{n}` is the centre electrode by continuity check at the next chamber
+      opening. V2 captured the rotor on 08-21, so V2 has real angular authority and is
+      *not* the centre disk — but that does not by itself confirm V1 is.
+- [ ] Swap the ½" electrode stands for 4-40 vented screws and fit a ≤Ø5.8 mm, 0.1 mm
+      shim. The stands are a live confound (tall conductors at r ≈ 9 mm) and the shim is
+      worth 3.2× torque, which at the ~80 V ceiling is no longer optional.
