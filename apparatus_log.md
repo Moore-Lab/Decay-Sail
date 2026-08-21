@@ -121,9 +121,18 @@ filter modules). Two DC detent runs, `--cycles 1 --dwell 180`, laser OFF, no shi
 | post-drive | rms 21.1 | rms 23.8 |
 
 **The result: at 6400 counts, energising V2 collapsed the rotor's motion 2.6x and held
-it quiet for the full 180 s; switching the detent to V3 kicked it straight back up.
-That is a detent capturing a moving rotor — a static torque the four side posts could
-not produce at any drive level.** At 3200 counts the same electrode did nothing.
+it quiet for the full 180 s. That is a detent capturing a moving rotor — a static
+torque the four side posts could not produce at any drive level.** At 3200 counts the
+same electrode did nothing.
+
+**Only V2 is demonstrated; V3 and V4 are untested, not shown broken.** The rms returning
+to ~24 when the detent moved to V3 is *not* evidence V3 did anything — switching from V2
+to V3 releases V2's detent and applies V3 in the same instant, and a return to the
+pre-drive amplitude (22.5) is fully explained by release alone. More generally an
+A→B→C walk cannot compare electrodes: capture depends on where the rotor is and how fast
+it is moving when the field switches on, so the first electrode meets a settled rotor and
+the rest meet one the earlier steps just stirred up. Use `detent --phase` (added
+2026-08-21) to give each electrode the same test.
 
 **So the capture threshold for the rotor's libration energy that day lies between 3200
 and 6400 counts.** Since tau ~ V^2 that is a factual bracket on the drive torque, and
