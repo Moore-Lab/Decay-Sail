@@ -162,6 +162,45 @@ and hence no optical damping. `V{n}_TRAMP` was found at 1.0 s on all four electr
 which silently distorts any software-generated sinusoid; the drive script now zeroes it
 for the duration of a run and restores it after.
 
+### 2026-08-21, 16:12 — five-electrode `--phase` sweep (RESULTS PENDING)
+
+Follow-up designed to fix the flaw in the morning runs: an A→B→C walk cannot compare
+electrodes, because capture depends on where the rotor is and how fast it is moving when
+the field switches on, so the first electrode meets a settled rotor and the rest meet one
+the earlier steps stirred up. `detent --phase` gives each electrode the same test.
+
+Sequence, 6400 counts, 3 attempts of 60 s with 30 s grounded between, 4:00 per electrode:
+
+| electrode | start | role |
+|---|---|---|
+| V2 | 16:12:01 | control — the one that captured in the morning |
+| V3 | 16:16:02 | first fair trial |
+| V4 | 16:20:02 | first fair trial |
+| V1 | 16:24 | **centre-disk test** — symmetric, so must show NO capture from any rotor state |
+| V2 | 16:28 | control again — brackets the session against drift in rotor energy |
+
+Laser off, no shim, gap 0.37 mm. Camera recording started 16:10:37 (so video t=0 is
+16:10:37; the drive begins at t≈84 s), one continuous clip at 10 fps.
+
+Artifacts, both on Dropbox at `Microspheres/TFINER/videos/`:
+`output_basler_gps*.avi` (the sweep) and `phase_sweep.log` (the exact electrode start
+times, which is what the analyser reads so no window boundary is guessed).
+
+To score it:
+
+```
+python camera_utils/analyze_detent_video.py <video> \
+       --sweep-log phase_sweep.log --dwell 60 --release 30 --attempts 3
+```
+
+Reports rms(ON)/rms(OFF) per electrode. Below 0.6 = capture, above 0.85 = nothing.
+**Read the two V2 control blocks first:** if they disagree with each other, the rotor's
+energy drifted across the 20 minutes and the electrodes in between are not comparable.
+
+`V{n}_TRAMP` was again found at 1.0 s on all four at the start of the sweep — it resets
+between runs, so anything writing offsets to these channels must zero it first or it is
+fighting a 1-second ramp.
+
 ---
 
 ## Vacuum
