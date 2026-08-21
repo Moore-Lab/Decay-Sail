@@ -151,6 +151,83 @@ def analyse(path, drive_offset, dwell, ncycles, quiet=False):
     return rows
 
 
+def analyse_sweep(path, log_path, dwell, release, attempts):
+    """Score a `detent --phase` sweep: is each electrode's ON window quieter?
+
+    Capture is the signature, not movement: a moving rotor going quiet while the
+    electrode is on and picking up again on release. So the statistic that matters
+    is rms(ON) / rms(OFF) -- well below 1 means capture. Comparing electrodes by
+    "did it move" is what the A->B->C walk got wrong.
+
+    The electrode start times are read from the sweep log written by the driving
+    loop (lines like `=== V2 16:12:01`), so no boundary has to be guessed.
+    """
+    import time as _time
+    A, fps = load(path)
+    n = len(A); t = np.arange(n) / fps
+    base = os.path.basename(path)
+    gps = int(base.split('gps')[1].split('.')[0])
+    vid_start = gps + GPS_UNIX_OFFSET
+    print(f"\n=== {base}   {n/fps:.0f} s @ {fps:g} fps, "
+          f"starts {_time.strftime('%H:%M:%S', _time.localtime(vid_start))}")
+
+    blocks = []
+    for line in open(log_path):
+        if line.startswith('==='):
+            parts = line.split()
+            el = parts[1]                       # 'V2'
+            hh, mm, ss = (int(x) for x in parts[2].split(':'))
+            lt = _time.localtime(vid_start)
+            wall = _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday,
+                                 hh, mm, ss, 0, 0, -1))
+            blocks.append((el, wall - vid_start))
+    if not blocks:
+        raise SystemExit(f"no '=== V<n> HH:MM:SS' lines in {log_path}")
+
+    mask = rotor_mask(A)
+    ys, xs = np.where(mask)
+    print(f"  rotor mask {mask.sum()} px  centroid ({xs.mean():.0f},{ys.mean():.0f})")
+    d = np.abs(normed(A[min(n//2+20, n-1)]) - normed(A[n//2]))
+    print(f"  rotor-localisation {d[mask].mean()/(d[~mask].mean()+1e-9):.1f}x"
+          f"   frame-mean flicker {np.array([A[i].mean() for i in range(0,n,10)]).std():.4f} cts")
+
+    X = np.empty((n, int(mask.sum())), np.float32)
+    for i in range(n):
+        X[i] = normed(A[i])[mask]
+    X -= X.mean(0)
+    u, s, _ = np.linalg.svd(X, full_matrices=False)
+    pc = u[:, 0] * s[0]
+
+    def rms(a, b):
+        sel = (t >= a) & (t < b)
+        return float(pc[sel].std()) if sel.sum() > fps * 3 else float('nan')
+
+    print(f"\n  {'electrode':>10} {'ON rms':>9} {'OFF rms':>9} {'ON/OFF':>8}   verdict")
+    for el, t0 in blocks:
+        ons, offs = [], []
+        for k in range(attempts):
+            a = t0 + k * (dwell + release)
+            ons.append(rms(a, a + dwell))
+            if k < attempts - 1:
+                offs.append(rms(a + dwell, a + dwell + release))
+        on = np.nanmean(ons); off = np.nanmean(offs)
+        r = on / off if off else float('nan')
+        if np.isnan(r):
+            verdict = 'no data (video too short?)'
+        elif r < 0.6:
+            verdict = 'CAPTURE'
+        elif r < 0.85:
+            verdict = 'weak / partial'
+        else:
+            verdict = 'no capture'
+        print(f"  {el:>10} {on:9.2f} {off:9.2f} {r:8.2f}   {verdict}")
+    print("\n  ON/OFF well below 1 = the electrode quiets the rotor = real angular\n"
+          "  authority. The centre disk is azimuthally symmetric and should show NO\n"
+          "  capture from ANY rotor state, unlike a sector phase where a null can\n"
+          "  just be bad luck. Compare the two V2 control blocks: if they disagree,\n"
+          "  the rotor's energy drifted and the session is inconclusive.")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -159,7 +236,18 @@ def main():
                    help='video time (s) when the drive command started')
     p.add_argument('--dwell', type=float, default=180.0, help='s per phase step')
     p.add_argument('--cycles', type=int, default=1)
+    p.add_argument('--sweep-log', default=None,
+                   help='log from a `detent --phase` sweep (lines "=== V2 16:12:01"). '
+                        'Switches to capture scoring: rms(ON) vs rms(OFF) per electrode.')
+    p.add_argument('--release', type=float, default=30.0,
+                   help='s grounded between attempts, for --sweep-log')
+    p.add_argument('--attempts', type=int, default=3,
+                   help='attempts per electrode, for --sweep-log')
     args = p.parse_args()
+    if args.sweep_log:
+        for v in args.videos:
+            analyse_sweep(v, args.sweep_log, args.dwell, args.release, args.attempts)
+        return
     for v in args.videos:
         analyse(v, args.drive_offset, args.dwell, args.cycles)
     print("\nInterpreting the frequency:")
