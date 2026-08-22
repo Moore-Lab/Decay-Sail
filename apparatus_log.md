@@ -203,6 +203,58 @@ fighting a 1-second ramp.
 
 ---
 
+### 2026-08-22 — rotor librates ~20 h with drive AND laser off: floating/domed board suspected
+
+Left the rotor after the 08-21 stator tests; it was still librating the next morning with,
+as far as the records show, **no drive of any kind**:
+- **Electrodes off.** Last real drive was the 16:33 08-21 sweep. `V{1-4}_OUT_DQ` is flat 0
+  across the ~23:09 amp power-off window (±20 min) — no command or transient there. (The GUI
+  power-off is an HV-amp state, not in `_OUT_DQ`.)
+- **Laser off.** `RDS-PD_IN1_DQ` sat at the dark level (−1 ct, median=min=max) for the whole
+  17 h overnight; commanded laser offset 0. So the optical libration spring is NOT involved.
+
+LES is unaligned (to be fixed ~Mon 08-24), so the camera is the only readout. Two clips
+scored with `analyze_detent_video.py` — both pass the localisation guard (ratio 30.6× and
+16.3×; frame-flicker ~0.1%), so this is real motion, not the lamp-ripple trap:
+
+| clip | time | motion rms | dominant f | PC1 |
+|------|------|-----------:|-----------:|----:|
+| `output_basler_gps1471403607` | 23:13 Fri | ~25.3 | 0.37 Hz | 38% |
+| `output_basler_gps1471438107` | 08:48 Sat | ~25.9 | 0.61 Hz | 79% |
+
+Over 9.6 h the amplitude did **not** decay — it slightly ROSE (25.14→25.41 within the first
+clip; 25.3→25.9 between clips). Free decay can only shrink amplitude, so the growth argues
+for a weak *sustaining drive*, not merely a high-Q ringdown. Either way a lower bound:
+**libration τ ≳ 90 h** (≳100× the 67-min spin ringdown). The 0.37→0.61 Hz shift with PC1
+38→79% is energy consolidating into one librational mode.
+
+**Leading hypothesis (Molly, 2026-08-22): the board GND ring is not seated — doming.**
+The board is 0.1 mm flex held only by the four r=9 mm screws, so the whole centre (GND ring
+r=2.95–3.40 + CTR) is unsupported and can bow up, lifting the GND ring off the magnet. The
+board's ground reference then floats and, beside the **charged** rotor, presents a stray
+field that can pump the libration. This explains why *no amp state changed the behaviour —
+the amp was never the variable*:
+- **Board-on-metal does NOT ground the sector electrodes.** They are separate insulated nets
+  (coverlay; no ground copper under the active area, by design). Only the bare GND ring
+  grounds, and only by pressing on the magnet.
+- **"Amp on, offsets 0" only grounds the sectors IF the amp output is low-Z at 0 V.** If it
+  is high-Z at 0, both amp-on and amp-off leave the sectors floating, so a *true* ground
+  (hard short A/B/C→GND) has never actually been tested. Confirmed librating in BOTH amp-on
+  (pre-power-off) and amp-off (overnight).
+
+Tests at the next chamber opening (some already on the first-article list):
+- **GND-ring-to-magnet continuity/resistance** — open/high ⇒ doming confirmed. Top priority.
+- Board flatness / does the centre sit proud when mounted.
+- Does the HV amp hold 0 V low-Z, or go high-Z, when idle? (decides whether amp-on-0 counts
+  as grounded).
+- Interim mitigation *without* opening, if available: **neutralise the rotor charge**
+  (protocol step 1) — the stray coupling needs rotor charge.
+- Opening safety: amp OFF → verify 0 V → discharge electrodes/board to ground before
+  handling (barrels live to ~80 V when driven); ground yourself for ESD on the de-energised
+  board.
+
+---
+
 ## Vacuum
 
 Pressure ~**2.9e-7 mbar**, consistent across this period. No logger yet
