@@ -228,25 +228,35 @@ for a weak *sustaining drive*, not merely a high-Q ringdown. Either way a lower 
 **libration τ ≳ 90 h** (≳100× the 67-min spin ringdown). The 0.37→0.61 Hz shift with PC1
 38→79% is energy consolidating into one librational mode.
 
-**Leading hypothesis (Molly, 2026-08-22): the board GND ring is not seated — doming.**
-The board is 0.1 mm flex held only by the four r=9 mm screws, so the whole centre (GND ring
-r=2.95–3.40 + CTR) is unsupported and can bow up, lifting the GND ring off the magnet. The
-board's ground reference then floats and, beside the **charged** rotor, presents a stray
-field that can pump the libration. This explains why *no amp state changed the behaviour —
-the amp was never the variable*:
-- **Board-on-metal does NOT ground the sector electrodes.** They are separate insulated nets
-  (coverlay; no ground copper under the active area, by design). Only the bare GND ring
-  grounds, and only by pressing on the magnet.
-- **"Amp on, offsets 0" only grounds the sectors IF the amp output is low-Z at 0 V.** If it
-  is high-Z at 0, both amp-on and amp-off leave the sectors floating, so a *true* ground
-  (hard short A/B/C→GND) has never actually been tested. Confirmed librating in BOTH amp-on
-  (pre-power-off) and amp-off (overnight).
+Initial hypothesis was board doming (GND ring lifted); the actual cause turned out simpler —
+see CONFIRMED below. Board facts that hold either way: **board-on-metal does NOT ground the
+sector electrodes** (separate insulated nets — coverlay, no ground copper under the active
+area by design; only the bare GND ring grounds, by pressing on the magnet), and **"amp on,
+offsets 0" grounds the sectors only if the amp output is low-Z at 0 V.**
+
+**CONFIRMED (2026-08-23): the amp WAS the variable — floating sector electrodes pumped it.**
+Turning the amp back on with all offsets 0 (16:59 UTC 08-22) holds A/B/C at 0 V low-Z,
+grounding the sectors *through the amp* (independent of the GND ring). The libration then
+decayed: 25.9 → 14.2 in ~95 min (amplitude τ ≈ 2.6 h), and by 08:49 UTC 08-23 (~16 h
+grounded) the rotor was at **rest**.
+- The overnight persistence was the amp being **powered OFF**, which floats the sectors (amp
+  output high-Z); a floating charge-carrying sector beside the charged rotor pumps the
+  libration. (The earlier belief that it "librated in the amp-on config too" was wrong — that
+  period was amp-off/floating.)
+- **OPERATIONAL FIX (procedural, no chamber opening): keep the amp ON with A/B/C held at 0 V
+  whenever idle. Do NOT power the amp off with the board installed — it floats the sectors
+  and drives the rotor.** This also confirms the amp is low-Z at 0 V.
+- Because grounding worked *through the amp*, the **GND-ring/doming question is now a SEPARATE
+  open item** (board ground plane / CTR / field shielding), still worth the continuity check
+  at the opening, but NOT the cause of this libration.
+- Continuous decay-to-rest recorded in `stator_detent/output_basler_gps1471453183_grounded_decay.mp4`
+  (H.264 slim of the 5.58 h clip that started at grounding).
 
 Tests at the next chamber opening (some already on the first-article list):
-- **GND-ring-to-magnet continuity/resistance** — open/high ⇒ doming confirmed. Top priority.
+- **GND-ring-to-magnet continuity/resistance** — open/high ⇒ doming (now decoupled from the
+  libration, but still worth confirming the board's ground plane / CTR).
 - Board flatness / does the centre sit proud when mounted.
-- Does the HV amp hold 0 V low-Z, or go high-Z, when idle? (decides whether amp-on-0 counts
-  as grounded).
+- (HV-amp-at-0 V impedance — ANSWERED 08-23: low-Z; grounding via amp-on-0 V damped the rotor.)
 - Interim mitigation *without* opening, if available: **neutralise the rotor charge**
   (protocol step 1) — the stray coupling needs rotor charge.
 - Opening safety: amp OFF → verify 0 V → discharge electrodes/board to ground before
