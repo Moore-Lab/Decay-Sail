@@ -207,30 +207,68 @@ choosing a drive backend (below).
 
 ---
 
-## Driving it: `lab_utils/stator_drive.py`
+## Driving it
 
-**This is the one drive script.** Subcommands: `status / spinup / spindown / hold /
-reverse / sweep / detent / stop`. **Dry-run by default; `--live` to touch hardware.**
-`lab_utils/three_phase_drive.py` is superseded and will be deleted once its backend is
-folded in. `lab_utils/sweep_oscillator_reverse.py` is broken (see above).
+**Status (2026-08-21): the stator has moved the rotor.** DC on V2 at 6400 counts
+collapsed the rotor's libration 2.6× (rms 22.5 → 8.6) and held it for the full 180 s;
+3200 counts did nothing. That is a detent capturing a moving rotor — a **static torque
+from rest**, which the synchronous side posts could not produce at any drive level. It
+brackets the capture threshold between 3200 and 6400 counts. **Only V2 is demonstrated;
+V3 and V4 are untested, not shown broken.** Full record in `apparatus_log.md`.
 
-Its physics core is validated — it reproduces all four rows of the performance table.
+| script | status |
+|---|---|
+| **`lab_utils/stator_epics_drive.py`** | **THE drive. EPICS-only. Use this.** |
+| `lab_utils/stator_drive.py` | Physics reference only — its backend cannot run (see below) |
+| `lab_utils/three_phase_drive.py` | Superseded; never zeroes `TRAMP`, so its run was low-passed |
+| `lab_utils/sweep_oscillator_reverse.py` | Broken — the reversal cancels itself (see above) |
 
-### ⚠ The DC pedestal is not cosmetic
+### `stator_epics_drive.py` — the working drive
 
-Expanding τ = ½ (dC/dθ)V² for `V_k = V_dc + V_ac·cos(φ + δ_k)` over the 24-sector/3-phase
-pattern gives **two** torque channels, both locking the rotor at the same speed f_elec/8:
+`status / calibrate / detent / hold / spinup / stop`. Dry-run by default, `--live` to
+touch hardware; a dry run advances a *virtual* clock, so a 65-minute spin-up rehearses
+in under a second.
 
-| channel | couples to | amplitude | winds |
+**EPICS only** — `_OFFSET`, `_TRAMP`, `DRVON`, nothing else. That was a deliberate call
+and it is the right one:
+
+- the commanded values are themselves archived EPICS records, so the stimulus sits next
+  to the `V{n}_OUT_DQ` response in the same NDS fetch;
+- it sidesteps the AWG slot limit, the test-point grant, and — decisively — **the cymac
+  GPS clock offset**. An AWG excitation needs an absolute GPS start time to make three
+  phases coherent; the front end runs **~7630 s ahead of true GPS (2026-08-21, and
+  drifting** — it was 5836 s on 2026-06-03). Interpret that timestamp in the wrong clock
+  frame and the phases are silently randomised. Writing offsets from Python has no
+  absolute-time dependence at all.
+
+**The cost is bandwidth.** Software-timed writes are good to a few Hz electrical.
+Since `f_elec = 8 × f_mech`, at a 200 Hz update rate:
+
+| f_mech | f_elec | samples/cycle | verdict |
 |---|---|---|---|
-| ch1 | rotor m=8 | **V_dc · V_ac** | 1× per elec cycle |
-| ch2 | rotor m=16 | V_ac² | 2× per elec cycle |
+| detent | DC | — | ideal, pure `caput` |
+| 0.05 Hz | 0.4 Hz | 500 | comfortable |
+| 0.5 Hz | 4 Hz | 50 | fine |
+| 2 Hz | 16 Hz | 12 | coarse |
+| 10 Hz | 80 Hz | 2.5 | not possible |
 
-**At V_dc = 0 the m=8 channel vanishes identically**, leaving only m=16 — the stronger
-rotor harmonic, but it suffers twice the gap attenuation. Maximising V_dc·V_ac subject to
-V_dc + V_ac ≤ V_max gives **V_dc = V_ac = V_max/2**, hence `DRIVE_DC = DRIVE_COUNTS = 6400`
-— the same 6400/6400 split `sweep_oscillator.py` used on the old posts. `--dc` exists only
-as a diagnostic: **m=8 scales with V_dc, m=16 does not**, so varying it separates them.
+**Every first-article test is DC or a fixed frequency below capture, so this covers the
+whole near-term programme.** AWG only becomes necessary for real speed.
+
+### ⚠ Live channel facts (2026-08-21)
+
+- **`V{n}_TRAMP` was found set to 1.0 s on all four electrodes, and it resets between
+  runs.** `_OFFSET` writes are *ramped* over TRAMP, so a nonzero value low-passes a
+  software-generated sinusoid into a smaller, phase-lagged, distorted waveform — while
+  the commanded values, and anything the writing script logs, still look perfect.
+  **Anything writing offsets must zero TRAMP first.** `stator_epics_drive.py` zeroes it
+  for the duration of a run and restores it after; `three_phase_drive.py` never did,
+  which is a prime suspect for why its run produced movement but not rotation.
+- **`V{n}_OUT` does not exist as an EPICS record** (fast test point, NDS-only). Use
+  **`_OUTMON`** for the slow output readback, `_INMON` for the input.
+- `_GAIN` reads 1.0. `SW1R` reads 12. **`SW2R` was observed at 768, then 1792 a few
+  minutes later** — 1792 contains the 1024 output-enable bit and 768 does not, so
+  **check the output switch is on before concluding the drive is dead.**
 
 ### RESOLVED (2026-08-21): the model routing, traced from `y1rds.mdl`
 
@@ -249,80 +287,14 @@ way through `DRV` to give the centre electrode an independent drive. **`DRVON = 
 removes the fan-out entirely**, after which each `V{n}` is driven only by what you
 write to it. (`INMON` reads 0 on all four, so nothing else is arriving at `In{n}`.)
 
-### RESOLVED: drive the offsets over EPICS
+This is why `stator_drive.py`'s `PHASE_GAIN_PVS`
+(`Y1:RDS-OUTS_V{1,2,3}_{SIN,COS}GAIN`) was always fiction — those records do not exist,
+and no per-electrode gain pair does. Keep that script for its torque/capture/ramp
+formulas, which are validated; do not try to run its backend.
 
-`lab_utils/stator_epics_drive.py` is the working drive. **EPICS only** — `_OFFSET`,
-`_TRAMP`, `DRVON`, nothing else — which was Molly's call and is the right one: the
-commanded values are themselves archived records sitting next to `V{n}_OUT_DQ` in the
-same NDS fetch, and it sidesteps the AWG slot limit, the test-point grant, and the
-cymac GPS clock offset entirely. Subcommands: `status / calibrate / detent / hold /
-spinup / stop`, dry-run by default, and a dry run advances a *virtual* clock so a
-65-minute spin-up rehearses in under a second.
+### ⚠ `VOLTS_PER_COUNT` is UNMEASURED — and the old placeholder is provably wrong
 
-Cost is bandwidth: software-timed writes are good to a few Hz electrical. Since
-`f_elec = 8 × f_mech`, at a 200 Hz update rate 0.5 Hz mech is comfortable, 2 Hz is
-coarse, and 10 Hz is impossible. **Every first-article test is DC or fixed-frequency
-below capture**, so this covers the whole near-term programme; AWG only becomes
-necessary for real speed.
-
-> ⚠ **`V{n}_TRAMP` was found set to 1.0 s on all four electrodes** (2026-08-21).
-> `_OFFSET` writes are *ramped* over TRAMP, so a nonzero value low-passes a
-> software-generated sinusoid into a smaller, phase-lagged, distorted waveform —
-> while the commanded values, and anything you log from the writing script, still
-> look perfect. **`three_phase_drive.py` never zeroes TRAMP**, so this is a prime
-> suspect for why its run produced movement but not rotation. `stator_epics_drive.py`
-> zeroes TRAMP for the duration of a drive and restores it afterwards.
-
-Other live channel facts: **`V{n}_OUT` does not exist as an EPICS record** (fast test
-point, NDS-only) — use **`_OUTMON`** for the slow output readback and `_INMON` for the
-input. `_GAIN` reads 1.0, `SW1R` reads 12. `SW2R` was observed at 768 and then 1792 a
-few minutes later; 1792 contains the 1024 output-enable bit, 768 does not, so **check
-the output switch is on before concluding the drive is dead.**
-
-### If AWG is ever needed (for speed)
-
-`electrode_noise_generator.py` **cannot run** — it does `from cdsutils import awg` and
-there is no `cdsutils.awg` module. The import is a bare `import awg` (top-level
-`site-packages/awg.py`), which provides `Sine(chan, ampl, freq, phase, offset, start,
-duration, restart)` with **phase in radians and start in GPS seconds**. Three Sines on
-`V{n}_EXC` sharing one explicit `start` are a coherent three-phase drive — but with
-`start=0` each excitation independently picks `GPSnow() + 4*EPOCH` at `.start()` time,
-so the phases would be randomised per run. **And `awgbase.GPSnow()` returns *true* GPS
-while the front end runs ~7630 s ahead** (2026-08-21), so the clock frame must be
-tested, not assumed. Limit is `MAX_NUM_AWG = 9` simultaneous channels.
-
-To drive `_EXC` you must, per Aaron's verified recipe: set `GAIN = 1`, turn the module
-**input OFF** (blocks the `Sum`, i.e. the DRV fan-out — a cleaner per-electrode kill
-than `DRVON = 0`), and turn the **output ON** (`_EXC` does not reach the DAC otherwise).
-Bits: `SW1` input = 4, `SW2` output = 1024.
-
-### Superseded: how the three phases were once thought to be generated
-
-`PHASE_GAIN_PVS` at the top of the script (`Y1:RDS-OUTS_V{1,2,3}_{SIN,COS}GAIN`) is a
-**placeholder guess** — those strings appear nowhere else in the repo. The real model has
-*one* oscillator with one quadrature pair (`Y1:RDS-OUTS_DRV_{SIN,COS}GAIN`) fanned out to
-four posts as sin/cos/−sin/−cos, which cannot make 120° phases.
-
-**Fast vs slow channels (from Aaron's CLAUDE.md — verify on y1rds, do not assume):**
-slow filter-module records (`_GAIN`, `_OFFSET`, `_TRAMP`, `_SW1R`) answer `caget`/`caput`;
-**fast channels (`_EXC`, `_IN1`, `_OUT16`) are test points** reachable only via
-`diag`/`awg`/`nds2`. So writing AC sinusoids to `V{n}_OFFSET` (what `three_phase_drive.py`
-does) is the wrong access method — OFFSET is for the DC pedestal only.
-
-**Most promising route: `diag` SineResponse** (headless diaggui, `diag -l -f <cmdfile>`).
-Its XML takes index-aligned per-tone `Stimulus{Frequency,Amplitude,Offset,Phase}[i]` +
-`StimulusChannel[i]`, **phase in radians** — i.e. three rows at one frequency with phases
-0 / −2π/3 / −4π/3 on `V{1,2,3}_EXC` is a three-phase drive, applied coherently by the front
-end, with no model rebuild. Template: `scripts/dipole/measure_actuator_gain.py` in
-github.com/aaronmarkowitz/labutils.
-
-**Caveat: y1rds is NOT y1dmd.** All of that is proven on Aaron's front end. Verify before
-building against it — read the y1rds `.mdl` under `/opt/rtcds/userapps/`, and confirm
-V1–V4 are standard filter modules (which is what the `_EXC` inference rests on).
-
-### `VOLTS_PER_COUNT` is UNMEASURED — and the old placeholder is provably wrong
-
-Torque goes as V_dc·V_ac, so an error here is **squared** in every limit a script prints.
+Torque goes as V², so an error here is **squared** in every limit a script prints.
 `stator_drive.py` carries `VOLTS_PER_COUNT = 0.03125` ("6400 counts → 200 V"). That
 **cannot be right on an amplifier that stops at ~80 V.** Driving its 6400 DC + 6400 AC
 default would command deep into saturation, and clipping is especially damaging here: it
@@ -341,7 +313,48 @@ pick a rate for you. Its `calibrate` subcommand is a DC staircase on one electro
 slope is `VOLTS_PER_COUNT`, and where the slope flattens is the real ceiling. Pass
 `--volts-per-count` afterwards to switch the physics reporting on.
 
----
+### ⚠ The DC pedestal is not cosmetic (applies to AC drive, not the DC detent)
+
+Expanding τ = ½ (dC/dθ)V² for `V_k = V_dc + V_ac·cos(φ + δ_k)` over the 24-sector/3-phase
+pattern gives **two** torque channels, both locking the rotor at the same speed f_elec/8:
+
+| channel | couples to | amplitude | winds |
+|---|---|---|---|
+| ch1 | rotor m=8 | **V_dc · V_ac** | 1× per elec cycle |
+| ch2 | rotor m=16 | V_ac² | 2× per elec cycle |
+
+**At V_dc = 0 the m=8 channel vanishes identically**, leaving only m=16 — the stronger
+rotor harmonic, but it suffers twice the gap attenuation. Maximising V_dc·V_ac subject to
+V_dc + V_ac ≤ V_max gives **V_dc = V_ac = V_max/2**. Note this interacts with the ~80 V
+ceiling: the optimal split there is 40 V DC + 40 V AC, not 6400/6400 counts.
+A `--dc` override is worth having as a diagnostic — **m=8 scales with V_dc, m=16 does
+not**, so varying it at fixed amplitude separates the two channels.
+
+### If AWG is ever needed (for speed only)
+
+Not needed for any first-article test. If the programme ever wants ≳2 Hz mechanical:
+
+`electrode_noise_generator.py` **cannot run** — it does `from cdsutils import awg` and
+there is no `cdsutils.awg` module. The real API is a bare `import awg` (top-level
+`site-packages/awg.py`), providing `Sine(chan, ampl, freq, phase, offset, start,
+duration, restart)` with **phase in radians and start in GPS seconds**. Three Sines on
+`V{n}_EXC` sharing one explicit `start` are a coherent three-phase drive — but with
+`start=0` each excitation independently picks `GPSnow() + 4*EPOCH` at `.start()` time,
+so the phases would be randomised per run. **And `awgbase.GPSnow()` returns *true* GPS
+while the front end runs ~7630 s ahead**, so the clock frame must be tested, not
+assumed. Limit is `MAX_NUM_AWG = 9` simultaneous channels.
+
+To drive `_EXC` you must, per Aaron's verified recipe: set `GAIN = 1`, turn the module
+**input OFF** (blocks the `Sum`, i.e. the DRV fan-out — a cleaner per-electrode kill
+than `DRVON = 0`), and turn the **output ON** (`_EXC` does not reach the DAC otherwise).
+Bits: `SW1` input = 4, `SW2` output = 1024.
+
+`diag` SineResponse (headless diaggui, `diag -l -f <cmdfile>`) is the other route: its
+XML takes index-aligned per-tone `Stimulus{Frequency,Amplitude,Offset,Phase}[i]` +
+`StimulusChannel[i]`, phase in radians. Template:
+`scripts/dipole/measure_actuator_gain.py` in github.com/aaronmarkowitz/labutils.
+**Caveat: y1rds is NOT y1dmd** — that is proven on Aaron's front end, not this one, and
+it inherits the same GPS-clock-frame question.
 
 ## Conventions
 
