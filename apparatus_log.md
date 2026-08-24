@@ -332,6 +332,57 @@ wrong torque and wrong direction arguments.
 
 ---
 
+### 2026-08-24, ~16:45 EDT — first live 3-phase drive; ELECTRICALLY VERIFIED, rotor slipped
+
+First `--live` run of `stator_epics_drive.py` after the pump-down, with the corrected
+`PHASE_ELECTRODES = (2,4,3)`. `--amp 4800 hold -f 0.02`, ~158 s (ended by `stop`).
+Amp on at 0 V beforehand, so the sectors had only been grounded a short time and the
+rotor still carried libration energy.
+
+**The electrical drive is exactly right.** From `V{n}_OUT_DQ` (1024 Hz, NDS), burst at
+DAQ GPS 1471647404 → 1471647563, 142.5 s of steady-state analysed after trimming the
+ramps:
+
+| chan | net | az | f (Hz) | amplitude | phase |
+|---|---|---|---|---|---|
+| V2 | A | 15° | 0.1614 | 1.692e8 | +61.7° |
+| V4 | B | 105° | 0.1614 | 1.693e8 | −58.3° |
+| V3 | C | 195° | 0.1614 | 1.693e8 | −178.3° |
+
+Relative phases **−120.0° and −120.0°**, amplitudes equal to 4 significant figures,
+f_elec 0.1614 Hz vs 0.160 commanded (f_mech 0.02017, 50 s/rev), swing [−9, 9609] counts
+on a 4800 DC pedestal exactly as commanded, and **V1 (CTR) flat at 0.0 throughout**.
+There is nothing wrong with the waveform: phase, amplitude balance, frequency and the
+centre electrode all check out.
+
+**This also settles field direction electrically, without the camera.** Phase *decreases*
+by 120° as azimuth *increases*, i.e. φ = −8θ, giving sin(ωt − 8θ) — constant-phase fronts
+at θ = ωt/8, so **the field rotates counterclockwise in board coordinates**, as derived.
+The `/8` falling straight out of the measured numbers independently confirms m = 8.
+
+**The rotor did not hold lock.** Observed on camera: it tends clockwise, then unlocks and
+swings back. Since the drive is verified correct and CCW, an apparent CW rotor is *not* a
+wiring or phasing fault — it is either slip (the rotor was never captured, so its motion
+is libration plus intermittent drag, which has no reliable sense) or a camera-handedness
+question. **Do not "fix" the electrode map or the phase order on the basis of this
+observation.** Both are measured and both are confirmed.
+
+Next, in order: drop the frequency hard (`-f 0.005`, 200 s/rev) to get well inside capture
+before adding torque; then `--amp 6400`; and give the libration longer to damp
+(τ ≈ 2.6 h, and the amp had only just gone on). If it locks at 0.005 and slips at 0.02
+that brackets the true capture bandwidth, which is a number we do not have — the 0.045 Hz
+figure is an estimate assuming a full 80 V at 0.37 mm, and the screws were just retightened
+so the gap may have moved. Also worth noting a scope trace of this drive looks unusual for
+a benign reason: it is **unipolar**, a 0.16 Hz sine on a DC pedestal, not a bipolar swing.
+
+Raw data: `Y1:RDS-OUTS_V{1,2,3,4}_OUT_DQ`, 6 h window (DAQ GPS 1471626014 → 1471647614),
+uploaded to `Microspheres/TFINER/data/Electrodes/`.
+
+**End-of-session state:** electrodes all 0, amp ON at 0 V (sectors grounded — do not power
+it off), TRAMP restored to 1.0 s on all four, DRVON 0, SW1R 12 / SW2R 1792.
+
+---
+
 ## Vacuum
 
 Pressure ~**2.9e-7 mbar**, consistent across this period. No logger yet
