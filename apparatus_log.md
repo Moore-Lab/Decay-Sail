@@ -265,6 +265,73 @@ Tests at the next chamber opening (some already on the first-article list):
 
 ---
 
+### 2026-08-24 — electrode map CONFIRMED at the chamber opening
+
+Continuity check at the terminals during the vent-to-atmosphere. **V1 is the centre
+electrode**, conclusive. This closes a question open since 08-21 that three scripts
+disagreed about.
+
+**Measured**, all four terminals, clockwise viewed from above (the face the pads are on):
+**V1, V3, V4, V2**.
+
+**The board's convention, from `generate_flex_revG.py` — not the spec prose, which never
+states a sign:** `pol()` returns `(cos, sin)`, so azimuth is **CCW-positive**;
+`SEC_CTR = [7.5 + 15k]` with `NET = PHASE[k % 3]` puts sectors A,B,C,A,B,C… at
+**increasing** azimuth; and `PAD_AZ = {A 15, B 105, C 195, CTR 285}` agrees. So
+**A→B→C advances counterclockwise**, and going *clockwise* the four terminals are, by net,
+CTR, C, B, A.
+
+Lining that up: **V1 = CTR, V3 = C, V4 = B, V2 = A**, i.e. **(A,B,C) = (V2, V4, V3)**.
+
+**This is a transposition of (2,3,4), not a cyclic rotation** — B and C are swapped.
+`PHASE_ELECTRODES` has been corrected to **(2, 4, 3)**. The old value would still have
+produced a clean travelling wave (a transposition is exactly what flex_spec.md means by
+*"Reverse by swapping any two phases"*), so the drive would have *worked* — but it would
+have run **backwards** relative to the board's A→B→C sense and mislabelled every phase,
+commanding "B" while energising net C. That is the sign error that bites when the video
+loop closes, not something that shows up as a failure to spin.
+
+**The cables were still left alone** — the fix is one tuple. Recabling would have retired
+a measured mapping for an assumed one, on a board whose flatness is still open.
+
+Consequences recorded in code:
+- `stator_epics_drive.py` — map marked CONFIRMED; `CTR_ELECTRODE = 1` was already correct.
+- `stator_drive.py` — map CORRECTED. It had CTR = V4 with phases on V1/V2/V3, i.e. it
+  would have driven the centre electrode as a phase. Still not runnable (placeholder
+  SINGAIN/COSGAIN PVs), now flagged as such in the file.
+
+**Rotation direction, as derived above:** with `(2,4,3)`, A→B→C advances
+**counterclockwise seen from the rotor side**. This is now derived rather than unknown —
+the generator pins the azimuth sign that flex_spec.md left open. One empirical check is
+still worth doing, because the chain rests on "clockwise" having been read off the board
+viewed from above. **Cross-check CONFIRMED 2026-08-24: counterclockwise the terminals read
+V1, V2, V4, V3**, as the derivation requires — so the viewing-side assumption holds and the
+map is settled in both directions. Remaining: drive slowly at low counts and confirm the
+rotor turns CCW as seen from the camera, which validates the derivation end-to-end
+against the hardware.
+
+**The CTR feed arm.** flex_spec.md: *"CTR electrode | disk r = 0.58; 0.08 trace out
+through the sector boundary at az 285°, widening to 0.25 beyond r = 2.50"*. So V1 is a
+disk **plus an in-plane radial arm**, and the arm is the only part of V1 with angular
+authority. Sizing it against the active annulus (r = 0.69 → 1.95, area 10.45 mm², 24
+sectors ⇒ 0.436 mm²/sector, 3.48 mm²/phase), the arm contributes 1.26 × 0.08 =
+**0.101 mm², ≈ 2.9% of one phase**. Two consequences:
+- The 08-21 16:24 V1 block was designed as a null test (*"symmetric, so must show NO
+  capture"*). That is now a **magnitude** argument, not a symmetry guarantee — 3% of a
+  phase against a capture threshold that needed 3200–6400 counts on a full phase. If V1
+  shows *weak* capture when the sweep is scored, read it as the arm, not as a mis-mapping.
+- A floating V1 reaches the rim, so it is a better stray-coupling antenna than a small
+  central disk. Include V1 in the amp-on/grounded idle rule, not just A/B/C.
+
+**Geometry correction worth stating once:** the board is **not** three sectors at 120°.
+It is **24 sectors on a 15° pitch, interleaved 3-phase, 8 sectors per phase, synthesising
+a rotating m = 8 potential** (flex_spec.md), which is where `rotor speed = f_elec / 8`
+comes from. 15° × m=8 = exactly 120° electrical per sector, so ABCABC… around the ring is
+a uniform travelling wave by construction. Reasoning from the three-sector picture gives
+wrong torque and wrong direction arguments.
+
+---
+
 ## Vacuum
 
 Pressure ~**2.9e-7 mbar**, consistent across this period. No logger yet
@@ -376,9 +443,11 @@ is in.
 - [ ] Narrow the capture bracket: detent runs at 4000 / 4800 / 5600 counts against a
       comparable starting libration amplitude. Note the threshold depends on the rotor's
       energy at the time, so record the pre-drive rms for each.
-- [ ] Settle which `V{n}` is the centre electrode by continuity check at the next chamber
-      opening. V2 captured the rotor on 08-21, so V2 has real angular authority and is
-      *not* the centre disk — but that does not by itself confirm V1 is.
+- [x] Settle which `V{n}` is the centre electrode by continuity check at the next chamber
+      opening. **DONE 2026-08-24 — V1 IS the centre electrode, conclusive.** Clockwise the
+      sector phases read V3, V4, V2, which is a *cyclic rotation* of (2,3,4), so
+      `stator_epics_drive.py`'s `PHASE_ELECTRODES = (2,3,4)` was already correct and no
+      recabling was needed. See the 08-24 entry. Rotation **direction** is still open.
 - [ ] Swap the ½" electrode stands for 4-40 vented screws and fit a ≤Ø5.8 mm, 0.1 mm
       shim. The stands are a live confound (tall conductors at r ≈ 9 mm) and the shim is
       worth 3.2× torque, which at the ~80 V ceiling is no longer optional.

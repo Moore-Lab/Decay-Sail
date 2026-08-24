@@ -60,17 +60,29 @@ except ImportError:      # no pyepics off the control machines -- dry run still 
 # Three phases ARE synthesisable from two quadrature signals (see
 # phase_gains()), so what is needed is a 2xN output matrix, not three
 # oscillators. Set these to whatever the model ends up exposing.
+# ELECTRODE MAP -- CORRECTED 2026-08-24.  A/B/C = V2/V4/V3  (note B before C).
+# The previous assignment here (phases on V1/V2/V3, CTR = V4) was WRONG, and
+# wrong in the dangerous direction: it drove the CENTRE electrode as a phase.
+# A continuity check at the chamber opening confirmed V1 IS THE CENTRE
+# ELECTRODE; the sector phases are V2/V3/V4. It was derived by reading
+# flex_spec.md's terminal azimuths (15/105/195/285) and assigning V1..V4 in
+# order, which was never a wiring record. See stator_epics_drive.py for the
+# full note, including why the rotation DIRECTION is still unestablished.
+#
+# WARNING: this file is NOT RUNNABLE. The SINGAIN/COSGAIN PVs below are
+# placeholders that do not exist on y1rds. Use lab_utils/stator_epics_drive.py.
+# The map is corrected here only so this file cannot mislead a reader.
 PHASE_GAIN_PVS = {
-    'A': ('Y1:RDS-OUTS_V1_SINGAIN', 'Y1:RDS-OUTS_V1_COSGAIN'),   # terminal 15 deg
-    'B': ('Y1:RDS-OUTS_V2_SINGAIN', 'Y1:RDS-OUTS_V2_COSGAIN'),   # terminal 105 deg
-    'C': ('Y1:RDS-OUTS_V3_SINGAIN', 'Y1:RDS-OUTS_V3_COSGAIN'),   # terminal 195 deg
+    'A': ('Y1:RDS-OUTS_V2_SINGAIN', 'Y1:RDS-OUTS_V2_COSGAIN'),   # PLACEHOLDER PV
+    'B': ('Y1:RDS-OUTS_V4_SINGAIN', 'Y1:RDS-OUTS_V4_COSGAIN'),   # PLACEHOLDER PV
+    'C': ('Y1:RDS-OUTS_V3_SINGAIN', 'Y1:RDS-OUTS_V3_COSGAIN'),   # PLACEHOLDER PV
 }
 PHASE_OFFSET_PVS = {
-    'A': 'Y1:RDS-OUTS_V1_OFFSET',
-    'B': 'Y1:RDS-OUTS_V2_OFFSET',
+    'A': 'Y1:RDS-OUTS_V2_OFFSET',
+    'B': 'Y1:RDS-OUTS_V4_OFFSET',
     'C': 'Y1:RDS-OUTS_V3_OFFSET',
 }
-CTR_OFFSET_PV = 'Y1:RDS-OUTS_V4_OFFSET'   # centre disk: DC height trim / charge drive
+CTR_OFFSET_PV = 'Y1:RDS-OUTS_V1_OFFSET'   # centre disk + feed arm: DC trim / charge
 
 # Counts -> volts at the electrode, through the HV amplifier. UNMEASURED.
 # Torque goes as V^2, so a factor 2 error here is a factor 4 in every limit

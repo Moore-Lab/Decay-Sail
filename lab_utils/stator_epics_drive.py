@@ -56,21 +56,65 @@ except ImportError:          # dry run still works without pyepics
 
 
 # ===========================================================================
-# ELECTRODE MAP -- UNCONFIRMED, pending a continuity check at the terminals
+# ELECTRODE MAP -- CONFIRMED 2026-08-24 by continuity check at the terminals
 # ===========================================================================
-# Molly believes V1 is the CENTRE electrode (the disk directly under the rotor,
-# r = 0.58 mm) and that the three 120-degree sector phases are V2/V3/V4.
+# V1 IS THE CENTRE ELECTRODE. Established conclusively at the chamber opening on
+# 2026-08-24. This supersedes the earlier guess-and-corroborate reasoning, and
+# stator_drive.py (which had CTR = V4) has been corrected to match.
 #
-# This CONTRADICTS stator_drive.py:73, which assigns CTR = V4 and phases to
-# V1/V2/V3. That assignment was never a wiring record -- it came from reading
+# The old assignment was never a wiring record: it came from reading
 # flex_spec.md's terminal table (15/105/195/285 deg -> A/B/C/CTR) and assigning
 # V1..V4 in order. The spec names terminal AZIMUTHS and never says which V{n}
-# each is landed on. Corroboration for the mapping below: three_phase_drive.py's
-# --electrodes help text already suggests "e.g. 2,3,4".
+# is landed on which terminal. Do not re-derive the map that way.
 #
-# If the continuity check says otherwise, edit these two lines and nothing else.
-PHASE_ELECTRODES = (2, 3, 4)     # A, B, C -- the 120-degree sector phases
-CTR_ELECTRODE    = 1             # centre disk: DC height trim / charge drive
+# Measured, all four terminals: going CLOCKWISE (viewed from above / the rotor
+# side, which is the face the pads are on) they read  V1, V3, V4, V2.
+#
+# The board's own convention, from generate_flex_revG.py (NOT from flex_spec.md
+# prose, which does not state a sign):
+#     pol()  -> (cos, sin)                      => azimuth is CCW-POSITIVE
+#     SEC_CTR = [7.5 + 15*k];  NET = PHASE[k%3] => sectors run A,B,C,A,B,C...
+#                                                  with INCREASING azimuth
+#     PAD_AZ  = A 15, B 105, C 195, CTR 285     => pads agree: A->B->C is CCW
+# So going CLOCKWISE the four terminals are, by net:  CTR, C, B, A.
+#
+# Lining that up against the measurement:
+#     V1 = CTR (285 deg)      V3 = C (195 deg)
+#     V4 = B   (105 deg)      V2 = A (15 deg)
+# =>  (A, B, C) = (V2, V4, V3)  -- which is the tuple below.
+#
+# NOTE (2, 3, 4) IS WRONG, and was wrong here until 2026-08-24. It swaps B and
+# C, i.e. it is a TRANSPOSITION of the truth, not a cyclic rotation. It still
+# produces a clean travelling wave -- a transposition is exactly what
+# flex_spec.md means by "Reverse by swapping any two phases" -- so the drive
+# would have WORKED, but it would have run BACKWARDS relative to the board's
+# A->B->C sense and mislabelled every phase (commanding "B" while energising
+# net C). Cyclic rotations of (2,4,3) -- (4,3,2) and (3,2,4) -- are the ones
+# that are free: they add a uniform phase constant, i.e. a shift of t=0.
+#
+# DIRECTION, as derived above: with the tuple below, A->B->C advances
+# COUNTERCLOCKWISE seen from the rotor side. One empirical check is still worth
+# doing, because the whole chain rests on "clockwise" having been read off the
+# board viewed from above. That assumption was CROSS-CHECKED 2026-08-24: read
+# COUNTERCLOCKWISE the terminals are V1, V2, V4, V3, exactly as the derivation
+# requires, so the map is settled in both directions. Still open, and the only
+# end-to-end test against hardware: drive slowly at low counts and confirm the
+# rotor turns CCW seen from the camera. Record the result here.
+#
+# Geometry, from flex_spec.md. NOTE this is NOT three big sectors at 120 deg;
+# that model is wrong and produces wrong torque and direction reasoning:
+#   24 sectors on a 15 deg pitch, interleaved 3-phase, 8 sectors per phase,
+#   synthesising a rotating m = 8 potential. Rotor speed = f_electrical / 8.
+#   15 deg pitch x m=8 = exactly 120 deg electrical per sector, so ABCABC...
+#   around the ring is a uniform travelling wave by construction.
+#   CTR is a disk of r = 0.58 mm PLUS a 0.08 mm in-plane trace running out
+#   through the sector boundary at az 285 deg. Inside the active annulus that
+#   arm is ~0.10 mm^2, about 2.9% of a phase's electrode area, and it is the
+#   ONLY part of V1 with angular authority. So V1 is not perfectly symmetric:
+#   a WEAK V1 detent is the feed arm, not evidence of a mis-mapping.
+PHASE_ELECTRODES = (2, 4, 3)     # A, B, C -- sector phases, 8 sectors each
+                                 # (2,3,4) would swap B/C -> runs reversed
+CTR_ELECTRODE    = 1             # centre disk + feed arm: DC trim / charge drive
 
 PREFIX = 'Y1:RDS-OUTS'
 PHASE_PVS  = [f'{PREFIX}_V{n}_OFFSET' for n in PHASE_ELECTRODES]
