@@ -203,9 +203,24 @@ def put(pv, value, wait=False, echo=True):
     caput(pv, value, wait=wait, timeout=2.0)
 
 
-def get(pv, default=0.0):
-    if DRY_RUN:
+def get(pv, default=0.0, live=False):
+    """Read a PV.
+
+    Under DRY_RUN this normally answers from _DRY_STATE so a rehearsal never
+    depends on the machine being up. Pass live=True for READ-ONLY diagnostics
+    that must reflect the real machine.
+
+    This bit once: `status` used the plain path, so a dry-run `status` printed
+    an all-zero FICTION that looked exactly like a readback -- including false
+    'SW2 = 0 has no output bit' warnings on a machine whose output switches
+    were on (SW2R = 1792), and false reassurance that TRAMP was 0 when every
+    channel was actually at 1.0 s. A diagnostic that invents its readings is
+    worse than one that refuses to run.
+    """
+    if DRY_RUN and not live:
         return _DRY_STATE.get(pv, default)
+    if caget is None:
+        return default
     value = caget(pv)
     return default if value is None else value
 
@@ -218,13 +233,30 @@ def zero_all(echo=True):
 
 
 def guard_tramp():
-    """Force TRAMP = 0 on every driven electrode.
+    """Force TRAMP = 0 on every driven electrode -- right HERE, wrong elsewhere.
 
-    This is not housekeeping. _OFFSET writes are RAMPED over TRAMP seconds, so a
-    nonzero TRAMP low-passes a software-generated sinusoid into a smaller,
-    phase-lagged, distorted version of itself -- while the commanded values, and
-    therefore anything you log from this script, still look perfect. Returns the
-    previous values so they can be restored.
+    TRAMP is the interpolation time for a commanded setpoint change. Which way
+    you want it depends entirely on WHO is generating the waveform:
+
+      * Waveform synthesised in SOFTWARE -- what this script does, writing
+        V{n}_OFFSET at --rate Hz. Every write is a commanded change, so a
+        nonzero TRAMP low-passes the sinusoid into a smaller, phase-lagged,
+        distorted version of itself, while the commanded values (and anything
+        this script logs) still look perfect.  ==> TRAMP MUST BE 0.
+
+      * Hardware OSCILLATOR moved between setpoints, e.g. DRV_FREQ f1 -> f2.
+        A positive TRAMP gives a smooth, PHASE-CONTINUOUS modulation from f1 to
+        f2 over TRAMP seconds. TRAMP = 0 makes it a discrete step with NO phase
+        matching -- a phase discontinuity that kicks the rotor and breaks lock.
+        ==> TRAMP MUST BE POSITIVE.
+
+    So do not read "TRAMP = 0" off this function as a general rule. It applies
+    to the electrode filter modules for as long as this script owns the
+    waveform, and the previous values are restored afterwards. This function
+    deliberately does not touch DRV_TRAMP -- zeroing that would break exactly
+    the phase continuity an oscillator sweep depends on.
+
+    Returns the previous values so they can be restored.
     """
     previous = {}
     for pv in list(PHASE_TRAMP) + [CTR_TRAMP]:
@@ -301,7 +333,7 @@ def banner(dc, amp):
     print('=' * 72)
     print(f'  electrodes  phases A/B/C = V{PHASE_ELECTRODES[0]}/V{PHASE_ELECTRODES[1]}'
           f'/V{PHASE_ELECTRODES[2]}   centre = V{CTR_ELECTRODE}   '
-          f'(UNCONFIRMED -- pending continuity check)')
+          f'(confirmed 2026-08-24 by continuity check)')
     print(f'  drive       {amp:.0f} counts AC on {dc:.0f} DC  '
           f'-> swing [{dc - amp:.0f}, {dc + amp:.0f}]   gap {GAP_MM} mm')
     if dc == 0:
@@ -433,23 +465,33 @@ def ramp_down(dc, amp, ramp_s, theta, ph, rate):
 # Commands
 # ===========================================================================
 def cmd_status(args):
+    # status NEVER writes, so it always reads the real machine -- including
+    # under --dry-run, where answering from _DRY_STATE would print a fiction.
+    if caget is None:
+        print('! pyepics is not importable, so nothing can be read back.\n'
+              '  Refusing to print a status table rather than invent one.')
+        return 1
+    rget = lambda pv, d=0.0: get(pv, d, live=True)
+
     banner(args.dc if args.dc is not None else args.amp, args.amp)
-    print(f'  DRVON            {get(DRVON_PV, 0.0):.0f}'
+    if DRY_RUN:
+        print('  (readbacks below are LIVE -- status never writes)')
+    print(f'  DRVON            {rget(DRVON_PV, 0.0):.0f}'
           f'   (must be 0, or the hardwired sin/cos fan-out sums in)')
     warn = []
     for name, n, pv, tr, out, inp, s1, s2 in zip(
             PHASE_NAMES, PHASE_ELECTRODES, PHASE_PVS, PHASE_TRAMP,
             PHASE_OUT, PHASE_IN, PHASE_SW1, PHASE_SW2):
-        tramp, sw1, sw2 = get(tr), get(s1), get(s2)
-        print(f'  phase {name} (V{n})    offset {get(pv):+9.1f}   '
-              f'tramp {tramp:>5.2f}   outmon {get(out):+9.1f}   '
-              f'inmon {get(inp):+8.1f}   sw1 {sw1:.0f} sw2 {sw2:.0f}')
+        tramp, sw1, sw2 = rget(tr), rget(s1), rget(s2)
+        print(f'  phase {name} (V{n})    offset {rget(pv):+9.1f}   '
+              f'tramp {tramp:>5.2f}   outmon {rget(out):+9.1f}   '
+              f'inmon {rget(inp):+8.1f}   sw1 {sw1:.0f} sw2 {sw2:.0f}')
         if tramp:
             warn.append(f'V{n} TRAMP = {tramp:g} s')
         if not int(sw2) & SW2_OUTPUT_ON:
             warn.append(f'V{n} SW2 = {sw2:.0f} has no output bit ({SW2_OUTPUT_ON})')
-    print(f'  centre  (V{CTR_ELECTRODE})    offset {get(CTR_PV):+9.1f}   '
-          f'tramp {get(CTR_TRAMP):>5.2f}')
+    print(f'  centre  (V{CTR_ELECTRODE})    offset {rget(CTR_PV):+9.1f}   '
+          f'tramp {rget(CTR_TRAMP):>5.2f}')
     if warn:
         print('\n  ! ' + '\n  ! '.join(warn))
         print('\n  A nonzero TRAMP low-passes any software sinusoid into a smaller,\n'
