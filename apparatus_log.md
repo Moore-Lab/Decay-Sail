@@ -15,6 +15,63 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-08-25 — electrode voltage measured on a scope: amp is BIPOLAR, VOLTS_PER_COUNT, _EXC path works
+
+Drove **V2 alone** via a diaggui excitation on `V2_EXC` (front-end-generated sinusoid) with
+`DRVON` off, and read the amplifier output on a scope. Electrode/voltage/counts findings only
+(rotation behaviour deliberately excluded here — pending video review):
+
+**1. The HV amplifier is BIPOLAR — it swings ±, symmetric about ~0 V, NOT unipolar.**
+Setting a positive count "offset" did **not** shift the waveform to all-positive; it stayed
+centred near 0 and went both + and −. This overturns the unipolar assumption baked into the
+drive scripts (`three_phase_drive.py` and the `stator_epics_drive.py` default `dc = amp`,
+chosen to "keep the swing ≥ 0"). With a bipolar amp that pedestal is not required for polarity
+— though a DC pedestal is still wanted for torque (m=8 channel ∝ V_dc·V_ac).
+
+**2. VOLTS_PER_COUNT — measured (on the `_EXC` path, 660-drive amplifier output):**
+
+| counts | Vpp | − / + peak |
+|---|---|---|
+| 1000 | 33.4 | −15 / +18 |
+| 2000 | 58   | −28 / +30 |
+| 3000 | 83.2 | −40 / +43 |
+| 4000 | ~110 | −52 / +58 |
+| 5000 | 128  | −64 / +70 |
+| 6000 | 159  | −75 / +84 |
+| 6400 | 169  | −80 / +89 |
+
+- Roughly linear at **~0.026 V/count peak-to-peak (≈0.013 V/count amplitude)** over 3000–6400;
+  apparent slope is a bit higher below 3000 (likely small-signal offset). Slightly
+  **sub-linear** at the top and slightly **asymmetric** (the + peak runs a few V above the −).
+- **Working point 6400 counts ≈ ±85 V (169 Vpp).** So `VOLTS_PER_COUNT ≈ 0.013 V/count` at the
+  operating point — use this for τ ∝ V² instead of the placeholder `0.03125` in
+  `stator_drive.py`, which is provably wrong. **Better yet, work in volts directly.**
+- **The real ceiling is ≥ ±85 V, higher than the "~80 V" quoted in CLAUDE.md** — and 6400 counts
+  did not obviously clip, so the amp may go higher still. Was **not** driven past 6400.
+- **Caveat:** this is the `_EXC`-path gain. Whether the slow `_OFFSET` path has the same
+  counts→volts slope is **unverified** — do not assume they match.
+
+**3. The `_EXC` / diaggui excitation route WORKS** (previously untested — CLAUDE.md flagged the
+`awg` import as broken and a possible test-point grant needed). A single-electrode excitation on
+`V2_EXC` produced a clean output, so diaggui SineResponse is a viable drive backend for at least
+one channel. **It is also SMOOTH** — front-end-generated, unlike the coarse ~5–8-level staircase
+that Python `caput`-to-`_OFFSET` at 200 Hz produces (confirmed by capturing `V2_OUTMON` during a
+software drive). Correction to an earlier wrong claim: smooth AC *is* achievable — via the DRV
+oscillator (`sweep_oscillator`) or `_EXC`/diaggui; only the Python-offset-write path is coarse.
+
+**4. Capacitive crosstalk onto V1 (centre disk).** While V2 swung ±85 V, the scope saw a small
+signal on V1 even though V1 was **not commanded** (`V1_OFFSET/OUTMON/INMON` all 0, `DRVON` off).
+This is physical capacitive coupling to the adjacent electrode — expected, and V1 (centre, in the
+middle of the sectors) is the most exposed. Benign, but a real sector drive will put a small
+parasitic AC on the centre electrode.
+
+**5. Offset field on the `_EXC` path did not create a DC pedestal** — the user set a 6400 offset
+but the waveform stayed ± about ~0. So the diaggui stimulus offset did not translate to an
+electrode DC bias. Unresolved; matters because the strong m=8 torque channel needs `V_dc·V_ac`.
+
+**6. PCB is fine at this drive.** 6400 counts = ±85 V is ~⅓ of the board's 250 V hipot rating; no
+damage risk driving this hard.
+
 ### 2026-07-27 — PD realigned, low-noise amplifier removed
 
 The photodiode was poorly aligned through the step-down run, and a low-noise amplifier
