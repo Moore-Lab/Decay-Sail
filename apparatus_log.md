@@ -59,11 +59,13 @@ that Python `caput`-to-`_OFFSET` at 200 Hz produces (confirmed by capturing `V2_
 software drive). Correction to an earlier wrong claim: smooth AC *is* achievable — via the DRV
 oscillator (`sweep_oscillator`) or `_EXC`/diaggui; only the Python-offset-write path is coarse.
 
-**4. Capacitive crosstalk onto V1 (centre disk).** While V2 swung ±85 V, the scope saw a small
-signal on V1 even though V1 was **not commanded** (`V1_OFFSET/OUTMON/INMON` all 0, `DRVON` off).
-This is physical capacitive coupling to the adjacent electrode — expected, and V1 (centre, in the
-middle of the sectors) is the most exposed. Benign, but a real sector drive will put a small
-parasitic AC on the centre electrode.
+**4. Capacitive crosstalk onto V1 (centre disk) ≈ 500 mV.** While V2 swung ±85 V (169 Vpp), the
+scope saw **~500 mV** on V1 even though V1 was **not commanded** (`V1_OFFSET/OUTMON/INMON` all 0,
+`DRVON` off). That is a coupling of **~0.3% of V2's peak-to-peak** (~0.5 / 170), physical
+capacitive coupling to the adjacent electrode — expected, and V1 (centre, in the middle of the
+sectors) is the most exposed. Benign at this level, but a real sector drive will put a small
+parasitic AC on the centre electrode; if the CTR-as-charge-probe scheme is ever used, this
+crosstalk sets a floor to watch.
 
 **5. Offset field on the `_EXC` path did not create a DC pedestal** — the user set a 6400 offset
 but the waveform stayed ± about ~0. So the diaggui stimulus offset did not translate to an
