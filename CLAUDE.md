@@ -71,10 +71,18 @@ negation cancelled and it drove the same direction. **That script does not work.
 
 ### Performance
 
-> ⚠ **The HV amplifier tops out at ~80 V, not 200 V** (Molly, 2026-08-21). The
-> design table below is the *aspiration*; the 80 V rows are the reality. With the
-> optimal split that is V_dc = V_ac = 40 V, so torque is **6.25× below the 100 V
-> row**, which was already the conservative one.
+> ⚠ **UPDATED 2026-08-28 — the ~80 V ceiling below is superseded, but the
+> optimal-split number is now genuinely open, not just outdated.** Measured
+> swing is **~171-180 V** (two independent measurements, `apparatus_log.md`
+> 2026-08-25 and 2026-08-28), much closer to the 200 V design target than the
+> 80 V figure — see "HV amplifier" below. But **the amp is bipolar** (PI
+> confirmed 2026-08-28), and its true zero-crossing count is NOT at commanded
+> count 0 — it sits somewhere near 6400 counts on the `_EXC` path, unmeasured on
+> `_OFFSET`. So "V_dc = V_ac = V_max/2" is still the right *formula*, but V_max
+> means "excursion from the true zero," which nobody has measured yet on the
+> path this script actually drives. **The 40/40 V "TODAY" row below is stale
+> and should not be trusted until a dedicated zero-crossing sweep is done** (see
+> "Known script issues").
 >
 > **No shims are fitted yet**, so the current configuration is the 0.37 mm row.
 
@@ -123,17 +131,15 @@ to bottom).
 | 285° | CTR | centre disk r = 0.58 mm — charge drive / DC height trim |
 | — | GND | bare bottom ring r 2.95–3.40 pressed on the grounded magnet; 2 optional top pads at r = 10.8, az 60/240° |
 
-> ⚠ **Which `V{n}` channel each terminal is landed on is NOT recorded anywhere.**
-> The table above names terminal *azimuths*. Molly believes **V1 is the centre
-> electrode** and the three sector phases are **V2/V3/V4**. `stator_drive.py:73`
-> assumes the opposite (CTR = V4, phases V1/V2/V3) — but that was never a wiring
-> record, just V1..V4 assigned in azimuth order off this table. Corroboration for
-> Molly's version: `three_phase_drive.py`'s `--electrodes` help already suggests
-> "e.g. 2,3,4", and a run with the default 1,2,3 produced *movement but not
-> rotation* (2026-08-21) — exactly what you would expect if one "phase" landed on
-> an azimuthally symmetric centre disk that can produce no net torque, leaving a
-> standing field on two real sector phases. **Confirm by continuity check at the
-> next chamber opening**, or read it off the detent test (below).
+> ✅ **RESOLVED 2026-08-24 by continuity check at the chamber opening.** V1 IS
+> the centre electrode. Clockwise viewed from the pad face the four terminals
+> read V1, V3, V4, V2 (cross-checked counterclockwise too — both directions
+> agree). Combined with the board's CCW-positive azimuth convention
+> (`generate_flex_revG.py`), this gives **(A, B, C) = (V2, V4, V3)**, i.e.
+> `PHASE_ELECTRODES = (2, 4, 3)` in `stator_epics_drive.py`. The old `(2,3,4)`
+> swaps B and C — a transposition, not a cyclic rotation, so it would still spin
+> the rotor but backwards and mislabelled. Full derivation:
+> `apparatus_log.md`, "2026-08-24 — electrode map CONFIRMED".
 
 - Sector electrodes span **r = 0.69 → 1.95 mm**; inner edge sits at the 0.08 mm
   minimum-copper limit.
@@ -141,6 +147,45 @@ to bottom).
 - **CTR as a charge probe:** 10 V gives E_z ≈ 1.7e4 V/m on axis → 2.7e-15 N per elementary
   charge. Driven at the vertical trap frequency with Q ~ 1e3–1e4, few-electron resolution
   by lock-in is plausible; calibrate against a UV/filament charge step.
+
+### HV amplifier (drives V1–V4, homemade board, David Moore design)
+
+Identified 2026-08-27 from the Fusion 360 Electronics schematic (a `.fsch` is a
+zip archive containing a plain Eagle-XML `.sch` — ask Claude for the extraction
+method if needed again). **U1 = Microchip HV265-I/QE**, 4-channel 205 V
+high-voltage op-amp array, TSSOP24, datasheet DS20006234A. Per channel:
+`VIN → Hi-V Amp → HVOUT`, `FB` tied directly to `HVOUT` (fixed closed-loop
+gain, no external divider).
+
+- **Gain: datasheet spec 75.4–88.4 V/V (typ 82).** Measured 2026-08-28:
+  171 V / 2.1 V ≈ **81.4 V/V** — matches spec closely; the chip is behaving as
+  designed. Independent Aug-25 measurement (`_EXC` path) got a consistent
+  ~0.013 V/count amplitude.
+- **VOLTS_PER_COUNT ≈ 0.0134 V/count** (171 V / 12800 counts, `_EXC` path,
+  2026-08-28) — supersedes the old 0.03125 and 0.00625 guesses. **Caveat: this
+  is the `_EXC`-path gain. Whether `_OFFSET` (what `stator_epics_drive.py`
+  actually drives) has the same slope is UNVERIFIED.**
+- **The amp is BIPOLAR** — confirmed by measurement (Aug 25 and Aug 28) *and*
+  directly by David Moore, 2026-08-28: "the +/- is completely normal." This
+  overturns the unipolar assumption in `stator_drive.py`/`three_phase_drive.py`
+  (`dc = amp`, "keep the swing ≥ 0"). Note the HV265 datasheet's own `HVOUT`
+  spec range reads as unipolar (1.85 V min to `VPP − 10 V` max) — trust the PI
+  and the direct measurement over that typical-range table.
+- **The true zero-crossing is NOT at commanded count 0.** Riding the `_EXC`
+  command at ~6400 counts (~1 V at `VIN`) landed almost exactly on the amp's
+  natural zero — explaining the Aug-25 log's item 5 ("offset did not create a
+  DC pedestal": that count value just doesn't produce one). **To get a real
+  V_dc for the m=8 torque channel, bias the commanded offset AWAY from the true
+  zero-crossing, not toward it.** The exact zero-crossing count on `_OFFSET`
+  specifically is unmeasured — see "Known script issues".
+- `VPP` is set by a 10 kΩ trimmer off a front-panel banana-jack LV input, same
+  node that powers `VDD` and the on-board HV DC-DC converter. Nobody has
+  checked the applied LV voltage or trimmer position.
+- **Gotcha for next time: check AC vs DC coupling on the scope before trusting
+  any absolute-voltage reading.** AC coupling silently removes the true DC
+  level and re-centres whatever's left around 0 V — visually indistinguishable
+  from a real bipolar-about-zero signal. Cost real time 2026-08-26/27. DC-couple
+  both channels and do a GND-coupling zero-line check first.
 
 ### ⚠ Assembly / safety
 
@@ -209,12 +254,22 @@ choosing a drive backend (below).
 
 ## Driving it
 
-**Status (2026-08-21): the stator has moved the rotor.** DC on V2 at 6400 counts
-collapsed the rotor's libration 2.6× (rms 22.5 → 8.6) and held it for the full 180 s;
-3200 counts did nothing. That is a detent capturing a moving rotor — a **static torque
-from rest**, which the synchronous side posts could not produce at any drive level. It
-brackets the capture threshold between 3200 and 6400 counts. **Only V2 is demonstrated;
-V3 and V4 are untested, not shown broken.** Full record in `apparatus_log.md`.
+**Status (2026-08-28): the stator has driven a real 3-phase field.** First live
+3-phase run 2026-08-24 (`stator_epics_drive.py --amp 4800 hold -f 0.02`, ~158 s):
+**electrically verified correct** — relative phases −120.0°/−120.0° to the
+decimal, amplitudes matched to 4 sig figs, f_elec matched commanded, V1 (CTR)
+flat at 0 throughout, CCW rotation in board coordinates confirmed straight from
+the phase-vs-azimuth data (independently re-confirms m=8). **The rotor did not
+hold lock** — slipped/unlocked, attributed to being outside capture bandwidth
+or camera handedness, explicitly NOT a wiring or phasing fault (both are
+measured and confirmed). Earlier single-electrode result (2026-08-21): DC on V2
+at 6400 counts collapsed the rotor's libration 2.6× (rms 22.5 → 8.6) and held it
+180 s; 3200 counts did nothing — a detent capturing a moving rotor, a static
+torque from rest the old side posts could never produce. **That bracket's
+interpretation is genuinely open again** given the bipolar/zero-crossing finding
+above (see "HV amplifier") — re-derive it once the true `_OFFSET` zero-crossing
+is known, don't take "6400 > 3200 so bigger pedestal wins" at face value either
+way. Full record in `apparatus_log.md`.
 
 | script | status |
 |---|---|
@@ -292,26 +347,23 @@ This is why `stator_drive.py`'s `PHASE_GAIN_PVS`
 and no per-electrode gain pair does. Keep that script for its torque/capture/ramp
 formulas, which are validated; do not try to run its backend.
 
-### ⚠ `VOLTS_PER_COUNT` is UNMEASURED — and the old placeholder is provably wrong
+### ✅ `VOLTS_PER_COUNT` — MEASURED 2026-08-28, ≈0.0134 V/count on the `_EXC` path
 
-Torque goes as V², so an error here is **squared** in every limit a script prints.
-`stator_drive.py` carries `VOLTS_PER_COUNT = 0.03125` ("6400 counts → 200 V"). That
-**cannot be right on an amplifier that stops at ~80 V.** Driving its 6400 DC + 6400 AC
-default would command deep into saturation, and clipping is especially damaging here: it
-flattens the peaks, shifting the DC/AC balance, and the m=8 channel is precisely the one
-that depends on the product V_dc·V_ac. The drive would look correct on the commanded
-values while being both weaker and harmonically dirty.
+See "HV amplifier" above for the full derivation (171 V / 12800 counts, gain
+81.4 V/V, matches the HV265 datasheet's 75.4–88.4 V/V spec). Cross-validated
+against an independent 2026-08-25 measurement (~0.013 V/count). Both supersede
+`stator_drive.py`'s old `0.03125` placeholder.
 
-**Hypothesis to test, not a value to trust:** `sweep_oscillator.py` drove 0 → 12800
-counts on this same amplifier and the electrodes were "found sitting at 12000 counts".
-If 12800 counts is the 80 V ceiling then `VOLTS_PER_COUNT ≈ 0.00625` — five times
-smaller than the placeholder.
+**Still open: whether `_OFFSET` (the slow path `stator_epics_drive.py` actually
+drives) has the same slope as `_EXC` (what was measured) is unverified.** Do not
+assume they match without checking — this is exactly the kind of thing
+`calibrate` exists to settle on the real drive path, not just the diagnostic one.
 
-`stator_epics_drive.py` sets it to `None` and **refuses to print torque, capture or ramp
-limits until it is measured**, rather than printing fiction; `spinup` likewise refuses to
-pick a rate for you. Its `calibrate` subcommand is a DC staircase on one electrode: the
-slope is `VOLTS_PER_COUNT`, and where the slope flattens is the real ceiling. Pass
-`--volts-per-count` afterwards to switch the physics reporting on.
+`stator_epics_drive.py` still sets `VOLTS_PER_COUNT = None` by default and
+**refuses to print torque, capture or ramp limits until `--volts-per-count` is
+passed explicitly** — kept that way deliberately even though a number now
+exists, until it's confirmed on the `_OFFSET` path specifically. Its
+`calibrate` subcommand is a DC staircase on one electrode for exactly this.
 
 ### ⚠ The DC pedestal is not cosmetic (applies to AC drive, not the DC detent)
 
@@ -325,10 +377,21 @@ pattern gives **two** torque channels, both locking the rotor at the same speed 
 
 **At V_dc = 0 the m=8 channel vanishes identically**, leaving only m=16 — the stronger
 rotor harmonic, but it suffers twice the gap attenuation. Maximising V_dc·V_ac subject to
-V_dc + V_ac ≤ V_max gives **V_dc = V_ac = V_max/2**. Note this interacts with the ~80 V
-ceiling: the optimal split there is 40 V DC + 40 V AC, not 6400/6400 counts.
-A `--dc` override is worth having as a diagnostic — **m=8 scales with V_dc, m=16 does
-not**, so varying it at fixed amplitude separates the two channels.
+V_dc + V_ac ≤ V_max gives **V_dc = V_ac = V_max/2**. A `--dc` override is worth having as
+a diagnostic — **m=8 scales with V_dc, m=16 does not**, so varying it at fixed amplitude
+separates the two channels.
+
+> ⚠ **UPDATED 2026-08-28 — "V_dc = 0" means the AMP's real zero, not commanded
+> count 0.** The amp is bipolar with its true zero-crossing near ~6400 counts
+> on `_EXC` (unmeasured on `_OFFSET`) — see "HV amplifier" above. `dc=amp`
+> (`stator_epics_drive.py`'s current default when `--dc` isn't given) could
+> land ON that zero-crossing by coincidence and silently produce V_dc ≈ 0 —
+> exactly the failure mode this section warns about — while every commanded
+> value looks like a healthy nonzero pedestal. **`banner()`'s current warning
+> only checks `dc == 0` in COUNT space and would miss this entirely.** Do not
+> trust "the m=8 channel is on" from the commanded numbers alone until the real
+> `_OFFSET` zero-crossing is measured and the warning logic accounts for it —
+> see "Known script issues".
 
 ### If AWG is ever needed (for speed only)
 
@@ -355,6 +418,26 @@ XML takes index-aligned per-tone `Stimulus{Frequency,Amplitude,Offset,Phase}[i]`
 `scripts/dipole/measure_actuator_gain.py` in github.com/aaronmarkowitz/labutils.
 **Caveat: y1rds is NOT y1dmd** — that is proven on Aaron's front end, not this one, and
 it inherits the same GPS-clock-frame question.
+
+## Known script issues (`stator_epics_drive.py`, found 2026-08-28)
+
+- **`banner()`'s DC-pedestal warning (`if dc == 0: ... m=8 channel is OFF`) only
+  catches commanded count 0.** Given the amp's real zero-crossing is near
+  ~6400 counts (not 0, see "HV amplifier"), a commanded `dc` near that value
+  would ALSO zero the real m=8 channel while triggering no warning at all. Fix
+  properly requires measuring the true `_OFFSET`-path zero-crossing first (a
+  fine DC sweep, similar to `calibrate` but aimed at finding the pedestal's
+  zero rather than the ceiling), then updating the check to compare against it
+  instead of literal 0.
+- **`check_amplitude()`'s rejection of negative counts** ("the amplifier is
+  unipolar") has a wrong justification now (PI confirmed bipolar output), but
+  the actual behavior — reject negative EPICS `_OFFSET` writes — might still be
+  correct for an unrelated reason (e.g. the DAC/EPICS side may not accept
+  negative values regardless of what the output voltage does). Needs checking,
+  not blindly "fixing."
+- **`--dc` default (`= --amp` when not given)** rests on the same
+  now-questionable "maximizes m=8, keeps it non-negative" reasoning. Revisit
+  once the true zero-crossing is measured.
 
 ## Conventions
 

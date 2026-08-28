@@ -15,6 +15,80 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-08-28 — HV amp identified (HV265), calibration confirmed, PI confirms bipolar is normal
+
+Follow-up to the 2026-08-25 entry below, from a from-scratch electrical
+characterization session (different machine/session than the 08-25 one).
+
+**1. Amplifier identified.** Pulled the Fusion 360 Electronics schematic apart
+(the `.fsch` is a zip archive containing a plain Eagle-XML `.sch` — readable
+without the app). `U1 = Microchip HV265-I/QE`, 4-channel 205 V high-voltage
+op-amp array, TSSOP24, datasheet DS20006234A. One channel per V-line, `VIN ->
+Hi-V Amp -> HVOUT`, `FB` tied directly to `HVOUT` (fixed gain config). Only one
+HV supply net in the design (`VPP`, from an on-board DC-DC module set by a
+10 kOhm trimmer off a front-panel banana-jack LV input, same node as `VDD`).
+
+**2. Calibration confirmed, cross-validated three ways.** Careful DC-coupled,
+GND-referenced measurement (BNC tee at the amp output, one leg to the chamber,
+one to the scope, so this is the real electrode drive, not a monitor proxy):
+12800 counts (`_EXC`, offset=amplitude=6400) = 2.1 V swing at `VIN` = 171 V
+swing at `HVOUT`.
+  - Gain = 171/2.1 = **81.4 V/V**. HV265 datasheet spec: 75.4-88.4 V/V (typ 82)
+    for this FB-tied-direct config. Matches closely -- the chip is behaving
+    exactly as designed, not out of spec.
+  - VOLTS_PER_COUNT = 171/12800 = **0.0134 V/count**, consistent with the
+    2026-08-25 entry below's ~0.013 V/count. Two independent measurements
+    agree. Supersedes `stator_drive.py`'s old 0.03125 placeholder.
+  - Still open: this is the `_EXC`-path gain. `_OFFSET` (what
+    `stator_epics_drive.py` actually drives) is unverified to have the same
+    slope.
+
+**3. PI confirms the amp is genuinely bipolar.** Spoke to David Moore (designed
+this board): the +/- output is completely normal, expected behaviour. This
+settles the question the 08-25 entry below left open, and corrects a wrong
+turn taken mid-session here: the swing was initially found to look centred on
+~0 V, which was first mistaken for a scope AC-coupling artifact (a real bug,
+worth the general lesson below) and "fixed" by switching to DC coupling --
+which appeared to confirm a real DC offset and seemed to vindicate the
+opposite (unipolar) reading. That was a false resolution. Re-measuring
+carefully with DC coupling confirmed via a GND-coupling zero-line check still
+showed VIN's midpoint (~1 V) landing on HVOUT's zero-crossing, with a real
+bipolar swing around it -- and the PI confirmed by hand that this is correct,
+not an artifact.
+  - **This explains the 08-25 entry's item 5 ("offset did not create a DC
+    pedestal -- unresolved").** Riding the command at ~6400 counts happens to
+    land almost exactly on the amp's own natural zero-crossing point. That
+    count value doesn't produce a pedestal, not because pedestals don't work.
+    **To get a real V_dc for the m=8 torque channel, the commanded offset must
+    be biased AWAY from ~6400 counts, not centred on it.**
+  - The HV265 datasheet's own `HVOUT` spec table reads as unipolar (1.85 V min
+    to VPP-10V max) -- doesn't match what's measured here. Either that's a
+    characterized/recommended range rather than a hard floor, or this board's
+    implementation differs from the datasheet's typical config in some way not
+    visible in the schematic. Deferring to the PI and the direct measurement.
+
+**4. General lesson, cost real time here: always check AC vs DC coupling (and
+do a GND-coupling zero-line check) before trusting an absolute-voltage or
+offset reading on any scope.** AC coupling silently removes the true DC
+component and re-centres whatever's left around the display's 0 V line,
+regardless of the real DC level -- visually indistinguishable from a genuine
+bipolar-about-zero signal.
+
+**5. Bug found in `stator_epics_drive.py`.** `banner()`'s DC-pedestal warning
+only checks `dc == 0` in commanded-count space. Given the true zero-crossing is
+near 6400 counts, not 0, a commanded `dc` near that value would ALSO silently
+zero the real m=8 channel without triggering any warning. Needs a measured
+`_OFFSET`-path zero-crossing (fine DC sweep, not yet done) before the check can
+be fixed properly.
+
+**Next:** a fine DC sweep on the `_OFFSET` path (same idea as `calibrate`, but
+aimed at finding where the pedestal goes to zero, not where the amp
+saturates) -- needed before the 2026-08-21 "capture threshold bracketed
+between 3200 and 6400 counts" result or the 2026-08-24 live-drive `--amp 4800`
+choice can be properly re-interpreted in light of the true zero-crossing.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+
 ### 2026-08-25 — electrode voltage measured on a scope: amp is BIPOLAR, VOLTS_PER_COUNT, _EXC path works
 
 Drove **V2 alone** via a diaggui excitation on `V2_EXC` (front-end-generated sinusoid) with
