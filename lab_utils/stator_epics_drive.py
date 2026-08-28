@@ -117,6 +117,13 @@ PHASE_ELECTRODES = (2, 4, 3)     # A, B, C -- sector phases, 8 sectors each
 CTR_ELECTRODE    = 1             # centre disk + feed arm: DC trim / charge drive
 
 PREFIX = 'Y1:RDS-OUTS'
+PREFIX_BASE = 'Y1:RDS'
+
+# What is summed into each electrode AHEAD of its filter module, traced from
+# y1rds.mdl at the top level 2026-08-28 (LES[1..3] -> OUTS In1..In3,
+# MON -> OUTS In4). The module's SW1 input bit is the only thing gating it.
+INPUT_SOURCE = {1: 'LES_PIT', 2: 'LES_YAW', 3: 'LES_SUM', 4: 'MON'}
+INPUT_TOLERANCE_COUNTS = 1.0
 PHASE_PVS  = [f'{PREFIX}_V{n}_OFFSET' for n in PHASE_ELECTRODES]
 PHASE_TRAMP = [f'{PREFIX}_V{n}_TRAMP' for n in PHASE_ELECTRODES]
 # _OUT does NOT exist as an EPICS record -- it is a fast test point, NDS-only.
@@ -232,46 +239,68 @@ def zero_all(echo=True):
     put(CTR_PV, 0.0, wait=True, echo=echo)
 
 
-def guard_tramp():
-    """Force TRAMP = 0 on every driven electrode -- right HERE, wrong elsewhere.
+def guard_tramp(tramp=0.0):
+    """Set TRAMP on every driven electrode, and return the previous values.
 
-    TRAMP is the interpolation time for a commanded setpoint change. Which way
-    you want it depends entirely on WHO is generating the waveform:
+    TRAMP is the LINEAR INTERPOLATION time for a commanded setpoint change,
+    computed by the front end at the 2048 Hz model rate (y1rds.mdl:
+    `host=cymac1 ifo=Y1 rate=2K`). That makes it a reconstruction filter, and
+    the choice is NOT "0 or 1", it is "how does TRAMP compare to the interval
+    between writes":
 
-      * Waveform synthesised in SOFTWARE -- what this script does, writing
-        V{n}_OFFSET at --rate Hz. Every write is a commanded change, so a
-        nonzero TRAMP low-passes the sinusoid into a smaller, phase-lagged,
-        distorted version of itself, while the commanded values (and anything
-        this script logs) still look perfect.  ==> TRAMP MUST BE 0.
+      * TRAMP = 0            -> zero-order hold. Every write lands as a hard
+                                step, so the output is a staircase at --rate.
+      * TRAMP ~ 1/rate       -> first-order hold: each write interpolates
+                                linearly to the next over exactly one interval,
+                                evaluated at 2048 Hz. This is the SMOOTH case,
+                                and the amplitude/phase penalty is negligible
+                                while f_elec * TRAMP << 1 (at 200 Hz writes and
+                                0.16 Hz electrical that is 8e-4, an error of
+                                order 1e-6).
+      * TRAMP >> 1/rate      -> each write only travels a fraction of its step
+                                before being superseded: severe attenuation and
+                                phase lag, while the commanded values (and
+                                anything this script logs) still look perfect.
+                                This is the 1.0 s @ 200 Hz case found live on
+                                2026-08-21, where each write advanced 1/200 of
+                                the way to its target.
 
-      * Hardware OSCILLATOR moved between setpoints, e.g. DRV_FREQ f1 -> f2.
-        A positive TRAMP gives a smooth, PHASE-CONTINUOUS modulation from f1 to
-        f2 over TRAMP seconds. TRAMP = 0 makes it a discrete step with NO phase
-        matching -- a phase discontinuity that kicks the rotor and breaks lock.
-        ==> TRAMP MUST BE POSITIVE.
+    An earlier version of this function forced TRAMP = 0 and asserted that was
+    the only correct choice for a software-generated waveform. That is the
+    wrong end of the trade: it removes the low-pass distortion by replacing a
+    smooth wave with a staircase. Prefer TRAMP = 1/rate for AC drives; 0 is
+    still right for the DC commands (`calibrate`, `detent`), where a step is
+    the point.
 
-    So do not read "TRAMP = 0" off this function as a general rule. It applies
-    to the electrode filter modules for as long as this script owns the
-    waveform, and the previous values are restored afterwards. This function
-    deliberately does not touch DRV_TRAMP -- zeroing that would break exactly
-    the phase continuity an oscillator sweep depends on.
-
-    Returns the previous values so they can be restored.
+    Deliberately does not touch DRV_TRAMP -- zeroing that would break exactly
+    the phase continuity an oscillator frequency sweep depends on.
     """
     previous = {}
     for pv in list(PHASE_TRAMP) + [CTR_TRAMP]:
         previous[pv] = get(pv, 0.0)
-        put(pv, 0.0, wait=True, echo=False)
-    nonzero = {k: v for k, v in previous.items() if v}
-    if nonzero:
-        print('  TRAMP was nonzero and has been zeroed: ' +
-              ', '.join(f'{k.split("_")[-2]}={v:g}s' for k, v in nonzero.items()))
+        put(pv, float(tramp), wait=True, echo=False)
+    changed = {k: v for k, v in previous.items() if v != tramp}
+    if changed:
+        print(f'  TRAMP set to {tramp:g} s (was: ' +
+              ', '.join(f'{k.split("_")[-2]}={v:g}s' for k, v in changed.items()) + ')')
     return previous
 
 
 def restore_tramp(previous):
     for pv, value in previous.items():
         put(pv, value, wait=True, echo=False)
+
+
+def resolve_tramp(args):
+    """TRAMP for an AC drive: --tramp if given, else one write interval.
+
+    Matching TRAMP to 1/rate turns the front end's setpoint interpolator into a
+    first-order hold evaluated at the 2048 Hz model rate, which is what makes a
+    software-written sinusoid smooth instead of a staircase. See guard_tramp().
+    """
+    if args.tramp is not None:
+        return args.tramp
+    return 1.0 / args.rate
 
 
 def guard_oscillator():
@@ -369,6 +398,63 @@ def phases_rad(reverse=False):
     order = [0.0, -4 * math.pi / 3, -2 * math.pi / 3] if reverse else \
             [0.0, -2 * math.pi / 3, -4 * math.pi / 3]
     return order
+
+
+def check_inputs():
+    """Refuse to drive if a phase electrode's module INPUT is on.
+
+    Traced from y1rds.mdl 2026-08-28. The four electrode filter modules are not
+    fed only by what we write -- each has a signal summed in AHEAD of the
+    module, so the module's own SW1 input bit is the only thing gating it:
+
+        LES.PIT -> OUTS In1 -> V1 = LES_PIT + s      (CTR)
+        LES.YAW -> OUTS In2 -> V2 = LES_YAW + c      <- phase A
+        LES.SUM -> OUTS In3 -> V3 = LES_SUM - s      <- phase C
+        MON     -> OUTS In4 -> V4 = MON     - c      <- phase B
+
+    Measured live on 2026-08-28: LES_PIT_OUT 5761 counts, LES_YAW_OUT -2552,
+    both with GAIN = 1 -- i.e. genuinely live. Against a drive amplitude of a
+    few thousand counts that is a huge uncommanded pedestal on ONE phase, which
+    destroys precisely the amplitude balance and 120 deg phasing that the
+    2026-08-24 run verified to four significant figures.
+
+    LES_SUM and MON currently read 0, but NOT because they are unwired: both
+    have GAIN = 0, and LES_SUM has 636 counts sitting at its input (INMON).
+    So V3/V4 are safe only for as long as nobody sets those two gains. Check
+    the switch, not the readback.
+
+    Do NOT infer "nothing is arriving" from INMON = 0 -- INMON is a slow
+    monitor and a zero-mean AC signal reads ~0 through it. Use the fast
+    V{n}_OUT_DQ / LES_*_OUT_DQ channels over NDS instead.
+    """
+    if caget is None:
+        return True
+    hot, armed = [], []
+    for name, n, pv in zip(PHASE_NAMES, PHASE_ELECTRODES, PHASE_SW1):
+        if not int(get(pv, 0.0, live=True)) & SW1_INPUT_ON:
+            continue                      # input blocked -- nothing gets in
+        src = INPUT_SOURCE[n]
+        level = get(f'{PREFIX_BASE}-{src}_OUTMON', 0.0, live=True)
+        gain = get(f'{PREFIX_BASE}-{src}_GAIN', 0.0, live=True)
+        entry = f'phase {name} (V{n}) <- {src}: {level:+.1f} counts, GAIN {gain:g}'
+        (hot if abs(level) > INPUT_TOLERANCE_COUNTS else armed).append(entry)
+
+    for entry in armed:
+        print(f'  note: input open but source is quiet -- {entry}')
+    if armed:
+        print(f'        ({INPUT_TOLERANCE_COUNTS:g} count tolerance. A quiet source '
+              f'is not a safe one:\n         it is one GAIN write away from being '
+              f'summed into that phase.)')
+    if hot:
+        print('! LIVE signal is summed into a drive phase:\n    ' +
+              '\n    '.join(hot))
+        print('  That is an uncommanded pedestal on ONE phase, which breaks the\n'
+              '  amplitude balance and 120 deg phasing the drive depends on.\n'
+              '  Turn that module\'s input off (clear bit %d), or pass\n'
+              '  --allow-input if you really mean to drive with it connected.'
+              % SW1_INPUT_ON)
+        return False
+    return True
 
 
 def check_amplitude(dc, amp):
@@ -513,7 +599,14 @@ def cmd_calibrate(args):
     those two numbers.
     """
     pv = f'{PREFIX}_V{args.electrode}_OFFSET'
-    out_pv = f'{PREFIX}_V{args.electrode}_OUT'
+    # _OUT does not exist as an EPICS record (fast test point, NDS-only) -- caget
+    # on it fails and get() silently returns the 0.0 default, so every row of the
+    # staircase printed "0.0" and looked like a dead channel. _OUTMON is the slow
+    # readback. It is still only the FRONT-END output in counts: it shows the
+    # filter module's own LIMIT clipping (12800, engaged via SW2 bit 256) but says
+    # nothing about the HV amp downstream. Amp saturation needs a meter at the
+    # electrode.
+    out_pv = f'{PREFIX}_V{args.electrode}_OUTMON'
     print(f'\nDC staircase on V{args.electrode} ({pv})')
     print(f'  {args.steps} steps to {args.max_counts:.0f} counts, '
           f'{args.dwell:.0f} s each')
@@ -570,6 +663,8 @@ def cmd_detent(args):
     'forward' in camera coordinates.
     """
     if not check_amplitude(0.0, args.counts):
+        return 1
+    if not args.allow_input and not check_inputs():
         return 1
     banner(args.counts, 0.0)
     print(f'\nDC detent test: {args.counts:.0f} counts, {args.dwell:.0f} s per step')
@@ -669,8 +764,11 @@ def cmd_hold(args):
               'does not\n  lock, try a lower frequency before assuming the drive '
               'is broken.)')
 
+    if not args.allow_input and not check_inputs():
+        return 1
+
     guard_oscillator()
-    previous = guard_tramp()
+    previous = guard_tramp(resolve_tramp(args))
     try:
         drive_loop(lambda t: args.freq, dc, args.amp, args.rate, args.ramp,
                    args.duration, args.reverse,
@@ -719,10 +817,13 @@ def cmd_spinup(args):
               f'target or raise --rate.')
         return 1
 
+    if not args.allow_input and not check_inputs():
+        return 1
+
     print(f'\nCatch at {f_start:.4f} Hz, then {duration / 60:.1f} min to '
           f'{args.freq:.4f} Hz at {ramp_rate:.2e} Hz/s')
     guard_oscillator()
-    previous = guard_tramp()
+    previous = guard_tramp(resolve_tramp(args))
 
     def f_of_t(t):
         if t < args.settle:
@@ -758,6 +859,12 @@ def build_parser():
                    help='measured DAC counts -> electrode volts. UNKNOWN by '
                         'default, which suppresses all torque/capture reporting. '
                         'Run `calibrate` to measure it.')
+    p.add_argument('--allow-input', action='store_true',
+                   help='drive even if a phase electrode has its module INPUT '
+                        'switch on. Each V{n} has a signal summed in ahead of '
+                        'the filter module (V1<-LES_PIT, V2<-LES_YAW, '
+                        'V3<-LES_SUM, V4<-MON), so an open input adds an '
+                        'uncommanded pedestal to that phase alone.')
     p.add_argument('--gap', type=float, default=GAP_MM,
                    help=f'rotor-electrode gap in mm (default {GAP_MM} = no shim)')
     p.add_argument('--amp', type=float, default=DEFAULT_AMP,
@@ -779,6 +886,14 @@ def build_parser():
                         help='run time in s (default 0 = until Ctrl-C)')
         sp.add_argument('--reverse', action='store_true',
                         help='swap phases B and C to reverse rotation')
+        sp.add_argument('--tramp', type=float, default=None,
+                        help='electrode TRAMP in s (default 1/--rate). This is '
+                             'the front end\'s linear interpolation time for a '
+                             'commanded change, evaluated at the 2048 Hz model '
+                             'rate: matching it to the write interval gives a '
+                             'first-order hold (smooth), 0 gives a staircase, '
+                             'and >> 1/rate attenuates and lags the waveform '
+                             'while the commanded values still look perfect.')
         return sp
 
     sub.add_parser('status', help='read back every channel this script touches')
