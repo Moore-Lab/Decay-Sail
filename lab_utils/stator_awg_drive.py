@@ -90,6 +90,81 @@ def gps_now_fe():
     return caget(DAQ_GPS_PV)
 
 
+def reclaim_slots(electrodes=(1, 2, 3, 4), quiet=True):
+    """Force-release leaked AWG slots. CALL THIS BEFORE EVERY RUN.
+
+    Found the hard way 2026-08-28: a drive would work about three times and then
+    silently stop producing AC -- OUT_DQ rms 0.00, only the DC pedestal, and NO
+    error raised anywhere. Three electrodes per run against MAX_NUM_AWG = 9 is
+    exactly three runs.
+
+    The cause is in awg.py. Excitation.stop() only frees the slot when wait=True:
+
+        ret = awgbase.awgStopWaveform(self.slot, 0, 0)
+        self.stopped = True
+        if wait:
+            self.clear()      # awgClearWaveforms -> awgRemoveChannel -> tpClearName
+
+    So stop(wait=False) leaks the slot, and so does a process that dies before it
+    reaches stop() at all. awg.awg_cleanup() does NOT help -- it only closes the
+    client-side interfaces (awgbase.awg_cleanup + testpoint_cleanup) and never
+    touches the server's per-channel slots.
+
+    Reclaiming means re-acquiring the channel and running the release sequence by
+    hand. awgSetChannel returns the EXISTING slot for a channel that is already
+    allocated, so this works even when the process that leaked it is long gone.
+
+    Two rules that follow, and both matter:
+      * always stop with wait=True;
+      * never leave a drive running in a backgrounded process -- when the client
+        exits the excitation dies with it, while the _OFFSET pedestal persists.
+        That combination (DC present, AC absent) is what a leaked/dead drive
+        looks like, and it fooled us repeatedly.
+    """
+    import awgbase
+    freed = []
+    for n in electrodes:
+        chan = f'{PREFIX}_V{n}_EXC'
+        try:
+            awgbase.tpRequestName(chan, -1, None, None)
+            slot = awgbase.awgSetChannel(chan)
+            if slot >= 0:
+                awgbase.awgClearWaveforms(slot)
+                awgbase.awgRemoveChannel(slot)
+                freed.append(f'V{n}:{slot}')
+            awgbase.tpClearName(chan)
+        except Exception as err:
+            if not quiet:
+                print(f'  ! reclaim {chan}: {err}')
+    if freed and not quiet:
+        print('  reclaimed AWG slots: ' + ', '.join(freed))
+    return freed
+
+
+def ac_present(electrodes, thresh=100.0):
+    """Is there actually AC at the electrodes right now?
+
+    A commanded value proves nothing on this path: when the AWG slots are
+    exhausted the excitation silently does not play, and the only symptom is
+    that OUT_DQ carries the DC pedestal with rms 0.00 and no error anywhere.
+    So check the output, not the command.
+
+    Reads one second of the fast DAQ channels -- enough for a yes/no on AC
+    presence, though far too short to measure a frequency (a 1 s buffer of a
+    3 s period is a third of a cycle; that mistake produced several bogus
+    numbers on 2026-08-28).
+    """
+    try:
+        import nds2
+        conn = nds2.connection('cymac1', 8088)
+        for blk in conn.iterate([f'{PREFIX}_V{n}_OUT_DQ' for n in electrodes]):
+            rms = [float(np.array(x.data, float).std()) for x in blk]
+            return all(r > thresh for r in rms), rms
+    except Exception as err:
+        print(f'  ! could not check for AC ({err}); proceeding blind')
+    return True, []
+
+
 def snapshot(electrodes):
     state = {}
     for n in electrodes:
@@ -364,8 +439,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--live', action='store_true')
     p.add_argument('-f', '--freq', type=float, default=0.02,
-                   help='rotor frequency, Hz MECHANICAL (f_elec = 8x this). '
-                        'Default 0.02.')
+                   help='ROTOR frequency, Hz (f_elec = 8x this). Default 0.02. '
+                        'Use --felec instead if you want to state the drive '
+                        'frequency directly.')
+    p.add_argument('--felec', type=float, default=None,
+                   help='ELECTRICAL drive frequency, Hz. Overrides -f. '
+                        'Rotor speed = this / 8, because the 24 sectors on a '
+                        '15 deg pitch wired ABCABC repeat every 45 deg, so one '
+                        'electrical cycle advances the travelling wave by an '
+                        'eighth of a turn.')
     p.add_argument('--to', type=float, default=None, metavar='F',
                    help='sweep to this rotor frequency (Hz mech) over '
                         '--duration, phase-continuously, via awg.SweptSine. '
@@ -382,6 +464,12 @@ def main():
                         'passes before the excitation is armed.')
     p.add_argument('--reverse', action='store_true',
                    help='swap B and C to reverse rotation')
+    p.add_argument('--reclaim', action='store_true',
+                   help='force-release AWG slots before arming. OFF by default: '
+                        'doing this in-process appeared to BREAK arming on '
+                        '2026-08-28. If the drive is genuinely stuck, run '
+                        'lab_utils/awg_reclaim.py as a separate process first, '
+                        'then start a fresh drive -- that is what recovered it.')
     p.add_argument('--set-input', choices=('leave', 'on', 'off'),
                    default='leave', help='module INPUT switch (default leave)')
     p.add_argument('--park', action='store_true',
@@ -400,6 +488,8 @@ def main():
     dry = not args.live
     dc = args.dc if args.dc is not None else args.amp
     electrodes = list(PHASE_ELECTRODES)
+    if args.felec is not None:
+        args.freq = args.felec / M_DRIVE
     f_elec = M_DRIVE * args.freq
     f_elec_end = M_DRIVE * args.to if args.to is not None else None
 
@@ -458,18 +548,72 @@ def main():
               f'{fe + args.lead:.0f} and run {args.duration:.0f} s.')
         return 0
 
-    start_ns = int((gps_now_fe() + args.lead) * 1e9)
-    print(f'\n  shared start: FE GPS {start_ns / 1e9:.1f} '
-          f'(+{args.lead:.0f} s, front-end frame -- NOT awgbase.GPSnow())')
-    exc = build(electrodes, args.amp, f_elec, f_elec_end, args.duration,
-                start_ns, args.reverse)
+    # NOT reclaimed automatically. Doing tpRequestName -> awgSetChannel ->
+    # awgRemoveChannel -> tpClearName immediately before arming appeared to make
+    # arming FAIL (2026-08-28): the script worked reliably before the reclaim was
+    # added, and afterwards a run would fail its first attempt right after the
+    # reclaim. What actually recovered a genuinely stuck AWG was running the
+    # reclaim as a SEPARATE process and then starting a fresh drive.
+    #
+    # How to tell whether slots are really leaked: reclaim_slots() prints the
+    # slot it finds per channel. DISTINCT slots (e.g. 13005/13006/13007/13008)
+    # mean four real allocations are being held -- reclaiming will help. The
+    # SAME slot for all four means nothing is allocated, so the failure is
+    # something else and reclaiming will not fix it.
+    if args.reclaim:
+        freed = reclaim_slots(quiet=False)
+        print('  (reclaim requested; if the slots printed above are all the '
+              'same number,\n   nothing was actually leaked and this will not '
+              'have helped)')
+        time.sleep(3)
+
     capture_start = None
+    exc = []
     try:
-        for e in exc:
-            e.start(ramptime=0, wait=False)
-        capture_start = gps_now_fe() + args.lead + 5
+        # Arming is INTERMITTENT and the root cause is not understood (2026-08-28).
+        # Observed: identical back-to-back runs, one armed on the retry and the
+        # next failed twice. What reliably helps is the library's own release
+        # path -- stop(wait=True) -> clear() -> awgClearWaveforms/RemoveChannel/
+        # tpClearName -- run on the FAILED excitation objects, which is more
+        # thorough than reclaim_slots()'s manual sequence. So each attempt tears
+        # down properly and pauses before trying again, rather than hammering.
+        for attempt in range(1, 9):
+            start_ns = int((gps_now_fe() + args.lead) * 1e9)
+            print(f'\n  shared start: FE GPS {start_ns / 1e9:.1f} '
+                  f'(+{args.lead:.0f} s, front-end frame -- NOT awgbase.GPSnow())')
+            exc = build(electrodes, args.amp, f_elec, f_elec_end, args.duration,
+                        start_ns, args.reverse)
+            for e in exc:
+                e.start(ramptime=0, wait=False)
+            capture_start = gps_now_fe() + args.lead + 5
+            time.sleep(args.lead + 6)
+            ok, rms = ac_present(electrodes)
+            if ok:
+                print(f'  AC confirmed at the electrodes '
+                      f'(rms {", ".join(f"{r:.0f}" for r in rms)})')
+                break
+            print(f'  ! NO AC at the electrodes (rms '
+                  f'{", ".join(f"{r:.1f}" for r in rms)}) -- the excitation did '
+                  f'not play.')
+            for e in exc:
+                try:
+                    e.stop(ramptime=0, wait=True)
+                except Exception:
+                    pass
+            exc = []
+            if attempt < 8:
+                print(f'  attempt {attempt} failed; reclaiming and retrying '
+                      f'({8 - attempt} left)...')
+                reclaim_slots()
+                time.sleep(4)
+            else:
+                print('  no AC after 8 attempts. Beyond slot exhaustion -- check '
+                      'DRVON,\n  the output switch (SW2 bit 1024), and whether '
+                      'another client (diaggui,\n  awggui, a stale python) holds '
+                      'the EXC channels.')
+                return 1
         print(f'  running {args.duration:.0f} s...')
-        time.sleep(args.lead + args.duration + 2)
+        time.sleep(max(0.0, args.duration - 6))
     finally:
         for e in exc:
             try:

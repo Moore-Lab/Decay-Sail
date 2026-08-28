@@ -1,38 +1,83 @@
-# HV amplifier: does it pass DC? — open investigation
+# HV amplifier: it does NOT pass DC — RESOLVED
 
-> ## ⚠ READ THIS FIRST — the evidence below is WEAK, corrected 2026-08-28
+> ## ✅ RESOLVED 2026-08-28 — the amplifier is DC-blocking
 >
-> The two observations that started this investigation are both suspect, and the
-> "amplifier does not pass DC" conclusion should **not** be treated as
-> established:
+> **The DC reaches the amplifier's input, the amplifier rejects it, and the
+> output is centred on 0 V regardless of the commanded pedestal.** Confirmed by
+> Molly at the bench, and it accounts for every observation in this file:
 >
-> 1. **The ndscope reading was the wrong channel.** It was watching
->    `V{n}_EXC`, which carries *only* the AWG excitation. `_EXC` and `_OFFSET`
->    are separate injection points that sum inside the filter module, so a DC
->    offset **cannot** appear on `_EXC` by construction — only on `V{n}_OUT`.
->    Looking at `V4_OUT` does show the commanded 6000 counts. This is consistent
->    with the direct NDS measurement below, which had `V2_OUT_DQ` flat at 12800.
-> 2. **The scope may have been showing a cursor position, not a voltage.** The
->    trace sat where the vertical reference was set. No GND-coupling zero-line
->    check was done first — the exact protocol `CLAUDE.md` mandates precisely to
->    avoid this, after it cost real time on 2026-08-26/27.
+> - a commanded DC step **rises then decays to 0 in ~20 s** — that is the
+>   coupling time constant, `f_c ≈ 0.02–0.03 Hz`;
+> - a static detent (12800/3200/3200 counts) reads **0 V** on a DC-coupled scope
+>   at the amp-output tee, while `OFFSET`/`OUTMON`/`OUT_DQ` all confirm the front
+>   end is emitting it correctly — the front end is upstream of the amp;
+> - **every AC drive sits symmetrically about 0 V** whatever `--dc` is passed;
+> - it explains the 2026-08-25 log's item 5, "offset did not create a DC pedestal
+>   — unresolved". That was never a diaggui quirk.
 >
-> **The digital side is confirmed good.** OFFSET, OUTMON and OUT_DQ all agree.
-> The analog electrode voltage under a DC command is currently **unmeasured**,
-> not known-bad. The ~20 s decay reported below is also unexplained under this
-> reading and may itself be an artifact — it has not been reproduced with a
-> verified zero reference.
+> ### An intermediate walk-back in this file was WRONG
 >
-> Everything downstream of this — the claim that the m=8 channel has never been
-> on, that the CLAUDE.md torque tables are wrong, and that the 2026-08-21 detent
-> was a decaying transient — **is conditional on a measurement that has not been
-> done properly yet.** Do the test in "Bench tests" §1 before acting on any of it.
-> The schematic questions remain worth answering regardless.
+> A previous revision retracted this conclusion on two grounds, both of which
+> turned out not to matter. They are recorded because the *reasoning* is still
+> worth knowing:
+>
+> 1. One ndscope reading did watch `V{n}_EXC`, which genuinely **cannot** show a
+>    DC offset — `_EXC` and `_OFFSET` are separate injection points summing
+>    inside the filter module, so only `V{n}_OUT` shows both. That reading was
+>    invalid, but it was never the main evidence.
+> 2. The scope was suspected of showing a cursor position rather than a voltage.
+>    It was not — the GND-coupling zero-line check was done and the reading held.
+>
+> **Lesson worth keeping: check which side of the amplifier you are measuring.**
+> `OFFSET`, `OUTMON` and `OUT_DQ` are all *front-end* channels and agree with
+> each other whether or not the amp passes anything. Only a scope at the amp
+> output answers this question.
+>
+> ### What follows, and it is not small
+>
+> **`V_dc = 0` at the electrode, always.** The m=8 torque channel goes as
+> `V_dc · V_ac`, so **it has never been on** — every drive this apparatus has
+> ever done, including the 2026-08-24 three-phase run and the 2026-08-28 spin,
+> has been the m=16 channel (`∝ V_ac²`) alone. Rotor speed is unaffected:
+> `CLAUDE.md` has both channels locking at `f_elec/8`, which is why the rotor
+> turns at the commanded rate.
+>
+> Consequences to act on:
+>
+> - **`dc = amp` wastes half the commanded swing.** Every script here defaults to
+>   `dc = 6400, amp = 6400` (peak 12800 counts), and the 6400 of DC does nothing
+>   at all. Torque goes as `V_ac²`, so `--dc 0 --amp 8000` is ~1.6× the torque of
+>   the current default, and higher still until the amp clips. **Find the ceiling
+>   with the scope** — ±86 V was clean at 6400 counts; pure AC at 12800 asks for
+>   344 V peak-to-peak from a part whose `VPP` is ~205 V, so it will square off
+>   somewhere in between.
+> - **The torque, capture-bandwidth and ramp tables in `CLAUDE.md` are tabulated
+>   for the m=8 channel and therefore do not apply.** m=16 suffers twice the gap
+>   attenuation (`exp(−m·h/r)`), which also makes the 0.1 mm shim worth far more
+>   than the 3.2× quoted there — roughly 10×, since the exponent doubles.
+>   Treat that as an estimate: it extrapolates a model `CLAUDE.md` itself lists
+>   as never cross-checked against 3-D BEM/COMSOL.
+> - **The 2026-08-21 "DC detent" needs re-interpretation.** It held DC for 180 s,
+>   but the field was gone after ~20 s. The claim that it demonstrated *"a static
+>   torque from rest, which the synchronous side posts could not produce at any
+>   drive level"* does not follow from that measurement. The underlying
+>   variable-capacitance physics is untouched; only this evidence for it is. The
+>   "capture threshold between 3200 and 6400 counts" bracket is likewise the
+>   response to a decaying transient, not a clean V² measurement.
+> - **`--park` in `stator_awg_drive.py` cannot work** and should not be used: a
+>   stationary detent decays away by construction.
+>
+> ### Still worth answering from the schematic
+>
+> The questions below stand — knowing *where* the DC is blocked (series capacitor
+> at `VIN`, at `HVOUT`, or a DC-rejecting input stage) determines whether the m=8
+> channel is recoverable with a component change, and that channel is central to
+> why this stator was designed. Q1, Q3, Q4 and Q5 are the relevant ones.
 
-**Status: OPEN. Started 2026-08-28 on worker2.** This file exists so an agent with
-access to the Fusion 360 Electronics schematic (on Molly's laptop; the `.fsch` is a
-zip containing a plain Eagle-XML `.sch`, readable without the app) can answer
-questions that cannot be answered from the lab machine.
+**Status: mechanism still open; the behaviour is settled.** This file exists so an
+agent with access to the Fusion 360 Electronics schematic (on Molly's laptop; the
+`.fsch` is a zip containing a plain Eagle-XML `.sch`, readable without the app)
+can answer questions that cannot be answered from the lab machine.
 
 Context lives in `CLAUDE.md` ("HV amplifier") and `apparatus_log.md` (2026-08-25,
 2026-08-28). **U1 = Microchip HV265-I/QE**, 4-channel 205 V HV op-amp array,
@@ -49,11 +94,11 @@ The stator's torque has two channels (`CLAUDE.md`, "The DC pedestal is not cosme
 | ch1 | rotor m=8 | **V_dc · V_ac** |
 | ch2 | rotor m=16 | V_ac² |
 
-and **at V_dc = 0 the m=8 channel vanishes identically.** So if the amplifier
-cannot deliver a DC bias at the electrode, the m=8 channel — a central part of why
-this stator was designed — is unavailable, and every drive ever run here has been
-m=16 only. That would also change the torque, capture-bandwidth and ramp-rate
-numbers throughout `CLAUDE.md`, which are all tabulated for the m=8 channel.
+and **at V_dc = 0 the m=8 channel vanishes identically.** The amplifier cannot
+deliver a DC bias at the electrode, so the m=8 channel — a central part of why this
+stator was designed — **is unavailable, and every drive ever run here has been m=16
+only.** That also invalidates the torque, capture-bandwidth and ramp-rate numbers
+throughout `CLAUDE.md`, which are all tabulated for the m=8 channel.
 
 ---
 
@@ -85,23 +130,30 @@ electrode drive, not a monitor proxy.
    counts of AC does not clip. Earlier: 6400 counts ≈ ±85 V, gain 81.4 V/V,
    matching the HV265 datasheet spec of 75.4–88.4 V/V.
 
-So: **AC passes perfectly, DC decays away with τ of order 5–20 s.**
+So: **AC passes perfectly; DC is rejected, with the output centred on 0 V and a
+transient decaying over ~20 s.**
 
 ---
 
-## Competing explanations — NOT yet resolved
+## Mechanism — still open, but the behaviour is settled
 
-Both fit the data above equally well, and they have different fixes:
+The amplifier rejects DC (confirmed 2026-08-28). **Where** it is rejected is not
+established, and it matters, because it decides whether the m=8 channel can be
+recovered with a component change:
 
-- **(A) The signal path is AC-coupled** (series capacitor at the amp input, or on
-  HVOUT), so DC never reaches the electrode at all.
-- **(B) The amplifier can drive DC, but the node discharges** — a bleed resistor,
-  a leakage path, or the scope's own 1 MΩ input loading a series-coupled output.
-  Molly's instinct: *"I think I have a discharge time of 20 seconds"* and
-  *"I don't recall the amp behaving like this previously."*
+- **(A) A series capacitor in the signal path** — at the amp input, or on
+  `HVOUT`. Would make this a design property, and possibly a jumper away from
+  being changed.
+- **(B) A DC-rejecting / auto-zeroing input stage**, which would explain the
+  output sitting on 0 V whatever the input pedestal.
+- **(C) A bleed or leakage path discharging the node.** Now unlikely as the sole
+  explanation — the output is *centred* on 0 rather than merely decaying toward
+  it — but it could contribute to the ~20 s constant.
 
-A third possibility worth keeping open: something in the DAC→amp path between the
-front end and `VIN` blocks DC, in which case the amp is blameless.
+Molly's note that *"I don't recall the amp behaving like this previously"* is
+still worth taking seriously: if this is a change rather than a design property,
+it is a fault (a failed coupling capacitor, say) and therefore fixable. The
+schematic questions below distinguish these.
 
 ---
 
@@ -148,19 +200,21 @@ Please answer against the actual `.fsch`, quoting component designators and valu
 
 In rough order of value:
 
-1. **Re-measure the DC step with a verified zero reference.** *Do this before
-   anything else — the original observation may not survive it.* Protocol:
-   set the probe to **GND coupling** and mark where 0 V actually sits on screen;
-   switch to **DC coupling** without touching the vertical position; only then
-   command the step. Watch `VIN` and `HVOUT` on the two channels simultaneously.
-   - `HVOUT` holds a DC level → **the amp passes DC and this whole investigation
-     is closed** (the m=8 channel is available, the CLAUDE.md tables stand, and
-     the 08-21 detent needs no re-interpretation).
-   - `VIN` holds DC but `HVOUT` decays → the block is inside or after the amp.
-   - Both decay → it is the input coupling, and the amp is innocent.
+1. ~~**Re-measure the DC step with a verified zero reference.**~~ **DONE
+   2026-08-28 — the amp rejects DC.** Kept for the protocol, which is the right
+   way to do this: probe on **GND coupling** to mark where 0 V actually sits,
+   switch to **DC coupling** without touching the vertical position, then
+   command the step. Watch `VIN` and `HVOUT` on two channels at once.
+   Note the first attempt watched `V{n}_EXC` on ndscope, which cannot show a DC
+   offset at all — `_EXC` and `_OFFSET` are separate injection points. Use
+   `V{n}_OUT` for the digital side, and a scope at the amp output for the analog
+   side. **The front-end channels agree with each other whether or not the amp
+   passes anything, so they cannot answer this question.**
 
-   Note the earlier attempt watched `V{n}_EXC` on ndscope, which cannot show a
-   DC offset at all — use `V{n}_OUT` for the digital side.
+   **The remaining useful version of this test:** probe `VIN` and `HVOUT`
+   simultaneously during a DC step. If `VIN` holds its DC while `HVOUT` sits at
+   0, the rejection is inside the amp (mechanism B). If `VIN` decays too, it is
+   an input coupling capacitor (mechanism A). That distinguishes the two.
 2. **Disconnect the electrode**, leaving only the scope on the tee, and repeat the
    DC step. If DC now holds → the decay is a discharge into the chamber side, not
    an amplifier property.
@@ -187,9 +241,9 @@ caput('Y1:RDS-OUTS_V4_OFFSET', 0.0, wait=True)"
 
 ---
 
-## If DC really is unavailable
+## Consequences — CONFIRMED, not conditional
 
-Not fatal, but it changes the programme:
+DC is unavailable at the electrode. Not fatal, but it changes the programme:
 
 - The drive is **m=16 only** (`∝ V_ac²`). Rotor speed is still `f_elec / 8` —
   `CLAUDE.md` notes both channels lock at the same speed.
