@@ -1,5 +1,34 @@
 # HV amplifier: does it pass DC? — open investigation
 
+> ## ⚠ READ THIS FIRST — the evidence below is WEAK, corrected 2026-08-28
+>
+> The two observations that started this investigation are both suspect, and the
+> "amplifier does not pass DC" conclusion should **not** be treated as
+> established:
+>
+> 1. **The ndscope reading was the wrong channel.** It was watching
+>    `V{n}_EXC`, which carries *only* the AWG excitation. `_EXC` and `_OFFSET`
+>    are separate injection points that sum inside the filter module, so a DC
+>    offset **cannot** appear on `_EXC` by construction — only on `V{n}_OUT`.
+>    Looking at `V4_OUT` does show the commanded 6000 counts. This is consistent
+>    with the direct NDS measurement below, which had `V2_OUT_DQ` flat at 12800.
+> 2. **The scope may have been showing a cursor position, not a voltage.** The
+>    trace sat where the vertical reference was set. No GND-coupling zero-line
+>    check was done first — the exact protocol `CLAUDE.md` mandates precisely to
+>    avoid this, after it cost real time on 2026-08-26/27.
+>
+> **The digital side is confirmed good.** OFFSET, OUTMON and OUT_DQ all agree.
+> The analog electrode voltage under a DC command is currently **unmeasured**,
+> not known-bad. The ~20 s decay reported below is also unexplained under this
+> reading and may itself be an artifact — it has not been reproduced with a
+> verified zero reference.
+>
+> Everything downstream of this — the claim that the m=8 channel has never been
+> on, that the CLAUDE.md torque tables are wrong, and that the 2026-08-21 detent
+> was a decaying transient — **is conditional on a measurement that has not been
+> done properly yet.** Do the test in "Bench tests" §1 before acting on any of it.
+> The schematic questions remain worth answering regardless.
+
 **Status: OPEN. Started 2026-08-28 on worker2.** This file exists so an agent with
 access to the Fusion 360 Electronics schematic (on Molly's laptop; the `.fsch` is a
 zip containing a plain Eagle-XML `.sch`, readable without the app) can answer
@@ -119,10 +148,19 @@ Please answer against the actual `.fsch`, quoting component designators and valu
 
 In rough order of value:
 
-1. **Probe `VIN` and `HVOUT` simultaneously during a DC step.** *This is the
-   decisive one.* If `VIN` holds its DC level while `HVOUT` decays → the block is
-   inside or after the amp. If `VIN` decays too → it is the input coupling, and
-   the amp is innocent.
+1. **Re-measure the DC step with a verified zero reference.** *Do this before
+   anything else — the original observation may not survive it.* Protocol:
+   set the probe to **GND coupling** and mark where 0 V actually sits on screen;
+   switch to **DC coupling** without touching the vertical position; only then
+   command the step. Watch `VIN` and `HVOUT` on the two channels simultaneously.
+   - `HVOUT` holds a DC level → **the amp passes DC and this whole investigation
+     is closed** (the m=8 channel is available, the CLAUDE.md tables stand, and
+     the 08-21 detent needs no re-interpretation).
+   - `VIN` holds DC but `HVOUT` decays → the block is inside or after the amp.
+   - Both decay → it is the input coupling, and the amp is innocent.
+
+   Note the earlier attempt watched `V{n}_EXC` on ndscope, which cannot show a
+   DC offset at all — use `V{n}_OUT` for the digital side.
 2. **Disconnect the electrode**, leaving only the scope on the tee, and repeat the
    DC step. If DC now holds → the decay is a discharge into the chamber side, not
    an amplifier property.
