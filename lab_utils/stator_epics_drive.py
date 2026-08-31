@@ -1,44 +1,45 @@
 #!/usr/bin/env python3
 """
-EPICS-only three-phase drive for the rev G under-rotor stator.
-
-Written to answer one question first: DOES THE STATOR DO ANYTHING AT ALL?
-
-Everything here goes through slow EPICS records (_OFFSET, _TRAMP, DRVON) and
-nothing else. No AWG, no diag, no test points. That is a deliberate choice:
-
-  * the command values are themselves archived EPICS records, so the stimulus
-    sits next to the V{n}_OUT_DQ response in the same NDS fetch;
-  * it sidesteps the AWG slot limit (MAX_NUM_AWG = 9), the test-point grant,
-    and -- most importantly -- the cymac GPS clock offset (measured 7630 s
-    ahead of true GPS on 2026-08-21, and drifting). An AWG excitation needs an
-    absolute GPS start time to make three phases coherent; if that timestamp is
-    interpreted in the wrong clock frame the phases are silently randomised.
-    Writing offsets from Python has no absolute-time dependence at all.
-
-The cost is bandwidth. These are software-timed writes, so the drive is good to
-a few Hz electrical and no more (see --rate). Since rotor speed = f_elec / 8:
-
-    f_mech      f_elec     samples/cycle at 200 Hz     verdict
-    detent      DC         --                          ideal, pure caput
-    0.05 Hz     0.4 Hz     500                         comfortable
-    0.5  Hz     4   Hz     50                          fine
-    2    Hz     16  Hz     12                          coarse
-    10   Hz     80  Hz     2.5                         not possible
-
-Every first-article test is DC or a fixed frequency below capture, so this
-covers the whole near-term programme. AWG only becomes necessary for real speed.
+DC-only EPICS tool for the rev G under-rotor stator.
 
     status      read back every channel this script touches
     calibrate   DC staircase on one electrode to find the amp's saturation
     detent      first-article test 3: DC detent / 15 deg-per-step
-    hold        fixed-frequency three-phase
-    spinup      catch at rest, ramp to a target frequency
-    stop        ramp down and zero everything
+    stop        zero every electrode
+
+*** `hold` and `spinup` WERE REMOVED 2026-08-31. For any AC drive, use ***
+***                lab_utils/stator_awg_drive.py                        ***
+
+They synthesised a sine by rewriting V{n}_OFFSET from Python at a few hundred Hz.
+That does not work, and -- worse -- it fails SILENTLY: the commanded values, and
+everything the script printed, looked perfect throughout.
+
+`_OFFSET` is the DC offset and is excellent at that job; what failed was using it
+as a waveform generator. The front end only samples EPICS settings on its slow
+cycle, so most of those writes are never seen. Measured 2026-08-28 at
+f_elec = 4 Hz with 320 Hz writes: the electrodes emitted a SQUARE WAVE --
+harmonics at 1/3, 1/5, 1/7 of the fundamental, THD 38.8%, relative phases
+0/180/180 instead of 0/-120/-240, amplitudes 2324/1039/1272 against 2000
+commanded. The DC pedestal in the same run was exact (2002/2001/1997), which is
+the diagnostic tell: static settings get through, time-varying ones do not.
+
+Where the technique breaks down is NOT bracketed: 0.16 Hz electrical was clean
+(THD 0.03%, phases -120.0 deg, 2026-08-24) and 4 Hz was a square wave. That is a
+factor of 25 with nothing measured in between, and it is why the flaw went
+unnoticed -- the first test happened to be slow enough to look fine.
+
+The commands were removed rather than fixed because no --rate value rescues them,
+and leaving them in place invited someone to run a 2 Hz drive next month and
+believe the numbers it printed.
+
+Everything below goes through slow EPICS records (_OFFSET, _TRAMP, DRVON) and
+nothing else -- which is exactly right for DC, where there is no waveform to
+synthesise and the slow path is faithful.
 
 Nothing touches hardware without --live.
 
-References: stator_flex/flex_spec.md, CLAUDE.md ("THE STATOR").
+References: lab_utils/stator_awg_drive.py, stator_flex/flex_spec.md,
+CLAUDE.md ("THE STATOR"), apparatus_log.md (2026-08-28).
 """
 
 import argparse
@@ -291,18 +292,6 @@ def restore_tramp(previous):
         put(pv, value, wait=True, echo=False)
 
 
-def resolve_tramp(args):
-    """TRAMP for an AC drive: --tramp if given, else one write interval.
-
-    Matching TRAMP to 1/rate turns the front end's setpoint interpolator into a
-    first-order hold evaluated at the 2048 Hz model rate, which is what makes a
-    software-written sinusoid smooth instead of a staircase. See guard_tramp().
-    """
-    if args.tramp is not None:
-        return args.tramp
-    return 1.0 / args.rate
-
-
 def guard_oscillator():
     """The model hardwires the DRV oscillator onto all four electrodes as
     (sin, cos, -sin, -cos) -- traced from y1rds.mdl:
@@ -389,17 +378,6 @@ def banner(dc, amp):
 # ===========================================================================
 # The drive loop
 # ===========================================================================
-def phases_rad(reverse=False):
-    """A/B/C at 0 / -120 / -240 degrees. Reversing swaps B and C, which is how
-    the design prescribes reversal -- structural, not a sign flip.
-    (sweep_oscillator_reverse.py negated COS to reverse the OLD drive, but the
-    forward script already ran COS = -GAIN, so it cancelled and drove the same
-    way. There is no sign convention here left to get backwards.)"""
-    order = [0.0, -4 * math.pi / 3, -2 * math.pi / 3] if reverse else \
-            [0.0, -2 * math.pi / 3, -4 * math.pi / 3]
-    return order
-
-
 def check_inputs():
     """Refuse to drive if a phase electrode's module INPUT is on.
 
@@ -470,86 +448,6 @@ def check_amplitude(dc, amp):
     return True
 
 
-def drive_loop(f_mech_fn, dc, amp, rate, ramp_s, duration, reverse, label):
-    """Write three sinusoids to the phase offsets until interrupted.
-
-    f_mech_fn(t) returns the mechanical frequency at elapsed time t, which is
-    what lets `hold` and `spinup` share this loop. Phase is accumulated
-    (not recomputed as f*t) so that a changing frequency stays phase-continuous
-    -- recomputing would step the phase every time f moved and drop the rotor
-    out of lock.
-    """
-    ph = phases_rad(reverse)
-    print(f'\n{label}. Ctrl-C to ramp down and stop.\n')
-    t0 = time.time()
-    theta = 0.0                     # accumulated electrical phase, radians
-    t_prev = 0.0
-    period = 1.0 / rate
-    next_tick = t0
-    last_print = -1e9
-    tick = 0
-    # A dry run advances a VIRTUAL clock instead of sleeping, so a 65-minute
-    # spin-up rehearses in a second. Without this the dry run is as slow as the
-    # real thing, which means nobody rehearses the long commands -- exactly the
-    # trap the last round of fixes to stator_drive.py had to dig out of.
-    virtual = DRY_RUN
-    # A dry run with no duration would spin forever; give it something to finish.
-    if virtual and duration <= 0:
-        duration = 120.0
-    inline = sys.stdout.isatty()
-    print_every = 2.0 if not virtual else max(2.0, duration / 20.0)
-
-    while not _STOPPING:
-        t = tick * period if virtual else time.time() - t0
-        if duration > 0 and t >= duration:
-            break
-        f_mech = f_mech_fn(t)
-        f_elec = M_DRIVE * f_mech
-        theta += 2 * math.pi * f_elec * (t - t_prev)
-        t_prev = t
-        env = min(1.0, t / ramp_s) if ramp_s > 0 else 1.0
-        a = amp * env
-        for pv, p in zip(PHASE_PVS, ph):
-            put(pv, dc + a * math.cos(theta + p), echo=False)
-        if t - last_print >= print_every:
-            end, lead = ('', '\r') if inline else ('\n', '  ')
-            print(f'{lead}  {t:7.1f} s   {f_mech:.4f} Hz mech '
-                  f'({f_elec:.3f} Hz elec)   amp {a:.0f} cts   ',
-                  end=end, flush=True)
-            last_print = t
-        tick += 1
-        if virtual:
-            continue
-        next_tick += period
-        sleep_for = next_tick - time.time()
-        if sleep_for > 0:
-            time.sleep(sleep_for)
-        else:
-            next_tick = time.time()     # we fell behind; resynchronise
-    print()
-    if virtual:
-        print(f'  [dry-run] simulated {t:.0f} s of drive in {tick} updates '
-              f'({tick * 3} EPICS writes)')
-    ramp_down(dc, amp, ramp_s, theta, ph, rate)
-
-
-def ramp_down(dc, amp, ramp_s, theta, ph, rate):
-    """Ease the AC amplitude to zero, then drop the pedestal and ground."""
-    if ramp_s > 0 and not DRY_RUN:
-        print('  ramping amplitude down...')
-        t0 = time.time()
-        while (elapsed := time.time() - t0) < ramp_s:
-            a = amp * (1.0 - elapsed / ramp_s)
-            for pv, p in zip(PHASE_PVS, ph):
-                put(pv, dc + a * math.cos(theta + p), echo=False)
-            time.sleep(1.0 / rate)
-    zero_all(echo=False)
-    print('  all phase offsets at 0 counts.')
-
-
-# ===========================================================================
-# Commands
-# ===========================================================================
 def cmd_status(args):
     # status NEVER writes, so it always reads the real machine -- including
     # under --dry-run, where answering from _DRY_STATE would print a fiction.
@@ -742,104 +640,6 @@ def cmd_detent(args):
     return 0
 
 
-def cmd_hold(args):
-    dc = args.dc if args.dc is not None else args.amp
-    if not check_amplitude(dc, args.amp):
-        return 1
-    f_cap, _ = banner(dc, args.amp)
-    f_elec = M_DRIVE * args.freq
-
-    if args.rate < 20 * f_elec:
-        print(f'! update rate {args.rate:.0f} Hz is under 20x the {f_elec:.2f} Hz '
-              f'electrical\n  frequency -- the sinusoid will be too coarse to be a '
-              f'clean rotating field.\n  Raise --rate or lower --freq.')
-        return 1
-    if f_cap is not None and args.freq > f_cap:
-        print(f'! {args.freq:.4f} Hz is above the {f_cap:.4f} Hz capture '
-              f'bandwidth.\n  From rest it will not lock. Use `spinup`, or pick a '
-              f'lower frequency.')
-        return 1
-    if f_cap is None:
-        print('  (capture bandwidth unknown without a calibration -- if the rotor '
-              'does not\n  lock, try a lower frequency before assuming the drive '
-              'is broken.)')
-
-    if not args.allow_input and not check_inputs():
-        return 1
-
-    guard_oscillator()
-    previous = guard_tramp(resolve_tramp(args))
-    try:
-        drive_loop(lambda t: args.freq, dc, args.amp, args.rate, args.ramp,
-                   args.duration, args.reverse,
-                   f'Holding {args.freq:.4f} Hz mech ({f_elec:.3f} Hz elec)')
-    finally:
-        restore_tramp(previous)
-    return 0
-
-
-def cmd_spinup(args):
-    dc = args.dc if args.dc is not None else args.amp
-    if not check_amplitude(dc, args.amp):
-        return 1
-    f_cap, rate_max = banner(dc, args.amp)
-
-    if args.rate_hz is None:
-        if rate_max is None:
-            print('! no --rate-hz given and the torque limit is unknown without a '
-                  'calibration.\n  Pass --rate-hz explicitly (start slow: the '
-                  'penalty for too fast is that\n  the rotor silently decouples '
-                  'and coasts).')
-            return 1
-        ramp_rate = rate_max
-    else:
-        ramp_rate = args.rate_hz
-        if rate_max is not None and ramp_rate > rate_max:
-            print(f'! {ramp_rate:.2e} Hz/s exceeds the {rate_max:.2e} Hz/s torque '
-                  f'limit; the rotor will slip.')
-            return 1
-
-    f_start = args.start if args.start is not None else \
-        (0.5 * f_cap if f_cap is not None else 0.01)
-    if args.freq <= f_start:
-        print(f'! target {args.freq:.4f} Hz is at or below the {f_start:.4f} Hz '
-              f'catch frequency.\n  Use `hold -f {args.freq:.4f}` instead.')
-        return 1
-
-    duration = (args.freq - f_start) / ramp_rate
-    if args.duration > 0:
-        print(f'  (--duration is ignored by spinup: the run length is set by the '
-              f'ramp rate.\n   Use --rate-hz to change how long it takes.)')
-    f_elec_end = M_DRIVE * args.freq
-    if args.rate < 20 * f_elec_end:
-        print(f'! update rate {args.rate:.0f} Hz cannot carry the final '
-              f'{f_elec_end:.2f} Hz electrical\n  frequency (needs 20x). Lower the '
-              f'target or raise --rate.')
-        return 1
-
-    if not args.allow_input and not check_inputs():
-        return 1
-
-    print(f'\nCatch at {f_start:.4f} Hz, then {duration / 60:.1f} min to '
-          f'{args.freq:.4f} Hz at {ramp_rate:.2e} Hz/s')
-    guard_oscillator()
-    previous = guard_tramp(resolve_tramp(args))
-
-    def f_of_t(t):
-        if t < args.settle:
-            return f_start
-        return min(args.freq, f_start + ramp_rate * (t - args.settle))
-
-    try:
-        drive_loop(f_of_t, dc, args.amp, args.rate, args.ramp,
-                   args.settle + duration + args.hold_after, args.reverse,
-                   f'Spinning up to {args.freq:.4f} Hz mech '
-                   f'(settling {args.settle:.0f} s first)')
-    finally:
-        restore_tramp(previous)
-    return 0
-
-
 def cmd_stop(args):
     print('Grounding every electrode this script drives...')
     guard_oscillator()
@@ -868,33 +668,15 @@ def build_parser():
     p.add_argument('--gap', type=float, default=GAP_MM,
                    help=f'rotor-electrode gap in mm (default {GAP_MM} = no shim)')
     p.add_argument('--amp', type=float, default=DEFAULT_AMP,
-                   help=f'peak AC amplitude per phase, counts (default {DEFAULT_AMP:.0f})')
+                   help=f'counts used only for the banner\'s physics summary '
+                        f'(default {DEFAULT_AMP:.0f}). This script no longer '
+                        f'drives AC -- see stator_awg_drive.py.')
     p.add_argument('--dc', type=float, default=None,
-                   help='DC pedestal per phase, counts (default = --amp, which '
-                        'maximises the m=8 channel and keeps an unipolar amp '
-                        'non-negative). Vary at fixed --amp to separate the '
-                        'channels: m=8 scales with it, m=16 does not.')
+                   help='DC pedestal per phase, counts (default = --amp). Note '
+                        'the amp input must stay POSITIVE within 0-2 V, so '
+                        'dc >= amp is a hard constraint and dc = amp = 6400 '
+                        'exactly fills that range (2026-08-31).')
     sub = p.add_subparsers(dest='cmd', required=True)
-
-    def ac_opts(sp):
-        sp.add_argument('--rate', type=float, default=200.0,
-                        help='EPICS update rate, Hz (default 200). Keep it above '
-                             '20x the electrical frequency.')
-        sp.add_argument('--ramp', type=float, default=5.0,
-                        help='amplitude ramp up/down, s (default 5)')
-        sp.add_argument('--duration', type=float, default=0.0,
-                        help='run time in s (default 0 = until Ctrl-C)')
-        sp.add_argument('--reverse', action='store_true',
-                        help='swap phases B and C to reverse rotation')
-        sp.add_argument('--tramp', type=float, default=None,
-                        help='electrode TRAMP in s (default 1/--rate). This is '
-                             'the front end\'s linear interpolation time for a '
-                             'commanded change, evaluated at the 2048 Hz model '
-                             'rate: matching it to the write interval gives a '
-                             'first-order hold (smooth), 0 gives a staircase, '
-                             'and >> 1/rate attenuates and lags the waveform '
-                             'while the commanded values still look perfect.')
-        return sp
 
     sub.add_parser('status', help='read back every channel this script touches')
 
@@ -921,24 +703,6 @@ def build_parser():
                          'centre disk.')
     sp.add_argument('--release', type=float, default=20.0,
                     help='s grounded between attempts (default 20)')
-
-    sp = ac_opts(sub.add_parser('hold', help='fixed-frequency three-phase'))
-    sp.add_argument('-f', '--freq', type=float, default=0.02,
-                    help='Hz MECHANICAL (default 0.02; f_elec = 8x this)')
-
-    sp = ac_opts(sub.add_parser('spinup', help='catch at rest, ramp to a target'))
-    sp.add_argument('-f', '--freq', type=float, default=0.2,
-                    help='target, Hz MECHANICAL')
-    sp.add_argument('--start', type=float, default=None,
-                    help='catch frequency (default: half the capture bandwidth, '
-                         'or 0.01 Hz if uncalibrated)')
-    sp.add_argument('--rate-hz', type=float, default=None,
-                    help='ramp rate in Hz mech/s (default: torque-limited, which '
-                         'requires a calibration)')
-    sp.add_argument('--settle', type=float, default=30.0,
-                    help='s at the catch frequency before ramping')
-    sp.add_argument('--hold-after', type=float, default=60.0,
-                    help='s to hold at the target before stopping')
 
     sub.add_parser('stop', help='zero every electrode')
     return p
@@ -976,8 +740,7 @@ def main():
         return 1
 
     handler = {'status': cmd_status, 'calibrate': cmd_calibrate,
-               'detent': cmd_detent, 'hold': cmd_hold, 'spinup': cmd_spinup,
-               'stop': cmd_stop}[args.cmd]
+               'detent': cmd_detent, 'stop': cmd_stop}[args.cmd]
     try:
         return handler(args) or 0
     except KeyboardInterrupt:
