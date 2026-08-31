@@ -1,10 +1,50 @@
-# HV amplifier: it does NOT pass DC — RESOLVED
+# HV amplifier: bipolar, and it maps ANY input DC to 0 V out — RESOLVED
 
-> ## ✅ RESOLVED 2026-08-28 — the amplifier is DC-blocking
+> ## ✅ RESOLVED 2026-08-31 — how the amp actually works
 >
-> **The DC reaches the amplifier's input, the amplifier rejects it, and the
-> output is centred on 0 V regardless of the commanded pedestal.** Confirmed by
-> Molly at the bench, and it accounts for every observation in this file:
+> Molly, definitively:
+>
+> > *"The high voltage amp is bipolar. It takes any DC input and translates that
+> > to the 0 V point with a bipolar amplitude. The voltage I send to the HV amp
+> > must be positive and between 0–2 V."*
+>
+> So there are **two** rules, and the second one is a hard constraint on how the
+> drive must be commanded:
+>
+> 1. **The output is bipolar about 0 V, and the input DC level sets where "0 V"
+>    is.** Whatever pedestal you command becomes the output's zero. So
+>    `V_dc` **at the electrode is 0 no matter what you command.**
+> 2. **The input must stay positive, 0–2 V.** Therefore `dc >= amp` is
+>    *required* — not a torque choice but an input-range constraint.
+>
+> ### ⚠ This corrects an earlier revision of this file
+>
+> A previous revision said `dc = amp` "wastes half the commanded swing" and
+> recommended `--dc 0 --amp 8000` for ~1.6× more torque. **That is wrong and must
+> not be done** — it would command the input to swing negative, outside what the
+> amp accepts. The arithmetic actually closes exactly the other way:
+>
+> | | |
+> |---|---|
+> | amp input range | 0 → 2 V |
+> | measured at `VIN` | 12800 counts ↔ 2.1 V |
+> | `V{n}_LIMIT` (engaged) | **12800** |
+> | `dc = amp = 6400` | input swings 0 → 12800 counts = 0 → 2.1 V |
+>
+> **`dc = amp = 6400` exactly fills the input range and is already optimal.**
+> There is no spare swing to reclaim. It also means
+> `stator_epics_drive.py`'s `check_amplitude()` was right to reject negative
+> counts, and `CLAUDE.md`'s note that its "unipolar" justification is "now wrong"
+> is itself wrong.
+>
+> ### What was genuinely wrong in the old notes
+>
+> Narrower than previously claimed here: **the "true zero-crossing near ~6400
+> counts."** There is no special count — *any* DC input maps to 0 V out. 6400 was
+> simply where the offset happened to be sitting during the 08-25 and 08-28
+> measurements. `CLAUDE.md`'s "the amp is BIPOLAR" is **correct**.
+>
+> The observations below all follow from rule 1 above:
 >
 > - a commanded DC step **rises then decays to 0 in ~20 s** — that is the
 >   coupling time constant, `f_c ≈ 0.02–0.03 Hz`;
@@ -44,13 +84,12 @@
 >
 > Consequences to act on:
 >
-> - **`dc = amp` wastes half the commanded swing.** Every script here defaults to
->   `dc = 6400, amp = 6400` (peak 12800 counts), and the 6400 of DC does nothing
->   at all. Torque goes as `V_ac²`, so `--dc 0 --amp 8000` is ~1.6× the torque of
->   the current default, and higher still until the amp clips. **Find the ceiling
->   with the scope** — ±86 V was clean at 6400 counts; pure AC at 12800 asks for
->   344 V peak-to-peak from a part whose `VPP` is ~205 V, so it will square off
->   somewhere in between.
+> - **`dc = amp = 6400` is already optimal — do NOT reduce the pedestal.** The
+>   input must stay positive and inside 0–2 V, so `dc >= amp` is a hard
+>   constraint, and `dc = amp = 6400` puts the input at 0 → 12800 counts =
+>   0 → 2.1 V, exactly filling the range. The pedestal is what keeps the input
+>   positive; it is not wasted swing. More AC amplitude is only available by
+>   raising the amp's input range or `VPP`, not by rebalancing dc against amp.
 > - **The torque, capture-bandwidth and ramp tables in `CLAUDE.md` are tabulated
 >   for the m=8 channel and therefore do not apply.** m=16 suffers twice the gap
 >   attenuation (`exp(−m·h/r)`), which also makes the 0.1 mm shim worth far more
@@ -69,10 +108,13 @@
 >
 > ### Still worth answering from the schematic
 >
-> The questions below stand — knowing *where* the DC is blocked (series capacitor
-> at `VIN`, at `HVOUT`, or a DC-rejecting input stage) determines whether the m=8
-> channel is recoverable with a component change, and that channel is central to
-> why this stator was designed. Q1, Q3, Q4 and Q5 are the relevant ones.
+> Lower priority now — this is **designed behaviour, not a fault**, so there is no
+> broken part to find. The remaining question is whether the m=8 channel could be
+> made available at all: it needs a genuine DC bias at the electrode, which this
+> amplifier is built not to provide. Q6 and Q7 (what sets `VPP`, and whether the
+> supply is split) are the useful ones, because they bound how much AC amplitude
+> is available — the only torque knob left in the electronics. Q1/Q3/Q4 (series
+> caps, bleed resistor) are now just curiosity about *how* the zeroing is done.
 
 **Status: mechanism still open; the behaviour is settled.** This file exists so an
 agent with access to the Fusion 360 Electronics schematic (on Molly's laptop; the
@@ -135,25 +177,29 @@ transient decaying over ~20 s.**
 
 ---
 
-## Mechanism — still open, but the behaviour is settled
+## Mechanism — a design property, not a fault
 
-The amplifier rejects DC (confirmed 2026-08-28). **Where** it is rejected is not
-established, and it matters, because it decides whether the m=8 channel can be
-recovered with a component change:
+Settled 2026-08-31: the amp is **bipolar and maps any input DC to its 0 V output
+point**, taking a positive 0–2 V input. That is how it is built, so there is no
+failed component to hunt, and Molly's *"I don't recall the amp behaving like this
+previously"* is accounted for — it has always done this; nobody had held a
+sustained DC at the electrode and looked before.
 
-- **(A) A series capacitor in the signal path** — at the amp input, or on
-  `HVOUT`. Would make this a design property, and possibly a jumper away from
-  being changed.
-- **(B) A DC-rejecting / auto-zeroing input stage**, which would explain the
-  output sitting on 0 V whatever the input pedestal.
-- **(C) A bleed or leakage path discharging the node.** Now unlikely as the sole
-  explanation — the output is *centred* on 0 rather than merely decaying toward
-  it — but it could contribute to the ~20 s constant.
+Two details remain unexplained, neither blocking:
 
-Molly's note that *"I don't recall the amp behaving like this previously"* is
-still worth taking seriously: if this is a change rather than a design property,
-it is a fault (a failed coupling capacitor, say) and therefore fixable. The
-schematic questions below distinguish these.
+- **The ~20 s decay of a DC step.** If the zeroing were instantaneous the step
+  would never appear at all, so a ~20 s settle implies the zero point is set by a
+  slow feedback or an RC. That also fixes the low-frequency corner at
+  `f_c ≈ 0.02–0.03 Hz`, which **matters operationally**: drives below roughly
+  0.1 Hz electrical are attenuated, so a spin-up started too slow is quietly
+  weaker than commanded. This is the likeliest reason a very low catch frequency
+  underperforms.
+- **Whether that corner is per channel or common** to all four.
+
+Both are measurable without the schematic: drive a fixed-amplitude sine and step
+the frequency down — 0.5, 0.2, 0.1, 0.05, 0.02, 0.01 Hz electrical — recording
+the scope amplitude at each. The −3 dB point gives `f_c`, independently of any DC
+step test.
 
 ---
 
