@@ -15,6 +15,165 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-08-28, afternoon — ROTOR SPUN. Drive moved to AWG; `_OFFSET` AC path found unusable
+
+**The rotor did full rotations**, driven three-phase from the stator. First time.
+It happened on a plain fixed-frequency drive, not on any of the pumping or
+sweeping machinery built that day.
+
+> ⚠ **The drive frequency it caught at was not recorded.** That is the single
+> most valuable number from the session and it is lost — the run was started by
+> hand and the log window has rolled. **Next session: record the exact command
+> and the front-end GPS at the start of every drive**, so the archive can be
+> re-fetched. The frequencies tried across the afternoon were `f_elec` = 0.32,
+> 0.56, 0.64, 1.0 and 2.0 Hz.
+
+#### 1. The `_OFFSET` write path CANNOT carry AC above ~0.1 Hz rotor
+
+Driving `f_elec` = 4 Hz by writing `V{n}_OFFSET` from Python at 320 Hz produced a
+**square wave**, not a sine. From `V{n}_OUT_DQ`:
+
+| line | measured | ideal square |
+|---|---|---|
+| 4 Hz fundamental | 1.000 | 1.000 |
+| 12 Hz (3rd) | 0.333 | 0.333 |
+| 20 Hz (5th) | 0.199 | 0.200 |
+| 28 Hz (7th) | 0.141 | 0.143 |
+
+THD 38.8%; phases came out 0/180/180 instead of 0/−120/−240; amplitudes
+2324/1039/1272 against 2000 commanded. **The DC pedestal was perfect**
+(2002/2001/1997) — that is the tell: static settings get through, time-varying
+ones do not. Matches what Molly saw on the scope (`Downloads/IMG_1018`,
+`IMG_1019`: a blocky staircase).
+
+Cause: **the front end samples EPICS settings on its slow cycle (~16 Hz)**, so at
+4 Hz there are only ~4 samples per cycle however fast we write. Measured client
+throughput was 500 Hz / 1500 `caput`/s — not the bottleneck. The 2026-08-24 run
+looked perfect only because 0.16 Hz gave ~100 samples/cycle. **No write rate and
+no `TRAMP` value fixes this.** The AC must be generated in the front end.
+
+#### 2. AWG works — and why it never did before
+
+> ### `start` must be in the FRONT END's clock frame:
+> ### `Y1:DAQ-DC0_GPS + lead`, **not** `awgbase.GPSnow()`.
+
+`awg.py:128` defaults `start` to `GPSnow() + 4*_EPOCH`. The front end runs **fast**
+of true GPS — **+8376 s on 2026-08-28** (drifting: 5836 s on 06-03, 7630 s on
+08-21) — so the default lands ~2.3 hours in its past, the excitation is already
+expired, and **it silently never plays with no error raised.** Verified both ways:
+true-GPS frame → nothing at `OUTMON`; front-end frame → 800 counts commanded,
+742.8 measured. This explains every previous failed AWG attempt here, including
+`electrode_noise_generator.py`.
+
+With that fixed the three-phase drive is excellent: amplitudes matched to 5
+significant figures, spacing **120.00°**, **THD 0.00%** — at the same frequency
+where `_OFFSET` gave a square wave.
+
+Also: `awg`'s `phase` argument enters with the **opposite sign** to the `_OFFSET`
+path (commanding 0/−120/−240 produced 0/+120/+240), so the field rotates the
+other way. `stator_awg_drive.py` negates internally to match the verified 08-24
+direction. A transposition still makes a clean travelling wave, so this would
+have spun fine and only shown up as a sign error once the video loop closed.
+
+#### 3. ⚠ ARMING IS INTERMITTENT — unresolved, and the main open problem
+
+Sometimes the excitation simply does not start. Symptom: **`OUT_DQ` carries the
+DC pedestal with rms 0.00 and no error anywhere.** Retrying works — one test
+armed on attempt 4.
+
+**Ruled out:**
+
+- **Not slot exhaustion.** `lab_utils/awg_reclaim.py` prints the slot per
+  channel: *distinct* numbers (13005/13006/13007/13008) mean real leaked
+  allocations; *the same number for all four* means nothing is allocated. It has
+  been reporting the same number.
+- **Reclaiming in-process made it WORSE.** The script worked reliably before a
+  reclaim was added, and afterwards failed its first attempt right after it.
+  `--reclaim` is now off by default; run `awg_reclaim.py` as a separate process
+  if the AWG is genuinely stuck.
+
+**Best remaining hypothesis, untested:** `start = Y1:DAQ-DC0_GPS + lead`, and that
+PV ticks only once per second. A read landing late in its tick shortens the
+effective lead by up to a second; if it goes negative the excitation is expired
+before it is armed. **Test:** run the same drive ~5× each at `--lead 4`, `8`, `20`
+and see whether the failure rate falls with longer lead. If it does, round the
+start up to a `awgbase._EPOCH` (1/16 s) boundary with a couple of seconds margin.
+
+**Workaround in place:** `stator_awg_drive.py` now checks `OUT_DQ` after arming
+and retries up to 8 times, so it can no longer silently drive DC-only.
+
+#### 4. ⚠ NEVER background a drive
+
+When the AWG client process exits, **the excitation dies with it, while the
+`_OFFSET` pedestal persists in EPICS.** DC present, AC absent — indistinguishable
+from a broken drive. Several "no AC" results that afternoon were self-inflicted:
+drives launched with `nohup ... &` and reaped, or killed by a `pkill` aimed at
+something else. Run drives in the foreground.
+
+#### 5. Corrections to earlier entries in this log
+
+- **There is no "true zero-crossing near ~6400 counts."** The amp is bipolar and
+  maps *any* input DC to its 0 V output point (Molly, 08-31); 6400 was simply
+  where the offset was sitting during the 08-25 and 08-28 measurements. The
+  "bipolar" finding in the entry below is correct; the zero-crossing number is
+  not. Full account in `hv_amp_dc_investigation.md`.
+- **`dc = amp = 6400` is already optimal and must not be reduced.** The amp input
+  must stay positive within 0–2 V, and 12800 counts ↔ 2.1 V, so `dc = amp = 6400`
+  puts the input at 0 → 2.1 V, exactly filling the range. `dc >= amp` is an
+  input-range constraint, not a torque choice. `check_amplitude()`'s rejection of
+  negative counts was right all along.
+- **`V_dc` at the electrode is 0 whatever is commanded**, so the m=8 torque
+  channel (∝ `V_dc·V_ac`) has never been on — every drive here, including
+  08-24's and this one, is m=16 (∝ `V_ac²`). Rotor speed is unaffected: both
+  channels lock at `f_elec/8`. **The torque, capture-bandwidth and ramp tables in
+  `CLAUDE.md` are tabulated for m=8 and do not apply.**
+- **The 2026-08-21 "DC detent" claim does not survive.** It held DC for 180 s but
+  a DC step decays in ~20 s, so there was no field for most of it. *"A static
+  torque from rest, which the synchronous side posts could not produce at any
+  drive level"* does not follow from that measurement, and the "capture threshold
+  between 3200 and 6400 counts" bracket is the response to a decaying transient.
+  The variable-capacitance physics is untouched; only this evidence for it is.
+
+#### 6. Measurements from that day that are NOT trustworthy
+
+Recorded so they are not mistaken for results:
+
+- **The "stator is ~6× weaker than an intrinsic trap" ratio**, and the
+  **"intrinsic trap weakening 0.33 → 0.20 Hz over the afternoon"** trend. Both
+  came from a peak-finder that jumped between the libration fundamental and its
+  subharmonic. `measure_stator_stiffness.py` carries the same flaw and needs a
+  constrained search band before reuse. The *method* is sound and `I`-independent
+  — `k_int/k_stator = f_off²/(f_on² − f_off²)` — only the frequencies were bad.
+- **Any rms or frequency quoted from a 1-second NDS buffer.** `conn.iterate()`
+  returns 1 s blocks, which is a third of a cycle at 0.3 Hz: frequency resolution
+  is 1 Hz and rms is badly under-read. This produced a false "the drive heated the
+  rotor 5×". Always `fetch()` a window of ≥100 s for anything spectral.
+- **LES rms as an amplitude measure once it saturates.** Peak-to-peak sat pinned
+  near 4600 counts for an hour while the frequency moved 30%. The *frequency* is
+  still good; the amplitude is not. The camera is the better instrument there.
+
+#### 7. New scripts
+
+`lab_utils/stator_awg_drive.py` (the drive — `--felec` states the electrical
+frequency directly, since `f_elec = 8 × f_rotor` is an easy factor to get
+backwards), `stator_chirp.py` (phase-continuous stepped sweep — `awg.SweptSine`
+passes `restart=sweeptime` and therefore **loops**, snapping back to the start
+frequency, so it is unusable for a spin-up; **not yet run live**),
+`awg_reclaim.py`, `measure_stator_stiffness.py`, `test_exc_phase_coherence.py`.
+
+Also traced and previously unrecorded: **each electrode has a signal summed in
+ahead of its filter module** — `V1←LES_PIT`, `V2←LES_YAW`, `V3←LES_SUM`,
+`V4←MON` (top level of `y1rds.mdl`). `LES_PIT`/`LES_YAW` are live; only the
+input switches being off on V1/V2 keeps them off the drive, and V3/V4 are quiet
+solely because `LES_SUM` and `MON` have `GAIN = 0`. `check_inputs()` guards this.
+**Do not infer "nothing is arriving" from `INMON = 0`** — it is a slow monitor and
+a zero-mean AC signal reads ~0 through it.
+
+The electrode filter banks are **flat**: `Y1RDS.txt` defines zero filter sections
+on `OUTS_V1..V4` (the only filter in the file is a PID on `PD`).
+
+---
+
 ### 2026-08-28 — HV amp identified (HV265), calibration confirmed, PI confirms bipolar is normal
 
 Follow-up to the 2026-08-25 entry below, from a from-scratch electrical
