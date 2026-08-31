@@ -94,12 +94,12 @@
 >   0 → 2.1 V, exactly filling the range. The pedestal is what keeps the input
 >   positive; it is not wasted swing. More AC amplitude is only available by
 >   raising the amp's input range or `VPP`, not by rebalancing dc against amp.
-> - **The torque, capture-bandwidth and ramp tables in `CLAUDE.md` are tabulated
->   for the m=8 channel and therefore do not apply.** m=16 suffers twice the gap
->   attenuation (`exp(−m·h/r)`), which also makes the 0.1 mm shim worth far more
->   than the 3.2× quoted there — roughly 10×, since the exponent doubles.
->   Treat that as an estimate: it extrapolates a model `CLAUDE.md` itself lists
->   as never cross-checked against 3-D BEM/COMSOL.
+> - ⚠ **NOT confirmed, and it does depend on the m=8 question:** whether
+>   `CLAUDE.md`'s m=8 torque/capture/ramp tables still apply, and whether the
+>   0.1 mm shim is worth ~10× rather than the 3.2× quoted there (it would be, if
+>   the drive were m=16, since the exponent in `exp(−m·h/r)` doubles). Both
+>   follow only if the m=8 channel is genuinely off. **Left in `CLAUDE.md`
+>   untouched** pending an actual torque measurement.
 > - **The 2026-08-21 "DC detent" needs re-interpretation.** It held DC for 180 s,
 >   but the field was gone after ~20 s. The claim that it demonstrated *"a static
 >   torque from rest, which the synchronous side posts could not produce at any
@@ -140,10 +140,12 @@ The stator's torque has two channels (`CLAUDE.md`, "The DC pedestal is not cosme
 | ch1 | rotor m=8 | **V_dc · V_ac** |
 | ch2 | rotor m=16 | V_ac² |
 
-and **at V_dc = 0 the m=8 channel vanishes identically.** The amplifier cannot
-deliver a DC bias at the electrode, so the m=8 channel — a central part of why this
-stator was designed — **is unavailable, and every drive ever run here has been m=16
-only.** That also invalidates the torque, capture-bandwidth and ramp-rate numbers
+and **at V_dc = 0 the m=8 channel vanishes identically.** The amplifier does not
+deliver a commanded DC bias at the electrode. ⚠ **Whether that means the m=8
+channel — a central part of why this stator was designed — is actually
+unavailable is UNRESOLVED (see the header box). It is inference from the DC
+observation, not a torque measurement, and Molly is not persuaded.** If it did
+hold, it would also invalidate the torque, capture-bandwidth and ramp-rate numbers
 throughout `CLAUDE.md`, which are all tabulated for the m=8 channel.
 
 ---
@@ -331,9 +333,14 @@ not persuaded of it.
   (drifting: 5836 s on 06-03, 7630 s on 08-21), so the default lands ~2.3 hours in
   its past and the excitation silently never plays, with no error raised. This is
   why every previous AWG attempt here "didn't work."
-- **The `_OFFSET` write path cannot carry AC above ~0.1 Hz rotor.** The front end
-  samples EPICS settings on its slow cycle (~16 Hz), so at 4 Hz electrical it sees
-  ~4 samples/cycle and emits a **square wave** — measured harmonics at 1/3, 1/5,
+- **Synthesising AC by rewriting `_OFFSET` from software fails somewhere between
+  0.16 and 4 Hz electrical — the crossover is NOT bracketed.** `_OFFSET` is the
+  DC offset and works fine as one (the pedestal was exact in the failing test);
+  what breaks is using it as a waveform generator. The front end is *believed*
+  to sample EPICS settings on its slow cycle (~16 Hz, the RCG convention —
+  **inferred here, not measured on this front end**), which would give ~4
+  samples/cycle at 4 Hz electrical. What was measured is the output: a **square
+  wave** — measured harmonics at 1/3, 1/5,
   1/7 of the fundamental, THD 38.8%, phases 0/180/180 instead of 0/−120/−240. No
   write rate fixes this. The AC must be generated in the front end (AWG).
 - `awg.SweptSine` passes `restart=sweeptime` internally, so it **loops** the sweep

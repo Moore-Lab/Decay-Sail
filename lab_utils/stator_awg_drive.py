@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Three-phase stator drive with the waveform generated IN THE FRONT END.
 
-Supersedes the _OFFSET write loop in stator_epics_drive.py for anything faster
-than ~0.1 Hz rotor. Measured 2026-08-28, why:
+Supersedes the _OFFSET write loop in stator_epics_drive.py for fast drives.
+NOTE _OFFSET is the DC offset and works fine as one -- what fails is SYNTHESISING
+AC by rewriting it hundreds of times a second from Python. Where that breaks down
+is NOT bracketed: 0.16 Hz electrical is clean and 4 Hz is a square wave, a factor
+of 25 with nothing measured in between. Measured 2026-08-28:
 
     Driving f_elec = 4 Hz through V{n}_OFFSET at 320 Hz writes produced a
     SQUARE WAVE, not a sine. Harmonics came out at 1/3, 1/5, 1/7 of the

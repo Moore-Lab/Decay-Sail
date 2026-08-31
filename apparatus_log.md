@@ -28,7 +28,20 @@ sweeping machinery built that day.
 > re-fetched. The frequencies tried across the afternoon were `f_elec` = 0.32,
 > 0.56, 0.64, 1.0 and 2.0 Hz.
 
-#### 1. The `_OFFSET` write path CANNOT carry AC above ~0.1 Hz rotor
+#### 1. Synthesising AC by rewriting `_OFFSET` from software breaks down somewhere between 0.16 and 4 Hz electrical
+
+> **To be precise about what this is and is not.** `V{n}_OFFSET` is the DC
+> offset, and it does that job perfectly — in the very test below, the commanded
+> pedestal came through exact (2002/2001/1997 against 2000). **Nothing is wrong
+> with `_OFFSET` as an offset.** What fails is the *technique* of using it as a
+> waveform generator, i.e. rewriting it hundreds of times a second from Python to
+> trace out a sine, which is what `stator_epics_drive.py` does.
+>
+> **Where it breaks is NOT bracketed.** Two points are measured — 0.16 Hz
+> electrical is clean, 4 Hz is a square wave — and that is a factor of 25 with
+> nothing in between. The "~0.1 Hz rotor" limit quoted elsewhere is an
+> *inference* from the harmonic structure, not a measurement. To pin it, drive
+> `_OFFSET` at 0.5, 1 and 2 Hz electrical and measure THD from `V{n}_OUT_DQ`.
 
 Driving `f_elec` = 4 Hz by writing `V{n}_OFFSET` from Python at 320 Hz produced a
 **square wave**, not a sine. From `V{n}_OUT_DQ`:
