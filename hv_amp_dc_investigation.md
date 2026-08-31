@@ -73,16 +73,20 @@
 > each other whether or not the amp passes anything. Only a scope at the amp
 > output answers this question.
 >
-> ### What follows, and it is not small
+> ### What follows
 >
-> **`V_dc = 0` at the electrode, always.** The m=8 torque channel goes as
-> `V_dc · V_ac`, so **it has never been on** — every drive this apparatus has
-> ever done, including the 2026-08-24 three-phase run and the 2026-08-28 spin,
-> has been the m=16 channel (`∝ V_ac²`) alone. Rotor speed is unaffected:
-> `CLAUDE.md` has both channels locking at `f_elec/8`, which is why the rotor
-> turns at the commanded rate.
+> **A commanded `V_dc` does not appear as a DC offset at the electrode.** That is
+> measured and not in doubt.
 >
-> Consequences to act on:
+> ⚠ **What it implies for the m=8 torque channel (∝ `V_dc · V_ac`) is NOT
+> settled.** Earlier revisions of this file asserted the channel has never been
+> on, that every drive has been m=16 alone, and that `CLAUDE.md`'s m=8
+> torque/capture/ramp tables therefore do not apply. **Do not treat any of that
+> as established** — Molly is not persuaded (2026-08-31), and it is a chain of
+> reasoning from the DC observation rather than a measurement of torque. The
+> m=16-based numbers further down this file inherit the same uncertainty.
+>
+> Consequences to act on (these do not depend on the m=8 question):
 >
 > - **`dc = amp = 6400` is already optimal — do NOT reduce the pedestal.** The
 >   input must stay positive and inside 0–2 V, so `dc >= amp` is a hard
@@ -287,12 +291,17 @@ caput('Y1:RDS-OUTS_V4_OFFSET', 0.0, wait=True)"
 
 ---
 
-## Consequences — CONFIRMED, not conditional
+## Consequences
 
-DC is unavailable at the electrode. Not fatal, but it changes the programme:
+A commanded DC does not appear at the electrode. That is confirmed. **Everything
+in this section that depends on the m=8 channel being off is NOT confirmed** —
+see the warning in the header box; it is inference, not measurement, and Molly is
+not persuaded of it.
 
-- The drive is **m=16 only** (`∝ V_ac²`). Rotor speed is still `f_elec / 8` —
-  `CLAUDE.md` notes both channels lock at the same speed.
+- **If** the drive is m=16 only (`∝ V_ac²`), rotor speed is unchanged — both
+  channels lock at `f_elec / 8` per `CLAUDE.md`, which is consistent with the
+  rotor turning at the commanded rate on 2026-08-28. That consistency does not
+  by itself distinguish the two channels.
 - `V_ac` is already at the amplifier ceiling (±85 V at 6400 counts), so the
   remaining torque lever is **the gap**. Extrapolating the m=8 rows in `CLAUDE.md`
   (0.37 → 0.27 mm gives 3.17×, implying a characteristic radius r ≈ 0.69 mm, which

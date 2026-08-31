@@ -171,13 +171,22 @@ gain, no external divider).
   (`dc = amp`, "keep the swing ≥ 0"). Note the HV265 datasheet's own `HVOUT`
   spec range reads as unipolar (1.85 V min to `VPP − 10 V` max) — trust the PI
   and the direct measurement over that typical-range table.
-- **The true zero-crossing is NOT at commanded count 0.** Riding the `_EXC`
-  command at ~6400 counts (~1 V at `VIN`) landed almost exactly on the amp's
-  natural zero — explaining the Aug-25 log's item 5 ("offset did not create a
-  DC pedestal": that count value just doesn't produce one). **To get a real
-  V_dc for the m=8 torque channel, bias the commanded offset AWAY from the true
-  zero-crossing, not toward it.** The exact zero-crossing count on `_OFFSET`
-  specifically is unmeasured — see "Known script issues".
+- ✅ **CORRECTED 2026-08-31 — there is NO special "zero-crossing count."** An
+  earlier revision here claimed the amp's zero sat near ~6400 counts. It does
+  not. Molly, definitively: *"The high voltage amp is bipolar. It takes any DC
+  input and translates that to the 0 V point with a bipolar amplitude. The
+  voltage I send to the HV amp must be positive and between 0–2 V."* So **any**
+  DC input becomes the output's zero — 6400 was simply where the offset happened
+  to be sitting during the Aug-25 and Aug-28 measurements. That, not a
+  coincidental zero-crossing, is what explains the Aug-25 log's item 5 ("offset
+  did not create a DC pedestal"): no commanded offset ever will.
+- **The input range is a hard constraint: positive, 0–2 V.** Measured, 12800
+  counts ↔ 2.1 V at `VIN`, and `V{n}_LIMIT` is 12800 — so the commanded swing
+  must stay within 0 → 12800 counts. This makes **`dc >= amp` mandatory**, and
+  **`dc = amp = 6400` exactly fills the input range**. The pedestal is what keeps
+  the input positive; it is not spare swing to be reclaimed. More AC amplitude
+  requires a larger input range or a higher `VPP`, not a rebalance of dc against
+  amp. Full account: `hv_amp_dc_investigation.md`.
 - `VPP` is set by a 10 kΩ trimmer off a front-panel banana-jack LV input, same
   node that powers `VDD` and the on-board HV DC-DC converter. Nobody has
   checked the applied LV voltage or trimmer position.
@@ -381,17 +390,19 @@ V_dc + V_ac ≤ V_max gives **V_dc = V_ac = V_max/2**. A `--dc` override is wort
 a diagnostic — **m=8 scales with V_dc, m=16 does not**, so varying it at fixed amplitude
 separates the two channels.
 
-> ⚠ **UPDATED 2026-08-28 — "V_dc = 0" means the AMP's real zero, not commanded
-> count 0.** The amp is bipolar with its true zero-crossing near ~6400 counts
-> on `_EXC` (unmeasured on `_OFFSET`) — see "HV amplifier" above. `dc=amp`
-> (`stator_epics_drive.py`'s current default when `--dc` isn't given) could
-> land ON that zero-crossing by coincidence and silently produce V_dc ≈ 0 —
-> exactly the failure mode this section warns about — while every commanded
-> value looks like a healthy nonzero pedestal. **`banner()`'s current warning
-> only checks `dc == 0` in COUNT space and would miss this entirely.** Do not
-> trust "the m=8 channel is on" from the commanded numbers alone until the real
-> `_OFFSET` zero-crossing is measured and the warning logic accounts for it —
-> see "Known script issues".
+> ⚠ **CORRECTED 2026-08-31.** A previous revision of this box claimed the amp
+> had a "true zero-crossing near ~6400 counts" that `dc=amp` might land on by
+> coincidence. **That is wrong** — the amp maps *any* input DC to its 0 V output
+> point, so there is no special count to avoid (see "HV amplifier" above).
+>
+> **What this means for the pedestal is now an open question, not a settled
+> one.** The commanded `V_dc` does not appear as a DC offset at the electrode.
+> Whether that means the m=8 channel is genuinely off, or whether the analysis
+> in this section needs restating in terms of what the amplifier actually
+> delivers, has **not been resolved** — do not treat either reading as
+> established. The measured facts are: `dc = amp = 6400` exactly fills the amp's
+> 0–2 V input range and is the maximum commandable AC amplitude, and the drive
+> demonstrably spins the rotor (2026-08-28).
 
 ### If AWG is ever needed (for speed only)
 
@@ -422,22 +433,20 @@ it inherits the same GPS-clock-frame question.
 ## Known script issues (`stator_epics_drive.py`, found 2026-08-28)
 
 - **`banner()`'s DC-pedestal warning (`if dc == 0: ... m=8 channel is OFF`) only
-  catches commanded count 0.** Given the amp's real zero-crossing is near
-  ~6400 counts (not 0, see "HV amplifier"), a commanded `dc` near that value
-  would ALSO zero the real m=8 channel while triggering no warning at all. Fix
-  properly requires measuring the true `_OFFSET`-path zero-crossing first (a
-  fine DC sweep, similar to `calibrate` but aimed at finding the pedestal's
-  zero rather than the ceiling), then updating the check to compare against it
-  instead of literal 0.
-- **`check_amplitude()`'s rejection of negative counts** ("the amplifier is
-  unipolar") has a wrong justification now (PI confirmed bipolar output), but
-  the actual behavior — reject negative EPICS `_OFFSET` writes — might still be
-  correct for an unrelated reason (e.g. the DAC/EPICS side may not accept
-  negative values regardless of what the output voltage does). Needs checking,
-  not blindly "fixing."
-- **`--dc` default (`= --amp` when not given)** rests on the same
-  now-questionable "maximizes m=8, keeps it non-negative" reasoning. Revisit
-  once the true zero-crossing is measured.
+  catches commanded count 0.** An earlier revision said this mattered because the
+  amp's zero sat near ~6400 counts; **that was wrong** (2026-08-31 — the amp maps
+  any input DC to 0 V out, so there is no special count). The `dc == 0` check is
+  therefore not the trap it was described as. Whether a pedestal warning is
+  wanted at all depends on the open pedestal question above.
+- ✅ **`check_amplitude()`'s rejection of negative counts is CORRECT** —
+  resolved 2026-08-31, and an earlier revision here wrongly called its
+  justification obsolete. **The amp input must be positive and within 0–2 V**, so
+  a negative commanded count is genuinely out of range. Keep this check.
+- ✅ **`--dc` default (`= --amp`) is CORRECT and should not be lowered.** With
+  12800 counts ↔ 2.1 V and `V{n}_LIMIT = 12800`, `dc = amp = 6400` puts the amp
+  input at 0 → 2.1 V, exactly filling its range. `dc >= amp` is required to keep
+  the input positive. Reducing the pedestal to "recover swing" would command the
+  input negative — do not do it.
 
 ## Conventions
 

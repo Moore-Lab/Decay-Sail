@@ -122,11 +122,13 @@ something else. Run drives in the foreground.
   puts the input at 0 → 2.1 V, exactly filling the range. `dc >= amp` is an
   input-range constraint, not a torque choice. `check_amplitude()`'s rejection of
   negative counts was right all along.
-- **`V_dc` at the electrode is 0 whatever is commanded**, so the m=8 torque
-  channel (∝ `V_dc·V_ac`) has never been on — every drive here, including
-  08-24's and this one, is m=16 (∝ `V_ac²`). Rotor speed is unaffected: both
-  channels lock at `f_elec/8`. **The torque, capture-bandwidth and ramp tables in
-  `CLAUDE.md` are tabulated for m=8 and do not apply.**
+- **A commanded `V_dc` does not appear as a DC offset at the electrode.** That
+  much is measured. What it implies for the m=8 torque channel (∝ `V_dc·V_ac`)
+  is **NOT resolved** — an earlier draft of this entry asserted the channel has
+  never been on and that `CLAUDE.md`'s m=8 torque/capture/ramp tables therefore
+  do not apply. **Do not treat that as established**; Molly is not persuaded, and
+  it rests on a chain of reasoning rather than a measurement. What is certain:
+  the drive spins the rotor, and `dc = amp = 6400` is the maximum commandable AC.
 - **The 2026-08-21 "DC detent" claim does not survive.** It held DC for 180 s but
   a DC step decays in ~20 s, so there was no field for most of it. *"A static
   torque from rest, which the synchronous side posts could not produce at any
