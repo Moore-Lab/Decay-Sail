@@ -344,8 +344,19 @@ by `DRVON` (passing `Constant = 0` when off), then fans out through two `×(−1
 V1 = In1 + s    V2 = In2 + c    V3 = In3 − s    V4 = In4 − c      (all Sums are ++)
 ```
 
-So the fan-out is confirmed as (sin, cos, −sin, −cos): **2 degrees of freedom across 4
-electrodes.** It cannot make 120° phases whichever three you pick (V2/V3/V4 carry
+> ⚠ **SUPERSEDED 2026-09-08 — the model was changed.** The `×(−1)` blocks were
+> replaced with `Mux → DRVMTRX (cdsRampMuxMatrix 2×4) → Demux`, and the stator
+> now drives a verified three-phase field from the oscillator (−120.00° spacing,
+> amplitudes matched to 5 significant figures). See
+> `y1rds_model_change_muxmatrix.md`.
+>
+> The claim below that two quadratures "cannot make 120° phases" was **wrong**:
+> `cos(θ+φ) = cosφ·cosθ − sinφ·sinθ`, so two quadratures span every phase at that
+> frequency. What was missing was only the ability to mix them per electrode.
+> That error is why the oscillator route was abandoned in August.
+
+So the fan-out WAS (sin, cos, −sin, −cos): **2 degrees of freedom across 4
+electrodes.** It could not make 120° phases whichever three you picked (V2/V3/V4 carry
 cos/−sin/−cos = 0°/90°/180°), and V4 is rigidly locked anti-phase to V2 — there is no
 way through `DRV` to give the centre electrode an independent drive. **`DRVON = 0`
 removes the fan-out entirely**, after which each `V{n}` is driven only by what you

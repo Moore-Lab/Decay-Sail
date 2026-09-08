@@ -15,6 +15,89 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-09-08, evening — MODEL CHANGED: `±1` fan-out replaced with a mux matrix
+
+**The stator now drives a correct three-phase field from the front-end
+oscillator, with no AWG.** Full detail in `y1rds_model_change_muxmatrix.md`;
+this is the log entry.
+
+The `OUTS` oscillator fan-out was `(sin, cos, −sin, −cos)`, locking the four
+electrodes to phases 0/90/180/270 — right for the **four side posts in
+quadrature** this apparatus used to have, wrong for a three-phase stator. The
+model was never updated when the stator was redesigned. Deleting `Constant1`,
+`Product` and `Product1` and inserting `Mux → DRVMTRX (cdsRampMuxMatrix 2×4) →
+Demux` fixes it. Built on cymac1 17:31, installed and restarted the same evening.
+
+**Verified** at `DRV_FREQ = 0.32 Hz`, gains 2000, **output switches disabled** so
+nothing reached the chamber:
+
+| | amplitude | relative phase |
+|---|---|---|
+| V2 (A) | 2000.0 | 0.00° |
+| V4 (B) | 2000.0 | **−120.00°** |
+| V3 (C) | 2000.0 | **+120.00°** |
+| V1 (CTR) | 0.0 | silent |
+
+Five significant figures on amplitude, exact to the hundredth of a degree on
+phase, DC zero throughout — the same bar the 08-24 and 08-28 runs cleared.
+
+**Corrects `CLAUDE.md`**, which said the fan-out "cannot make 120-degree
+phases". Two quadratures span every phase at one frequency; only the ability to
+mix them per electrode was missing.
+
+#### Two things learned in commissioning
+
+**The matrix output is gated by each module's SW1 input bit.** The matrix feeds
+`Sum*[2]`, upstream of the filter module, so the input switch blocks it along
+with everything else. V3/V4 worked immediately (SW1R 12) while V1/V2 were dead
+(SW1R 8). This is the **LES decoupling problem in concrete form**: the input
+switch cannot separate the matrix drive from the LES/MON signal summed at the
+same node.
+
+**Resolved by switching the LES modules' OUTPUT off** (`SW2R` 512, i.e. clear the
+1024 bit) rather than zeroing their gains. Either isolates the drive; the output
+switch is the cleaner knob because it leaves gain and input alone. Working
+configuration, verified 2026-09-08:
+
+```
+LES_PIT / LES_YAW:  GAIN=1  SW1R=4 (input ON)  SW2R=512 (output OFF)
+V1..V4:             SW1R=12 (input ON, required for the matrix)
+```
+
+**Sensing is unaffected.** `LES_*_IN1_DQ` is recorded upstream of everything, and
+`monitor_libration.py` and `spindown_gui.py` already read `IN1_DQ`, not `OUT_DQ`.
+LES is fed by the **imaging** laser, and with the outputs off it does not matter
+what the imaging or pushing laser does to it — none of it reaches the drive.
+
+> Note `OUT_DQ` was observed still mirroring `IN1_DQ` with the output bit clear,
+> so that tap sits *before* the output switch and both channels stay usable for
+> analysis. Standardise on `IN1_DQ` anyway — it is what the scripts use and it is
+> upstream of every switch. The 09-08 spindown and libration analysis in this log
+> were taken from `LES_YAW_OUT_DQ`; they are valid, but `IN1_DQ` is the more
+> robust choice going forward.
+
+**Switch bits silently killed a signal path three times in one evening** — V2's
+matrix drive (`V2_SW1R = 8`), `LES_YAW`'s output, then `LES_YAW`'s input. The
+signature is always identical: everything upstream looks healthy, the readback is
+zero, and nothing reports an error. **Check `SW1R`/`SW2R` first whenever a
+channel goes quiet.**
+
+**A ramp matrix has no `_GAIN` suffix** (that was extrapolated from Aaron's
+`ACTS`, a *filter* matrix, and was wrong). Writing `DRVMTRX_{r}_{c}` directly
+does nothing — measured. Values take effect only via
+`DRVMTRX_SETTING_{r}_{c}` then `DRVMTRX_LOAD_MATRIX`, which ramps **all elements
+together** over `DRVMTRX_TRAMP`, so the phasing never passes through an
+inconsistent state. `TRAMP` came up at 0 after the build; set it.
+
+#### What this obsoletes
+
+`stator_chirp.py` (never run live), `awg_reclaim.py`, and the arming retry loop
+in `stator_awg_drive.py` all exist to work around the missing matrix. Retire
+them once the oscillator drive is proven on the rotor. `stator_epics_drive.py`
+stays for DC work.
+
+---
+
 ### 2026-09-08 — first tracked SPINDOWN. Rotor spun, did NOT lock, τ ≈ 37 min
 
 **The first rotational free-decay this apparatus has produced with a recorded

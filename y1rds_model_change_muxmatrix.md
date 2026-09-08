@@ -1,6 +1,58 @@
-# Proposed `y1rds` model change: replace the ±1 fan-out with a mux matrix
+# `y1rds` model change: ±1 fan-out replaced with a mux matrix
 
-**Status: PROPOSAL, not done. Drafted 2026-09-08.**
+> ## ✅ DONE AND VERIFIED — 2026-09-08
+>
+> Built on cymac1 at 17:31, installed and restarted the same evening. Verified
+> from `V{n}_OUT_DQ` with the oscillator at `DRV_FREQ = 0.32 Hz`, gains 2000,
+> **output switches still disabled** so nothing reached the chamber:
+>
+> | | amplitude | phase | relative |
+> |---|---|---|---|
+> | V2 (A) | **2000.0** | −43.07° | 0.00° |
+> | V4 (B) | **2000.0** | −163.07° | **−120.00°** |
+> | V3 (C) | **2000.0** | +76.93° | **+120.00°** |
+> | V1 (CTR) | 0.0 | — | silent, as specified |
+>
+> Amplitudes identical to five significant figures and equal to the commanded
+> oscillator gain; relative phases exact to the hundredth of a degree; DC zero
+> throughout. That clears the same bar as the verified 2026-08-24 and 08-28
+> runs, **from the oscillator with no AWG involved**. Step sense is V2 → V4 → V3
+> at −120° each, matching the 08-24 convention, so no sign flip was needed.
+>
+> ### One gotcha found during commissioning
+>
+> **The matrix output is blocked by each module's SW1 input bit.** The matrix
+> feeds `Sum*[2]`, and the Sum sits *upstream* of the filter module, so the
+> input switch gates the matrix signal along with everything else. On first
+> test V3/V4 worked (SW1R = 12) while V1/V2 were dead (SW1R = 8). Setting
+> `V1_SW1S`/`V2_SW1S` to 12 fixed it immediately.
+>
+> That is the LES decoupling problem in concrete form: **the input switch cannot
+> separate the matrix drive from the LES/MON signal summed at the same node.**
+> The clean resolution is to zero the *source* gains instead —
+> `LES_PIT_GAIN = LES_YAW_GAIN = LES_SUM_GAIN = MON_GAIN = 0` — which keeps the
+> inputs switched on for the matrix while nothing else reaches the electrodes.
+> Sensing is unaffected: `LES_*_IN1_DQ` records upstream of the gain.
+>
+> ### Record names — NOT what was predicted
+>
+> A ramp matrix does **not** use a `_GAIN` suffix (that was extrapolated from
+> Aaron's `ACTS`, which is a *filter* matrix). The real interface:
+>
+> ```
+> Y1:RDS-OUTS_DRVMTRX_SETTING_{r}_{c}    write the value here
+> Y1:RDS-OUTS_DRVMTRX_LOAD_MATRIX        then trigger this -- all elements ramp in TOGETHER
+> Y1:RDS-OUTS_DRVMTRX_{r}_{c}            readback of what is actually applied
+> Y1:RDS-OUTS_DRVMTRX_RAMPING_{r}_{c}    1 while ramping
+> Y1:RDS-OUTS_DRVMTRX_TRAMP              ramp time, seconds
+> ```
+>
+> **Writing `_{r}_{c}` directly does nothing** — measured. Values only take
+> effect via `SETTING_*` + `LOAD_MATRIX`, which is better than per-element
+> writes: the phasing never passes through an inconsistent intermediate state.
+> `TRAMP` came up at 0 after the build; set it (2 s works) or changes are steps.
+
+**Original proposal follows, drafted 2026-09-08 before the work.**
 
 One change — swap two hardwired `×(−1)` blocks for a 2×4 gain matrix — and the
 stator can be driven entirely from the front-end oscillator over plain EPICS,
