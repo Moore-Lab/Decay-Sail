@@ -76,6 +76,28 @@ LOG_FILE = args.log or f'damping_monitor_{datetime.now(timezone.utc):%Y%m%d_%H%M
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def cymac_gps_now():
+    """Front-end GPS, read LIVE from the DAQ rather than computed.
+
+    This used to be `time.time() - GPS_UNIX_OFF + CYMAC_OFFSET`, with
+    CYMAC_OFFSET a constant measured on 2026-07-09. THAT OFFSET DRIFTS, badly:
+    3072 s when it was measured, 5836 s on 06-03, 7630 s on 08-21, 8376 s on
+    08-28, and 9536 s on 09-08. By 2026-09-08 the hardcoded value was wrong by
+    6464 s -- nearly two hours -- so every fetch landed in the wrong window and
+    the display showed stale data or nothing.
+
+    Y1:DAQ-DC0_GPS is the front end's own clock. Reading it costs one caget and
+    can never go stale. Falls back to the old arithmetic only if EPICS is
+    unreachable, and says so.
+    """
+    try:
+        from epics import caget
+        v = caget('Y1:DAQ-DC0_GPS', timeout=2.0)
+        if v:
+            return int(v)
+    except Exception:
+        pass
+    print('  [warn] could not read Y1:DAQ-DC0_GPS; falling back to the stale '
+          'CYMAC_OFFSET constant -- times will likely be wrong')
     return int(time.time()) - GPS_UNIX_OFF + CYMAC_OFFSET
 
 def dominant_freq(y, fs):
