@@ -61,20 +61,45 @@ Tracked from the **3× line** (~0.50 Hz) divided by 3, which is better resolved
 than the fundamental. Read from `LES_YAW_OUT_DQ`, which while spinning shows a
 clean 1× / 2× / 3× harmonic series — the silhouette is not sinusoidal.
 
-| t since stop (s) | f_rot (Hz) |
-|---|---|
-| 122 | 0.16732 |
-| 213 | 0.16228 |
-| 303 | 0.15625 |
-| 393 | 0.15070 |
-| 483 | 0.14394 |
-| 574 | 0.13615 |
+| t since stop (s) | f_rot (Hz) | |
+|---|---|---|
+| 122 | 0.16732 | |
+| 213 | 0.16228 | |
+| 303 | 0.15625 | |
+| 393 | 0.15070 | |
+| 483 | 0.14394 | |
+| 574 | 0.13615 | |
+| 664 | 0.12546 | libration setting in — **excluded from the fit** |
 
-Exponential fit over the first ~10 minutes: **τ ≈ 37 min, f₀ ≈ 0.178 Hz**
-(equivalently −0.069 mHz/s if read as linear). **Treat as provisional**: six
-points over ten minutes cannot distinguish exponential from linear decay, and
-drag on a levitated rotor is often not a simple exponential in frequency. The
-value should be refit over the full curve.
+Fitting the clean rotation only (t ≤ 574 s):
+
+| model | fit | residual |
+|---|---|---|
+| exponential | **τ = 36.9 min**, f₀ = 0.1783 Hz | 0.72% |
+| linear | **−0.0685 mHz/s**, f₀ = 0.1766 Hz | 0.51% |
+
+**Linear fits marginally better, and the two cannot be separated** by six points
+across a 25% decay. They imply different physics and it is worth not choosing
+prematurely: viscous drag (residual gas, eddy currents from wobble) decays
+frequency exponentially, whereas a **constant retarding torque** gives a linear
+ramp. Quote whichever is used, and say which.
+
+#### The rotation ended by falling into the trap
+
+At ~600–700 s the harmonic series broke up and the rotor **began librating**,
+confirmed by eye. Rotation had decayed to **~0.136 Hz** by then.
+
+That is close to the intrinsic angular trap frequency measured *independently*
+in the hour before the drive, which had decayed to **0.12–0.16 Hz** (see below).
+So the rotor kept turning until its rotation rate fell to roughly the trap's own
+frequency, at which point it could no longer clear the barriers and was captured.
+Two separate measurements agreeing is a good consistency check on the trap being
+real rather than an artefact of how LES is read.
+
+**Note the tracker keeps reporting a plausible-looking number after this point
+and it is meaningless** — its peak search is band-limited to 0.30–1.2 Hz and
+simply finds whatever is loudest once the rotation line is gone. Stop it, or
+discard points, at the transition.
 
 **The LES fundamental IS the rotation rate**, confirmed against the camera:
 ~6 s/rev measured, ~8 s by eye. That rules out the alternative reading in which
