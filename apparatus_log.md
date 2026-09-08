@@ -15,6 +15,85 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-09-08 — first tracked SPINDOWN. Rotor spun, did NOT lock, τ ≈ 37 min
+
+**The first rotational free-decay this apparatus has produced with a recorded
+start time.** The 2026-08-28 spin was lost because nobody wrote down when it ran;
+this one has a timestamp, an initial rate, and a logged decay curve.
+
+> **Spindown start: front-end GPS `1472934149`** (drive off).
+> Log: `/home/controls/spindown_20260908.csv`
+> — columns `gps_mid, t_since_stop_s, f3_hz, f_rot_hz, rms`.
+
+#### Configuration — this is NOT an optimised system
+
+**No tilt stage** (removed 2026-07-27, see that entry) and tilt not optimised.
+The 07-27 entry already records that steady pressure rules out vacuum as the
+cause of the elevated damping from that date onward, and that the tilt-stage
+removal is the explanation. So a short rotational τ is **expected here and is not
+anomalous** — `TAU_FREE_S = 67.65 min` is likewise flagged valid only up to
+07-27. Pressure ~2.9e-7 mbar. Laser off; imaging beam only.
+
+#### The rotor did NOT lock
+
+| | |
+|---|---|
+| commanded (`--felec 2.0`) | 0.25 Hz rotor |
+| measured at drive-off | **~0.172 Hz** |
+| ratio | **69%** |
+
+A synchronous motor either locks at the commanded rate or it does not. At 69% the
+rotor was being **dragged asynchronously** — the field slipping past and
+imparting net torque without ever capturing it. Consistent with everything else
+to date: the field is verified correct (120.00° spacing, THD 0.00%), but the
+rotor has still never phase-locked to it. **Do not read this run as a working
+synchronous drive.**
+
+Drive ran ~`1472933600` → `1472934149` (~9 min) at full amplitude
+(`--amp 6400`, `OUT_DQ` rms 4526 = 6400/√2), with several dropouts mid-run where
+the AC stopped and recovered. Getting it going took **several attempts**, with
+the AC frequently failing to arm — see the open item in the 08-28 entry; the
+drain fix improved but did not eliminate it.
+
+#### The decay
+
+Tracked from the **3× line** (~0.50 Hz) divided by 3, which is better resolved
+than the fundamental. Read from `LES_YAW_OUT_DQ`, which while spinning shows a
+clean 1× / 2× / 3× harmonic series — the silhouette is not sinusoidal.
+
+| t since stop (s) | f_rot (Hz) |
+|---|---|
+| 122 | 0.16732 |
+| 213 | 0.16228 |
+| 303 | 0.15625 |
+| 393 | 0.15070 |
+| 483 | 0.14394 |
+| 574 | 0.13615 |
+
+Exponential fit over the first ~10 minutes: **τ ≈ 37 min, f₀ ≈ 0.178 Hz**
+(equivalently −0.069 mHz/s if read as linear). **Treat as provisional**: six
+points over ten minutes cannot distinguish exponential from linear decay, and
+drag on a levitated rotor is often not a simple exponential in frequency. The
+value should be refit over the full curve.
+
+**The LES fundamental IS the rotation rate**, confirmed against the camera:
+~6 s/rev measured, ~8 s by eye. That rules out the alternative reading in which
+the line was a 12-fold feature harmonic and the true rotation was 12× slower
+(70 s/rev) — a factor-of-twelve error that would have invalidated the whole
+measurement. **Always cross-check the LES fundamental against the camera before
+converting it to a rotation rate.**
+
+#### Why this measurement is worth keeping
+
+The absolute τ is not comparable to the literature — the Nature Comms
+diamagnetic-rotor paper (s41467-026-75188-1) reports 3.85 µHz rotational damping
+and a 10 h free spin, three orders of magnitude better, on an optimised system.
+The value here is as a **baseline for the un-optimised, no-tilt-stage state**, to
+be compared against a repeat once the tilt stage is refitted and adjusted. A
+before/after on that is worth far more than the absolute number.
+
+---
+
 ### 2026-08-28, afternoon — ROTOR SPUN. Drive moved to AWG; `_OFFSET` AC path found unusable
 
 **The rotor did full rotations**, driven three-phase from the stator. First time.
