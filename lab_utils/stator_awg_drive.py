@@ -144,6 +144,72 @@ def reclaim_slots(electrodes=(1, 2, 3, 4), quiet=True):
     return freed
 
 
+def teardown(exc, electrodes, timeout_s=90.0, poll_s=1.0, quiet=False):
+    """Stop the excitations and WAIT until they have actually drained.
+
+    Copied from Aaron's measure_actuator_gain.py, which does this and works
+    reliably on this hardware. Our teardown used to be `stop(wait=True)` and
+    then straight on to the next thing -- and the symptom that produced was
+    exactly "the AC will not reliably turn back on after being turned off":
+    re-arming a channel that the previous excitation had not finished
+    releasing. First arm of a session works; rapid re-runs fail.
+
+    Aaron's sequence, and why each step:
+
+      1. TRAMP = 0, GAIN = 0   -- mute the module BEFORE stopping, so the
+                                  excitation drains into a dead gain rather
+                                  than the DAC.
+      2. poll V{n}_EXC rms until < 1 count, up to 90 s -- confirm it is
+                                  actually gone. Note this reads the EXCITATION
+                                  channels, not _OUT_DQ: it watches the thing
+                                  being torn down, not its effect downstream.
+      3. if it never drained, leave GAIN at 0 rather than restoring it. Aaron
+                                  treats a failed drain as serious enough to
+                                  refuse to hand the module back live, and so
+                                  do we -- the caller is told.
+
+    Returns True if everything drained. On False the caller MUST NOT restore
+    GAIN, and should say so loudly.
+    """
+    import nds2
+    for n in electrodes:
+        b = f'{PREFIX}_V{n}'
+        try:
+            caput(f'{b}_TRAMP', 0.0, wait=True, timeout=2.0)
+            caput(f'{b}_GAIN', 0.0, wait=True, timeout=2.0)
+        except Exception as err:
+            print(f'  ! muting V{n}: {err}')
+    for e in exc:
+        try:
+            # wait=True is what runs clear() -> awgClearWaveforms /
+            # awgRemoveChannel / tpClearName. wait=False leaks the slot.
+            e.stop(ramptime=0, wait=True)
+        except Exception as err:
+            print(f'  ! stop: {err}')
+
+    chans = [f'{PREFIX}_V{n}_EXC' for n in electrodes]
+    t0 = time.time()
+    while time.time() - t0 < timeout_s:
+        try:
+            conn = nds2.connection('cymac1', 8088)
+            for blk in conn.iterate(chans):
+                rms = [float(np.array(x.data, float).std()) for x in blk]
+                break
+        except Exception:
+            time.sleep(poll_s)
+            continue
+        if all(r < 1.0 for r in rms):
+            if not quiet:
+                print(f'  AWG drained after {time.time() - t0:.0f} s '
+                      f'(EXC rms {", ".join(f"{r:.2f}" for r in rms)})')
+            return True
+        time.sleep(poll_s)
+    print(f'  ! AWG did NOT drain within {timeout_s:.0f} s -- EXC still active. '
+          f'GAIN left at 0\n    deliberately; the modules are muted. Investigate '
+          f'before driving again.')
+    return False
+
+
 def ac_present(electrodes, thresh=100.0):
     """Is there actually AC at the electrodes right now?
 
@@ -177,7 +243,7 @@ def snapshot(electrodes):
     return state
 
 
-def restore(state, dry):
+def restore(state, dry, skip_gain=False):
     """Put the modules back, but ALWAYS leave the offsets at 0.
 
     Configuration (GAIN, TRAMP, and the input/output switches) is restored to
@@ -196,12 +262,19 @@ def restore(state, dry):
     """
     if dry:
         return
+    keys = (('TRAMP', 'TRAMP'), ('SW1R', 'SW1S'), ('SW2R', 'SW2S'))
+    if not skip_gain:
+        keys = (('GAIN', 'GAIN'),) + keys
+    else:
+        print('  ! GAIN deliberately left at 0 -- the AWG did not drain, so the '
+              'modules stay\n    muted rather than being handed back live '
+              '(Aaron\'s rule). Restore by hand once\n    you know why: '
+              'caput Y1:RDS-OUTS_V{n}_GAIN 1')
     for n, s in state.items():
         b = f'{PREFIX}_V{n}'
-        for key, pv in (('GAIN', f'{b}_GAIN'), ('TRAMP', f'{b}_TRAMP'),
-                        ('SW1R', f'{b}_SW1S'), ('SW2R', f'{b}_SW2S')):
+        for key, suffix in keys:
             if s[key] is not None:
-                caput(pv, float(s[key]), wait=True, timeout=2.0)
+                caput(f'{b}_{suffix}', float(s[key]), wait=True, timeout=2.0)
         caput(f'{b}_OFFSET', 0.0, wait=True, timeout=2.0)
     # Verify rather than assume -- a caput that silently failed would leave the
     # electrodes live, which is the one outcome worth being sure about.
@@ -625,11 +698,12 @@ def main():
             print(f'  ! NO AC at the electrodes (rms '
                   f'{", ".join(f"{r:.1f}" for r in rms)}) -- the excitation did '
                   f'not play.')
-            for e in exc:
-                try:
-                    e.stop(ramptime=0, wait=True)
-                except Exception:
-                    pass
+            # Drain properly before re-arming -- re-arming a channel that has
+            # not finished releasing is the prime suspect for the intermittent
+            # "AC will not turn back on" failure.
+            teardown(exc, electrodes, quiet=True)
+            for n in electrodes:
+                caput(f'{PREFIX}_V{n}_GAIN', 1.0, wait=True, timeout=2.0)
             exc = []
             if attempt < 8:
                 print(f'  attempt {attempt} failed; reclaiming and retrying '
@@ -645,19 +719,14 @@ def main():
         print(f'  running {args.duration:.0f} s...')
         time.sleep(max(0.0, args.duration - 6))
     finally:
-        for e in exc:
-            try:
-                # wait=True releases the AWG slot. wait=False leaks it, and
-                # leaked slots hit MAX_NUM_AWG=9 and make later runs fail in
-                # confusing ways (this bit us on 2026-08-28).
-                e.stop(ramptime=0, wait=True)
-            except Exception as err:
-                print(f'  ! stop: {err}')
+        drained = True
+        if exc:
+            drained = teardown(exc, electrodes)
         try:
             awg.awg_cleanup()
         except Exception:
             pass
-        restore(state, dry)
+        restore(state, dry, skip_gain=not drained)
 
     if args.verify:
         span = max(20.0, args.duration - args.lead - 12)
