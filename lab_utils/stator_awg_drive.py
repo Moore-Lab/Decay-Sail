@@ -718,6 +718,14 @@ def main():
                 return 1
         print(f'  running {args.duration:.0f} s...')
         time.sleep(max(0.0, args.duration - 6))
+        # Record when the drive ended, in the FRONT END's frame, so a spindown
+        # window can be fetched from NDS afterwards. The 2026-08-28 spin-up was
+        # lost because nobody wrote this down and the terminal rolled.
+        t_end = gps_now_fe()
+        print(f'\n  === DRIVE ENDING at front-end GPS {t_end:.0f} ===')
+        print(f'  Spindown starts here. To fetch it later:')
+        print(f'    conn.fetch({int(t_end)}, {int(t_end)} + <seconds>, '
+              f"['Y1:RDS-LES_YAW_OUT_DQ'])")
     finally:
         drained = True
         if exc:
