@@ -178,16 +178,43 @@ def snapshot(electrodes):
 
 
 def restore(state, dry):
+    """Put the modules back, but ALWAYS leave the offsets at 0.
+
+    Configuration (GAIN, TRAMP, and the input/output switches) is restored to
+    whatever it was. The OFFSET is NOT -- it is forced to 0 regardless of what
+    the run started from.
+
+    That asymmetry is deliberate. The offset is drive state, not configuration,
+    and restoring it faithfully propagates stale voltage: on 2026-08-28 an
+    interrupted run left 6400 counts (~86 V) on all three electrodes, the next
+    script snapshotted THAT as its baseline, and dutifully put it back at the
+    end. Zeroing makes the end state deterministic -- after any completed run
+    the electrodes are at 0 V, whatever happened before it.
+
+    Note this does not protect against a hard kill, which skips the finally
+    block entirely. Always re-check OFFSET after interrupting a run.
+    """
     if dry:
         return
     for n, s in state.items():
         b = f'{PREFIX}_V{n}'
-        for key, pv in (('OFFSET', f'{b}_OFFSET'), ('GAIN', f'{b}_GAIN'),
-                        ('TRAMP', f'{b}_TRAMP'), ('SW1R', f'{b}_SW1S'),
-                        ('SW2R', f'{b}_SW2S')):
+        for key, pv in (('GAIN', f'{b}_GAIN'), ('TRAMP', f'{b}_TRAMP'),
+                        ('SW1R', f'{b}_SW1S'), ('SW2R', f'{b}_SW2S')):
             if s[key] is not None:
                 caput(pv, float(s[key]), wait=True, timeout=2.0)
-    print('  module state restored.')
+        caput(f'{b}_OFFSET', 0.0, wait=True, timeout=2.0)
+    # Verify rather than assume -- a caput that silently failed would leave the
+    # electrodes live, which is the one outcome worth being sure about.
+    time.sleep(1.5)
+    left = {n: caget(f'{PREFIX}_V{n}_OFFSET') for n in state}
+    bad = {n: v for n, v in left.items() if v is not None and abs(v) > 1.0}
+    if bad:
+        print('  ! OFFSET did NOT reach 0 on: ' +
+              ', '.join(f'V{n}={v:.0f}' for n, v in bad.items()) +
+              '\n    The electrodes are still driven. Zero them by hand:\n'
+              '    for n in 1 2 3 4; do caput Y1:RDS-OUTS_V${n}_OFFSET 0; done')
+    else:
+        print('  module config restored; all offsets confirmed at 0.')
 
 
 def setup(electrodes, state, dc, set_input, dry):
