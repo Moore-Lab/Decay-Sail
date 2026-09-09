@@ -289,15 +289,29 @@ def main():
     p.add_argument('--amp', type=float, default=2000.0,
                    help=f'oscillator gain = electrode amplitude in counts '
                         f'(max {MAX_AMP:.0f}; pedestal is set equal to it)')
-    p.add_argument('--duration', type=float, default=120.0)
+    p.add_argument('--duration', type=float, default=120.0,
+                   help='HOLD only, seconds. A sweep does not take a duration: '
+                        'its length falls out of --step and --dwell.')
+    p.add_argument('--step', type=float, default=0.05,
+                   help='sweep: frequency increment, IN WHATEVER UNIT the '
+                        'endpoints were given (electrical with --felec, rotor '
+                        'with -f). Default 0.05.')
+    p.add_argument('--nsteps', type=int, default=None,
+                   help='sweep: fix the number of steps instead of the step '
+                        'size. Overrides --step.')
+    p.add_argument('--dwell', type=float, default=15.0,
+                   help='sweep: seconds held at each frequency. Wants to be '
+                        'several rotor periods so the rotor can settle into '
+                        'lock before the next step. Default 15.')
     p.add_argument('--reverse', action='store_true',
                    help='reverse rotation (swaps the B/C matrix rows)')
     p.add_argument('--mtramp', type=float, default=2.0,
                    help='matrix ramp time, s (default 2)')
     p.add_argument('--drvtramp', type=float, default=5.0,
-                   help='oscillator frequency ramp time, s. NONZERO keeps a '
+                   help='oscillator frequency GLIDE time, s. NONZERO keeps a '
                         'frequency change PHASE-CONTINUOUS -- this is what makes '
-                        'sweeps safe. Default 5.')
+                        'sweeps safe. Must be <= --dwell, or the glide is still '
+                        'running when the next step is commanded. Default 5.')
     p.add_argument('--enable-outputs', action='store_true',
                    help='set SW2 output bit so the drive actually reaches the '
                         'chamber. WITHOUT THIS NOTHING IS DRIVEN -- useful for '
@@ -395,10 +409,35 @@ def main():
         print(f'! --drvtramp must be >= 0, got {args.drvtramp:g}.')
         return 1
     if args.cmd == 'sweep' and args.drvtramp <= 0:
-        print('! sweep needs --drvtramp > 0. It is both the per-step dwell and '
-              'what makes each frequency step phase-continuous; at 0 the steps '
-              'are discontinuous and the step count divides by zero.')
+        print('! sweep needs --drvtramp > 0 -- it is what makes each frequency '
+              'step phase-continuous.')
         return 1
+
+    # SWEEP GEOMETRY. The schedule is defined by STEP SIZE and DWELL; the total
+    # time falls out of them. Specifying a total and back-solving the step size
+    # is the wrong way round -- the frequency resolution is what has to be
+    # right, not the wall-clock length. --duration is for hold only.
+    n_steps = None
+    if args.cmd == 'sweep' and to_felec is not None:
+        if args.dwell <= 0:
+            print('! --dwell must be positive.')
+            return 1
+        if args.drvtramp > args.dwell:
+            print(f'! --drvtramp {args.drvtramp:g} s exceeds --dwell '
+                  f'{args.dwell:g} s. The glide would still be running when the '
+                  f'next step is commanded, so the drive would never actually '
+                  f'sit at any frequency.')
+            return 1
+        # --step is in whatever unit the endpoints were given.
+        rotor_units = args.freq is not None or args.to_freq is not None
+        if args.nsteps is not None:
+            n_steps = max(2, args.nsteps)
+        else:
+            step_elec = abs(args.step) * (M_DRIVE if rotor_units else 1.0)
+            if step_elec <= 0:
+                print('! --step must be positive.')
+                return 1
+            n_steps = max(2, int(round(abs(to_felec - f_elec) / step_elec)) + 1)
 
     print('=' * 70)
     print(f'  {args.cmd}   f_elec {f_elec:.4f} Hz   rotor {f_elec / M_DRIVE:.5f} Hz'
@@ -444,7 +483,36 @@ def main():
     put(f'{PREFIX}_DRVON', 1, dry)
 
     if dry:
-        print(f'\n  [dry] would run {args.duration:.0f} s.')
+        if args.cmd == 'sweep':
+            # Print the actual schedule. int() truncation means the realised
+            # total is usually not --duration, and the dwell per frequency is
+            # the thing you actually want to choose, so show both.
+            freqs = np.linspace(f_elec, to_felec, n_steps)
+            step = (to_felec - f_elec) / (n_steps - 1)
+            total = n_steps * args.dwell
+            print(f'\n  [dry] sweep schedule')
+            print(f'    {n_steps} steps, {args.dwell:g} s dwell at each '
+                  f'frequency, {args.drvtramp:g} s glide between')
+            print(f'    step size   {step:+.4f} Hz elec  '
+                  f'({step / M_DRIVE:+.5f} Hz rotor)')
+            print(f'    total       {total:.0f} s = {total / 60:.1f} min '
+                  f'(derived from step and dwell, not commanded)')
+            print(f'    sweep rate  {(to_felec - f_elec) / total:.5f} Hz/s elec')
+            print(f'\n    {"step":>5} {"f_elec":>9} {"f_rotor":>9} {"t":>8}')
+            show = sorted(set([0, 1, 2, n_steps // 2,
+                               n_steps - 3, n_steps - 2, n_steps - 1]))
+            prev = None
+            for i in show:
+                if i < 0 or i >= n_steps:
+                    continue
+                if prev is not None and i != prev + 1:
+                    print(f'    {"...":>5}')
+                print(f'    {i:5d} {freqs[i]:9.4f} {freqs[i] / M_DRIVE:9.5f} '
+                      f'{i * args.dwell:7.0f}s')
+                prev = i
+        else:
+            print(f'\n  [dry] would hold {args.duration:.0f} s at '
+                  f'{f_elec:.4f} Hz elec ({f_elec / M_DRIVE:.5f} Hz rotor).')
         return 0
 
     # Window for --verify, in the FRONT END's frame (which is what NDS wants).
@@ -457,14 +525,14 @@ def main():
 
     try:
         if args.cmd == 'sweep':
-            n_steps = max(2, int(args.duration / args.drvtramp))
-            print(f'\n  sweeping in {n_steps} steps of {args.drvtramp:.0f} s '
-                  f'(DRV_TRAMP keeps each step phase-continuous)')
+            total = n_steps * args.dwell
+            print(f'\n  sweeping: {n_steps} steps, {args.dwell:g} s dwell, '
+                  f'{args.drvtramp:g} s glide -- {total / 60:.1f} min total')
             for i, f in enumerate(np.linspace(f_elec, to_felec, n_steps)):
                 caput(f'{PREFIX}_DRV_FREQ', float(f), wait=True, timeout=3.0)
                 if i % max(1, n_steps // 10) == 0:
                     print(f'    f_elec {f:.4f} Hz  (rotor {f / M_DRIVE:.5f})')
-                time.sleep(args.drvtramp)
+                time.sleep(args.dwell)
             if args.verify:
                 # A single-frequency fit across a sweep is meaningless, so dwell
                 # at the final frequency and verify THAT.
