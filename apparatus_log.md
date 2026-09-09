@@ -9,7 +9,27 @@ state each dataset was taken in.
 changes**, even if it seems minor at the time. A change that is obvious in the lab is
 invisible in an HDF5 file six months later.
 
-Entries are newest-last. Dates are UTC unless noted.
+Dates are UTC unless noted.
+
+**Ordering — read the date in each heading, do not infer it from position.** The
+file is not consistently chronological: entries from 2026-09-09 back to
+2026-07-27 run newest-first, then from 2026-07-27 forward to 2026-08-24 they run
+oldest-first. The two blocks meet at the 07-27 entries. (The header previously
+claimed "newest-last", which was wrong for both halves.) **New entries go at the
+top of `## Changes`.** Reordering the older block is a pending tidy-up.
+
+**Mark confidence explicitly.** A measurement and an inference from it are
+different things and the difference stops being obvious within weeks. State which
+one an entry is:
+
+- **Established** — measured, ideally by two independent routes. State the
+  numbers and the conditions.
+- **⚠ Uncertain / hypothesis** — say so in the entry itself, say what would
+  settle it, and do not let it silently become a premise elsewhere.
+
+If something is uncertain enough that it would be misleading to record as fact,
+it belongs in `## Open items` with the test that would resolve it — not in a
+dated entry.
 
 ---
 
