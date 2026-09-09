@@ -281,7 +281,11 @@ def main():
     p.add_argument('-f', '--freq', type=float, default=None,
                    help='ROTOR frequency, Hz (f_elec = 8x this)')
     p.add_argument('--to-felec', type=float, default=None,
-                   help='sweep: final electrical frequency')
+                   help='sweep: final ELECTRICAL frequency, Hz')
+    p.add_argument('--to-freq', type=float, default=None,
+                   help='sweep: final ROTOR frequency, Hz (f_elec = 8x this). '
+                        'Use this with -f, or --to-felec with --felec -- do not '
+                        'mix the two units in one command.')
     p.add_argument('--amp', type=float, default=2000.0,
                    help=f'oscillator gain = electrode amplitude in counts '
                         f'(max {MAX_AMP:.0f}; pedestal is set equal to it)')
@@ -306,8 +310,26 @@ def main():
         return 1
     dry = not args.live
 
+    # Frequencies may be stated as ELECTRICAL (--felec/--to-felec) or as ROTOR
+    # (-f/--to-freq), never mixed within one command -- an 8x unit error here
+    # commands a wildly wrong field speed and would look plausible in the log.
+    if args.felec is not None and args.freq is not None:
+        print('! give --felec OR -f, not both.')
+        return 1
+    if args.to_felec is not None and args.to_freq is not None:
+        print('! give --to-felec OR --to-freq, not both.')
+        return 1
+    mixed = ((args.felec is not None and args.to_freq is not None) or
+             (args.freq is not None and args.to_felec is not None))
+    if mixed:
+        print('! do not mix units: --felec pairs with --to-felec (electrical), '
+              '-f pairs with --to-freq (rotor). Mixing them is an 8x error.')
+        return 1
+
     f_elec = args.felec if args.felec is not None else (
         M_DRIVE * args.freq if args.freq is not None else None)
+    to_felec = args.to_felec if args.to_felec is not None else (
+        M_DRIVE * args.to_freq if args.to_freq is not None else None)
 
     if args.cmd == 'status':
         print('  matrix (row = electrode, col = sin/cos):')
@@ -375,8 +397,8 @@ def main():
 
     print('=' * 70)
     print(f'  {args.cmd}   f_elec {f_elec:.4f} Hz   rotor {f_elec / M_DRIVE:.5f} Hz'
-          + (f'  ->  {args.to_felec:.4f} Hz' if args.cmd == 'sweep' and
-             args.to_felec else ''))
+          + (f'  ->  {to_felec:.4f} Hz (rotor {to_felec / M_DRIVE:.5f})'
+             if args.cmd == 'sweep' and to_felec else ''))
     print(f'  amplitude {args.amp:.0f} counts, pedestal {args.amp:.0f} '
           f'(peak {2 * args.amp:.0f} ~ {2 * args.amp * VOLTS_PER_COUNT:.0f} V)')
     print(f'  outputs {"ENABLED" if args.enable_outputs else "OFF -- nothing reaches the chamber"}')
@@ -387,8 +409,8 @@ def main():
     if not load_matrix(args.reverse, dry, args.mtramp):
         return 1
 
-    if args.cmd == 'sweep' and args.to_felec is None:
-        print('! sweep needs --to-felec')
+    if args.cmd == 'sweep' and to_felec is None:
+        print('! sweep needs --to-felec (electrical) or --to-freq (rotor)')
         return 1
 
     # Record what the output switches were BEFORE we touch them, so ramp_down
@@ -432,7 +454,7 @@ def main():
             n_steps = max(2, int(args.duration / args.drvtramp))
             print(f'\n  sweeping in {n_steps} steps of {args.drvtramp:.0f} s '
                   f'(DRV_TRAMP keeps each step phase-continuous)')
-            for i, f in enumerate(np.linspace(f_elec, args.to_felec, n_steps)):
+            for i, f in enumerate(np.linspace(f_elec, to_felec, n_steps)):
                 caput(f'{PREFIX}_DRV_FREQ', float(f), wait=True, timeout=3.0)
                 if i % max(1, n_steps // 10) == 0:
                     print(f'    f_elec {f:.4f} Hz  (rotor {f / M_DRIVE:.5f})')
@@ -440,7 +462,7 @@ def main():
             if args.verify:
                 # A single-frequency fit across a sweep is meaningless, so dwell
                 # at the final frequency and verify THAT.
-                verify_f = args.to_felec
+                verify_f = to_felec
                 print(f'\n  --verify: dwelling 120 s at the final '
                       f'{verify_f:.4f} Hz so there is something to fit')
                 gps_a = int(caget('Y1:DAQ-DC0_GPS'))
