@@ -302,6 +302,11 @@ def main():
                    help='set SW2 output bit so the drive actually reaches the '
                         'chamber. WITHOUT THIS NOTHING IS DRIVEN -- useful for '
                         'dry commissioning.')
+    p.add_argument('--leave-running', action='store_true',
+                   help='do NOT tear down at the end -- leave the drive running '
+                        'in the front end after this script exits. Stop it with '
+                        'the stop subcommand. Ctrl-C overrides this and tears '
+                        'down.')
     p.add_argument('--verify', action='store_true')
     args = p.parse_args()
 
@@ -448,6 +453,7 @@ def main():
     time.sleep(args.drvtramp + 2.0)
     gps_a = gps_b = None
     verify_f = f_elec
+    interrupted = False
 
     try:
         if args.cmd == 'sweep':
@@ -474,11 +480,33 @@ def main():
             time.sleep(args.duration)
             gps_b = int(caget('Y1:DAQ-DC0_GPS'))
     except KeyboardInterrupt:
-        print('\n  interrupted.')
+        # Ctrl-C means STOP, and overrides --leave-running. An abort should
+        # never be the thing that leaves the chamber driven unattended.
+        print('\n  interrupted -- tearing down (Ctrl-C overrides '
+              '--leave-running).')
+        interrupted = True
         if gps_a is not None and gps_b is None:
             gps_b = int(caget('Y1:DAQ-DC0_GPS'))
     finally:
-        ramp_down(args.drvtramp, sw2_before)
+        if args.leave_running and not interrupted:
+            f_now = caget(f'{PREFIX}_DRV_FREQ')
+            outs = [n for n in (1, 2, 3, 4)
+                    if int(caget(f'{PREFIX}_V{n}_SW2R') or 0) & SW2_OUTPUT_ON]
+            print('\n' + '=' * 70)
+            print('  DRIVE LEFT RUNNING (--leave-running)')
+            print(f'    f_elec {f_now:.4f} Hz   rotor {f_now / M_DRIVE:.5f} Hz')
+            print(f'    amplitude {args.amp:.0f} counts, pedestal '
+                  f'{args.amp:.0f}')
+            print(f'    outputs enabled on: '
+                  f'{outs if outs else "none -- nothing reaches the chamber"}')
+            print('\n  The oscillator runs IN THE FRONT END, so this survives '
+                  'this\n  script exiting, the shell closing, and the network '
+                  'dropping.\n  It runs until something stops it.')
+            print('\n    stop with:    python3 stator_osc_drive.py stop --live')
+            print('    check with:   python3 stator_osc_drive.py status')
+            print('=' * 70)
+        else:
+            ramp_down(args.drvtramp, sw2_before)
 
     if args.verify:
         if gps_a is None or gps_b is None:
