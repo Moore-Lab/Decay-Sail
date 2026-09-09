@@ -175,7 +175,7 @@ def check_inputs():
     return True
 
 
-def ramp_down(drvtramp, sw2_before=None):
+def ramp_down(drvtramp, sw2_before=None, clear_outputs=False):
     """Stop the drive in the ONLY safe order.
 
     THE PEDESTAL MUST OUTLIVE THE AC. The HV amp input has to stay positive, and
@@ -211,13 +211,22 @@ def ramp_down(drvtramp, sw2_before=None):
         print('    restoring output switches to their pre-run state.')
         for n, sw2 in sorted(sw2_before.items()):
             caput(f'{PREFIX}_V{n}_SW2S', sw2, wait=True, timeout=3.0)
+    elif clear_outputs:
+        # Clear ONLY the output bit. SW2 also carries filter-bank and limiter
+        # bits -- V1..V4 rest at 768 (256+512) -- and writing the whole word to
+        # zero silently disengages those too. Done exactly that on 2026-09-09.
+        print('    clearing the output bit (other SW2 bits preserved).')
+        for n in (1, 2, 3, 4):
+            sw2 = int(caget(f'{PREFIX}_V{n}_SW2R') or 0)
+            caput(f'{PREFIX}_V{n}_SW2S', sw2 & ~SW2_OUTPUT_ON,
+                  wait=True, timeout=3.0)
 
     time.sleep(2)
     left = {n: caget(f'{PREFIX}_V{n}_OFFSET') for n in (1, 2, 3, 4)}
     bad = {n: v for n, v in left.items() if abs(v or 0) > 1}
     print(f'  ! offsets NOT zero: {bad}' if bad
           else '  all offsets confirmed at 0.')
-    if sw2_before:
+    if sw2_before or clear_outputs:
         still = {n: int(caget(f'{PREFIX}_V{n}_SW2R') or 0) for n in (1, 2, 3, 4)}
         on = [n for n, v in still.items() if v & SW2_OUTPUT_ON]
         print(f'  ! outputs still ENABLED on {on}' if on
@@ -391,7 +400,7 @@ def main():
         live_tramp = float(caget(f'{PREFIX}_DRV_TRAMP') or 0.0)
         print(f'  stopping (live DRV_TRAMP {live_tramp:g} s)')
         # A stop that leaves the electrodes connected is not a stop.
-        ramp_down(live_tramp, {n: 0 for n in (1, 2, 3, 4)})
+        ramp_down(live_tramp, clear_outputs=True)
         return 0
 
     if args.cmd == 'phasing':
