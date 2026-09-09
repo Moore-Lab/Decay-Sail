@@ -154,18 +154,57 @@ clean 1× / 2× / 3× harmonic series — the silhouette is not sinusoidal.
 | 574 | 0.13615 | |
 | 664 | 0.12546 | libration setting in — **excluded from the fit** |
 
-Fitting the clean rotation only (t ≤ 574 s):
+Fitting was redone properly on 2026-09-09 in
+`analysis/spindown_20260908.ipynb`, rebuilt from the raw archive rather than the
+7-point live CSV. Two changes mattered:
 
-| model | fit | residual |
+- **Track `LES_YAW_IN1_DQ`, not `OUT_DQ`.** `IN1_DQ` is tapped upstream of the
+  input switch, gain and output switch, so it recorded faithfully through the
+  model restart and every switch change that evening; `OUT_DQ` was intermittently
+  dead. The original analysis used `OUT_DQ`.
+- **Reject points where the tracker lost the line.** A freely decaying rotor
+  **cannot speed up**, so any upward step proves the estimator has jumped to
+  something else — a sharper test than SNR alone. The naive tracker reported
+  0.4247 Hz right after 0.3762 (a 13% jump *up*) once the rotor was captured
+  into libration; 8 of 29 points were rejected this way.
+
+**That alone cut the residual by 5x** and made the two models separable for the
+first time:
+
+| | original (7 pts) | redone (21 clean pts) |
 |---|---|---|
-| exponential | **τ = 36.9 min**, f₀ = 0.1783 Hz | 0.72% |
-| linear | **−0.0685 mHz/s**, f₀ = 0.1766 Hz | 0.51% |
+| span | 122-574 s | 35-635 s |
+| exponential | tau 36.9 min, resid 0.0057 Hz | **tau 36.2 min**, resid **0.00158 Hz** |
+| linear | -0.0685 mHz/s, resid 0.0053 Hz | **-0.0697 mHz/s**, resid **0.00112 Hz** |
+| residual ratio (lin/exp) | 0.93 — a coin toss | **0.712** |
+| separation ratio | 2.1 — indistinguishable | **4.9** |
 
-**Linear fits marginally better, and the two cannot be separated** by six points
-across a 25% decay. They imply different physics and it is worth not choosing
-prematurely: viscous drag (residual gas, eddy currents from wobble) decays
-frequency exponentially, whereas a **constant retarding torque** gives a linear
-ramp. Quote whichever is used, and say which.
+"separation ratio" is the size of the exp-vs-linear curvature difference divided
+by the residual scatter; it needs to exceed ~3 for the models to be told apart.
+
+> **The data now FAVOURS LINEAR — a constant retarding torque, not viscous drag.**
+> Treat as suggestive, not settled: 21 points over a 25% decay, and an F-test on
+> that variance ratio sits around p ~ 0.05. **~44% decay is needed for a clean
+> 3-sigma call**, which one spindown from 1-2 Hz would give easily since the
+> models diverge as the square of the fractional decay.
+
+**Why it matters for spin-up**, and it is the difference between comfortable and
+impossible:
+
+| | drag at 15 Hz | terminal speed |
+|---|---|---|
+| viscous | 8.15e-13 N m = **0.93x** stator torque | **16.2 Hz** |
+| constant torque | 8.24e-15 N m = 0.0094x | **no drag limit** |
+
+If linear holds, 15-19 Hz is limited only by ramp time (~67 min to 15 Hz at a 50%
+torque margin), not by drag fighting back at the top. The Nature Comms rotor
+(s41467-026-75188-1) reached 930 RPM = 15.5 Hz with 3.85 uHz damping and a 10 h
+free spin — three orders of magnitude better than this 36 min, on an optimised
+system.
+
+**Both readings inherit two unmeasured inputs**: `I = 1.88e-11 kg m^2` is assumed
+and scales every torque and ramp figure linearly, and the stator torque comes
+from the m=8 table whose applicability is itself unresolved.
 
 #### The rotation ended by falling into the trap
 
