@@ -357,6 +357,26 @@ whole near-term programme.** AWG only becomes necessary for real speed.
   minutes later** — 1792 contains the 1024 output-enable bit and 768 does not, so
   **check the output switch is on before concluding the drive is dead.**
 
+### ⚠ Reading libration off LES: halve the frequency (2026-09-09)
+
+**While the rotor is librating, `LES_YAW` reports 2× the mechanical frequency.**
+The channel responds to `|θ|`, so it completes a cycle on every one-way swing.
+Confirmed two ways: the swing timed by eye (1.6 s each way, ~3.2 s round trip)
+and the waveform shape (skew −0.748, kurtosis +0.915, broad maxima with sharp
+cusps at the centre crossings, even harmonics dominant). Full entry in
+`apparatus_log.md`.
+
+- **Divide any LES libration line by 2** to get the mechanical frequency.
+- **Do not apply this to rotation.** A rotor going all the way round gives a
+  genuine 1×/2×/3× series, fundamental confirmed against the camera on 09-08.
+  Rectification is a turning-point phenomenon and does not arise there.
+- Amplitude inferences from `f/f₀ = π / (2 K(sin(θ₀/2)))` are unaffected — the
+  factor of 2 cancels in the ratio when both come from this channel.
+- **Isolate LES/MON at their own output switches (`SW2R 512`), leaving gains at
+  1.0** — not by zeroing the gains. The electrode input switch cannot separate
+  them, since the matrix sums into `Sum*[2]` upstream of `V{n}`. Sensing is
+  unaffected either way: `LES_*_IN1_DQ` taps upstream of both.
+
 ### RESOLVED (2026-08-21): the model routing, traced from `y1rds.mdl`
 
 Every signal line in `/opt/rtcds/userapps/mastqg/y1rds.mdl` was parsed. `DRV` is a

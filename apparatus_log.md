@@ -15,6 +15,66 @@ Entries are newest-last. Dates are UTC unless noted.
 
 ## Changes
 
+### 2026-09-09 — CONFIRMED: `LES_YAW` rectifies libration and reports 2× the mechanical frequency
+
+**While the rotor is librating, the frequency of the `LES_YAW` line is twice the
+mechanical libration frequency.** Divide by two. This is a readout property, not
+a property of the rotor, and it has been silently inflating every libration
+frequency recorded from this channel.
+
+Established by two independent measurements that agree exactly.
+
+**Direct observation.** With the rotor librating and nothing driving, the swing
+was timed by eye: one turning point to the other in ~1.6 s, full round trip under
+4 s. That is a mechanical period of ~3.2 s, i.e. ~0.31 Hz.
+
+**Waveform shape.** 300 s of `LES_YAW_IN1_DQ` (front-end GPS `1473022340`
+onward), decimated to 16 Hz:
+
+| statistic | measured | pure sine |
+|---|---|---|
+| skew | **−0.748** | 0 |
+| kurtosis | **+0.915** | −1.50 |
+| fraction above mean | **0.587** | 0.500 |
+
+The trace has broad rounded maxima and sharp narrow cusps, spaced 1.61 s. That
+is the shape of a signal proportional to **|θ|**: the cusps occur where the rotor
+passes through centre (θ = 0) and the rounded maxima at the turning points. A
+signal in θ itself would be sinusoidal and symmetric.
+
+Spectrum, same window — even harmonics of 0.310 Hz dominate and the odd ones are
+suppressed, which is the rectification signature:
+
+| line | interpretation | amplitude (cts) |
+|---|---|---|
+| 0.310 Hz | f (leakage) | 1.7 |
+| **0.620 Hz** | **2f** | **71.5** |
+| 1.240 Hz | 4f | 24.0 |
+| 1.860 Hz | 6f | 0.8 |
+
+**State at the time of measurement:** libration 0.310 Hz mechanical, `LES_YAW`
+envelope 71.8 counts peak (144 pk-pk), both flat to within scatter over 300 s.
+Motion is purely yaw — `LES_PIT` sits at 0.25 counts rms, the noise floor.
+Nothing driving: `DRV_SINGAIN = DRV_COSGAIN = 0`, all four electrode outputs off
+(`SW2R 768`), all offsets 0. Front-end GPS offset re-measured at **9650 s**.
+
+#### What this does and does not invalidate
+
+**Amplitude inferences from the pendulum relation are unaffected.** That
+calibration uses the ratio `f/f₀ = π / (2 K(sin(θ₀/2)))`. If numerator and
+denominator both come from this channel, the factor of two cancels. That work
+stands as written.
+
+**Absolute libration frequencies from this channel are 2× too high** and must be
+halved wherever they appear.
+
+**Rotation is a separate question and is not affected by this entry.** While the
+rotor is turning, the silhouette produces a genuine 1×/2×/3× harmonic series in
+the LES signal, and the 09-08 entry records the fundamental confirmed against the
+camera. Rectification is a libration phenomenon — folding about the turning
+points — and does not apply to a rotor going all the way round. Do not
+retroactively halve the spindown rotation rates.
+
 ### 2026-09-08, evening — MODEL CHANGED: `±1` fan-out replaced with a mux matrix
 
 **The stator now drives a correct three-phase field from the front-end
@@ -226,6 +286,15 @@ So the rotor kept turning until its rotation rate fell to roughly the trap's own
 frequency, at which point it could no longer clear the barriers and was captured.
 Two separate measurements agreeing is a good consistency check on the trap being
 real rather than an artefact of how LES is read.
+
+> ⚠ **This agreement is in doubt as of 2026-09-09 and should not be relied on.**
+> The two numbers compared here were produced by different pipelines. The
+> **0.136 Hz** is a rotation rate, taken from the 3× line divided by 3. The
+> **0.12–0.16 Hz** is a libration frequency read directly off the LES line — and
+> the 2026-09-09 entry shows that channel reports **twice** the mechanical
+> libration frequency. If that factor applies here the trap was really at
+> 0.06–0.08 Hz and the numerical coincidence disappears. Unresolved; see the
+> open item on libration frequency bookkeeping.
 
 **Note the tracker keeps reporting a plausible-looking number after this point
 and it is meaningless** — its peak search is band-limited to 0.30–1.2 Hz and
@@ -1011,6 +1080,29 @@ is in.
 
 ## Open items
 
+- [ ] **Libration frequency bookkeeping — UNRESOLVED, low confidence.** The
+      2026-09-09 entry establishes firmly that `LES_YAW` reports 2× the mechanical
+      libration frequency. What that implies for the numbers already recorded is
+      *not* established, and the following is a hypothesis, not a finding.
+      Three values are in tension:
+      **(a)** 0.310 Hz mechanical, measured 09-09 at small amplitude;
+      **(b)** 0.12–0.16 Hz, the "trap frequency" read off LES in the hour before
+      the 09-08 drive, which would be 0.06–0.08 Hz mechanical if the same factor
+      applies;
+      **(c)** ~0.13 Hz, the apparent libration at capture on 09-08, from a tracker
+      that was band-limited to 0.30–1.2 Hz and dividing by 3 for rotation — an
+      indexing that is meaningless once the rotor stops going round.
+      A pendulum's frequency falls toward zero at the separatrix, so a
+      large-amplitude libration in the 0.06–0.08 Hz range relaxing to 0.310 Hz at
+      small amplitude is *directionally* consistent — and the rotor was recorded
+      doing large librations, and escaping near 180°, in that period. But a 4–5×
+      ratio demands amplitude extremely close to the separatrix, and none of this
+      has been checked against the raw data. **To settle it:** re-examine the
+      pre-drive hour and the post-capture segment of the archived
+      `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5`, identify the cusp spacing
+      directly in the time domain rather than trusting a peak finder, and get f₀
+      at genuinely small amplitude. Until then, treat the trap frequency as
+      **not known** rather than as 0.13 Hz.
 - [ ] Clean post-tilt γ measurement — driven-relaxation fit to the 08-03 decay, or a
       deliberate spindown. Needed by the spindown and stability notebooks.
 - [ ] Install the replacement tilt stage, align to best tilt, and **re-measure τ** with a
