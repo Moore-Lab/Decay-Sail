@@ -357,6 +357,31 @@ whole near-term programme.** AWG only becomes necessary for real speed.
   minutes later** — 1792 contains the 1024 output-enable bit and 768 does not, so
   **check the output switch is on before concluding the drive is dead.**
 
+### Filter-module switch bits — MEASURED 2026-09-09
+
+Probed on `OUTS_V1` (output off, no signal) by writing `SW2S` and reading which
+`SWSTAT` bit lit:
+
+| `SW2` bit | `SWSTAT` bit | meaning |
+|---|---|---|
+| 256 | 13 | **LIMIT** — clamps at `V{n}_LIMIT` |
+| 512 | 15 | **DECIMATION** — output anti-alias for the 16 Hz monitors |
+| 1024 | 12 | **OUTPUT** — connects the module to the DAC |
+
+`SW1` bit 4 = INPUT (`SWSTAT` 10), bit 8 = OFFSET (`SWSTAT` 11).
+
+**Resting states: `V1..V4` = 768** (LIMIT + DECIMATION, output off), **1792 while
+driving**, and **`LES_*`/`MON` = 512** (DECIMATION only — their `LIMIT` is 1, not
+12800, so the limiter is deliberately not engaged there).
+
+⚠ **Never write a whole SW2 word to clear the output.** `SW2` carries the
+limiter and decimation bits alongside it, and writing 0 silently disengages
+both. `V{n}_LIMIT = 12800` is the hardware backstop that keeps the amp input
+inside 0–2.1 V no matter what commands it — a software amplitude check in one
+script is not a substitute. Clear the output with `sw2 & ~1024`, preserving the
+rest. `stator_osc_drive.py stop` did exactly this wrong until 2026-09-09 and
+left all four electrodes with the limiter disengaged.
+
 ### ⚠ Reading libration off LES: halve the frequency (2026-09-09)
 
 **While the rotor is librating, `LES_YAW` reports 2× the mechanical frequency.**
