@@ -19,20 +19,39 @@
 > runs, **from the oscillator with no AWG involved**. Step sense is V2 → V4 → V3
 > at −120° each, matching the 08-24 convention, so no sign flip was needed.
 >
-> ### One gotcha found during commissioning
+> ### Commissioning finding: the electrode input switch gates the matrix
 >
-> **The matrix output is blocked by each module's SW1 input bit.** The matrix
-> feeds `Sum*[2]`, and the Sum sits *upstream* of the filter module, so the
-> input switch gates the matrix signal along with everything else. On first
-> test V3/V4 worked (SW1R = 12) while V1/V2 were dead (SW1R = 8). Setting
-> `V1_SW1S`/`V2_SW1S` to 12 fixed it immediately.
+> The matrix output is summed into `Sum*[2]`, upstream of each electrode filter
+> module, so `V{n}` receives the matrix drive and the LES/MON signal as a single
+> summed input. The module's SW1 input bit therefore gates both together. On the
+> first test V3 and V4 responded (`SW1R = 12`) while V1 and V2 were silent
+> (`SW1R = 8`, input bit clear); setting `V1_SW1S` and `V2_SW1S` to 12 restored
+> them.
 >
-> That is the LES decoupling problem in concrete form: **the input switch cannot
-> separate the matrix drive from the LES/MON signal summed at the same node.**
-> The clean resolution is to zero the *source* gains instead —
-> `LES_PIT_GAIN = LES_YAW_GAIN = LES_SUM_GAIN = MON_GAIN = 0` — which keeps the
-> inputs switched on for the matrix while nothing else reaches the electrodes.
-> Sensing is unaffected: `LES_*_IN1_DQ` records upstream of the gain.
+> The consequence for LES decoupling is that the electrode input switch is the
+> wrong place to separate the two signals, since by that point they have already
+> been added. Separation must occur at the source, upstream of the Sum.
+>
+> ### Isolating LES/MON: source output switch, not source gain
+>
+> Each source is isolated at its own **output switch**, with its gain left at the
+> nominal value. Configuration verified 2026-09-09:
+>
+> | module | GAIN | SW2R | output |
+> |---|---|---|---|
+> | `LES_PIT` | 1.000 | 512 | off |
+> | `LES_YAW` | 1.000 | 512 | off |
+> | `LES_SUM` | 0.000 | 512 | off |
+> | `MON` | 0.000 | 512 | off |
+>
+> The output switch is preferred to zeroing the gain for three reasons. Its state
+> is a boolean and is unambiguous in `SW2R`. The gain is a calibration value
+> worth preserving rather than overwriting and later having to restore. And gain
+> changes are ramped over `TRAMP`, so they pass through intermediate values,
+> whereas the switch acts cleanly within one sample.
+>
+> Sensing is unaffected by either method: `LES_*_IN1_DQ` records upstream of both
+> the gain and the output switch.
 >
 > ### Record names — NOT what was predicted
 >

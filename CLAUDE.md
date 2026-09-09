@@ -213,11 +213,11 @@ gain, no external divider).
 - `VPP` is set by a 10 kΩ trimmer off a front-panel banana-jack LV input, same
   node that powers `VDD` and the on-board HV DC-DC converter. Nobody has
   checked the applied LV voltage or trimmer position.
-- **Gotcha for next time: check AC vs DC coupling on the scope before trusting
-  any absolute-voltage reading.** AC coupling silently removes the true DC
-  level and re-centres whatever's left around 0 V — visually indistinguishable
-  from a real bipolar-about-zero signal. Cost real time 2026-08-26/27. DC-couple
-  both channels and do a GND-coupling zero-line check first.
+- **Verify scope coupling before trusting any absolute-voltage reading.** AC
+  coupling silently removes the true DC level and re-centres the remainder about
+  0 V, which is visually indistinguishable from a genuinely bipolar signal. This
+  cost significant time on 2026-08-26/27. DC-couple both channels and perform a
+  GND-coupling zero-line check first.
 
 ### ⚠ Assembly / safety
 
