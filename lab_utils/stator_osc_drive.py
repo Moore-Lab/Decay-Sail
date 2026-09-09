@@ -94,8 +94,14 @@ INPUT_SOURCE = {1: 'LES_PIT', 2: 'LES_YAW', 3: 'LES_SUM', 4: 'MON'}
 
 
 def put(pv, val, dry, wait=True):
+    """Write and ECHO, in live mode as well as dry.
+
+    Live runs used to print nothing while bringing the drive up, so there was
+    no record of what had actually been commanded -- you saw 'bringing up the
+    drive:' followed by silence.
+    """
+    print(f'    {"[dry] " if dry else ""}{pv:<32} <- {val:g}')
     if dry:
-        print(f'    [dry] {pv} <- {val:g}')
         return
     caput(pv, float(val), wait=wait, timeout=3.0)
 
@@ -113,7 +119,6 @@ def load_matrix(reverse, dry, tramp=2.0):
           f'TRAMP {tramp:g} s:')
     put(f'{MTRX}_TRAMP', tramp, dry)
     for row, (s, c) in sorted(m.items()):
-        print(f'    V{row}:  sin {s:+.4f}   cos {c:+.4f}')
         put(f'{MTRX}_SETTING_{row}_1', s, dry)
         put(f'{MTRX}_SETTING_{row}_2', c, dry)
     put(f'{MTRX}_LOAD_MATRIX', 1, dry)
@@ -465,24 +470,30 @@ def main():
         sw2_before = {n: int(caget(f'{PREFIX}_V{n}_SW2R') or 0)
                       for n in (1, 2, 3, 4)}
 
-    print('\n  bringing up the drive:')
-    for n in (1, 2, 3, 4):
-        # PEDESTAL FIRST, AC SECOND -- the input must be positive before there
-        # is any AC to make it negative. Pedestal only where there is AC to
-        # keep positive: V1's matrix row is zero, so it needs none, and the amp
-        # blocks DC anyway so a pedestal there would reach the electrode as 0 V.
-        put(f'{PREFIX}_V{n}_OFFSET', args.amp if n in PHASE_ELECTRODES else 0, dry)
-        if args.enable_outputs:
-            sw2 = int(caget(f'{PREFIX}_V{n}_SW2R') or 0) if not dry else 0
-            if not sw2 & SW2_OUTPUT_ON:
-                put(f'{PREFIX}_V{n}_SW2S', sw2 | SW2_OUTPUT_ON, dry)
-    put(f'{PREFIX}_DRV_TRAMP', args.drvtramp, dry)
-    put(f'{PREFIX}_DRV_FREQ', f_elec, dry)
-    put(f'{PREFIX}_DRV_SINGAIN', args.amp, dry)
-    put(f'{PREFIX}_DRV_COSGAIN', args.amp, dry)
-    put(f'{PREFIX}_DRVON', 1, dry)
+    def bring_up():
+        """Pedestal, output switches, then oscillator. Order is load-bearing.
+
+        PEDESTAL FIRST, AC SECOND -- the amp input must already be positive
+        before there is any AC that could take it negative. Pedestal only where
+        there is AC to keep positive: V1's matrix row is zero so it needs none,
+        and the amp blocks DC anyway, so a pedestal there would reach the
+        electrode as 0 V regardless.
+        """
+        print('\n  bringing up the drive:')
+        for n in (1, 2, 3, 4):
+            ped = args.amp if n in PHASE_ELECTRODES else 0
+            put(f'{PREFIX}_V{n}_OFFSET', ped, dry)
+            if args.enable_outputs:
+                sw2 = int(caget(f'{PREFIX}_V{n}_SW2R') or 0) if not dry else 0
+                if not sw2 & SW2_OUTPUT_ON:
+                    put(f'{PREFIX}_V{n}_SW2S', sw2 | SW2_OUTPUT_ON, dry)
+        for pv, val in (('DRV_TRAMP', args.drvtramp), ('DRV_FREQ', f_elec),
+                        ('DRV_SINGAIN', args.amp), ('DRV_COSGAIN', args.amp),
+                        ('DRVON', 1)):
+            put(f'{PREFIX}_{pv}', val, dry)
 
     if dry:
+        bring_up()
         if args.cmd == 'sweep':
             # Print the actual schedule. int() truncation means the realised
             # total is usually not --duration, and the dwell per frequency is
@@ -515,15 +526,21 @@ def main():
                   f'{f_elec:.4f} Hz elec ({f_elec / M_DRIVE:.5f} Hz rotor).')
         return 0
 
-    # Window for --verify, in the FRONT END's frame (which is what NDS wants).
-    # Opened after the gains have finished ramping in, closed before ramp-down,
-    # so the fit sees steady-state drive only.
-    time.sleep(args.drvtramp + 2.0)
     gps_a = gps_b = None
     verify_f = f_elec
     interrupted = False
 
+    # EVERYTHING THAT TOUCHES HARDWARE IS INSIDE THIS GUARD, bring-up included.
+    # It previously started after bring_up() and after the settle sleep, so a
+    # Ctrl-C in that ~7 s window raised before the try was entered and skipped
+    # ramp_down entirely -- leaving the pedestal applied and the oscillator
+    # running with no teardown. Caught 2026-09-09 in the archived data.
     try:
+        bring_up()
+        # Settle: let the gains finish ramping in before the verify window
+        # opens, so the fit sees steady-state drive rather than the ramp.
+        time.sleep(args.drvtramp + 2.0)
+
         if args.cmd == 'sweep':
             total = n_steps * args.dwell
             print(f'\n  sweeping: {n_steps} steps, {args.dwell:g} s dwell, '
