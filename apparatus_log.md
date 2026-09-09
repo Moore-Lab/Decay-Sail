@@ -1100,6 +1100,17 @@ is in.
 
 ## Open items
 
+- [ ] **PENDING: accuracy audit of the whole log.** Go entry by entry and label
+      each load-bearing claim as *measured directly*, *inferred from a
+      measurement*, *inherited from elsewhere*, or *assumed*; then list only those
+      other work depends on. Entries recording physical changes will pass quickly;
+      the risk is concentrated in the derived numbers — γ, `I`, `VOLTS_PER_COUNT`,
+      counts/mW, τ, and the m = 8 assumption. Triage first, no content edits, so
+      the list can be checked against memory of what actually happened before
+      anything is rewritten.
+- [ ] **PENDING: reorder the older half of `## Changes`.** Entries from 07-27
+      forward to 08-24 run oldest-first while the rest runs newest-first. Do it as
+      a mechanical-only diff with no content changes.
 - [ ] **Libration frequency bookkeeping — UNRESOLVED, low confidence.** The
       2026-09-09 entry establishes firmly that `LES_YAW` reports 2× the mechanical
       libration frequency. What that implies for the numbers already recorded is
