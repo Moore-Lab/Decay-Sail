@@ -114,7 +114,30 @@ coupling the electrode annulus actually sees (89.4% at h=0.27, 84.2% at h=0.37).
   `sqrt(2τ/I)/2π` is the *side-post* case; that 2 is the induced dipole's 2-fold symmetry,
   not a universal constant.)
 - Max ramp rate = `0.5·τ_max/(2πI)` Hz mech/s (the 0.5 is the ≤50% torque margin).
-- **`I = 1.88e-11 kg·m²` is ASSUMED, never measured.** Both formulas above inherit it.
+- **`I = 1.88e-11 kg·m²` is CALCULATED, never measured.** Both formulas above
+  inherit it, and so does every torque, ramp-rate and drag number in this repo.
+  Provenance traced 2026-09-09:
+
+  | | |
+  |---|---|
+  | `laser-cutting/optimize_sail.py :: disk_I_M()` | geometric calc — slotted, kerf- and taper-corrected. Gives **I_disk = 1.2612e-11**, M = 7.617e-6 kg |
+  | + sail about the spin axis | **6.19e-12** — 33% of the total |
+  | = `momentum-simulation/thermal_noise_spindown.py:37` | `I_TOTAL = 1.88e-11`, "disk + sail, from earlier calcs" |
+  | → `stator_flex/spinup_estimates.py:28` → 15 other places | all inherit it |
+
+  **It is the DISK + SAIL assembly, and a sail IS fitted** (confirmed
+  2026-09-09), so the value is the right one to use. A bare disk would be
+  1.26e-11 and would change capture bandwidth by ×1.22 and ramp rate by ×1.5.
+
+  ⚠ **Inconsistent mass**: `optimize_sail.py` computes the disk at 7.617e-6 kg
+  while `spinup_estimates.py` and `planar_drive_estimates.py` both hardcode
+  `m = 7.0e-6` — 9% apart, suggesting the geometry drifted between scripts.
+  Nothing currently depends on `m`, but do not mix them.
+
+  **To measure it** rather than calculate it: apply a known static torque from
+  rest and track the angular acceleration, α = τ/I, on LES or the camera. That
+  needs the stator torque known independently, so it is not free — but a
+  measured `I` would remove the largest shared uncertainty in this file.
 
 ### Board (rev G)
 

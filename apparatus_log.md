@@ -948,7 +948,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 | PD counts/mW | 283 | 07-28 → 07-31 only | **203 on 08-03** (−28%); use measured chamber power |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
-| `I_KGM2` | 1.88e-11 | assumed | from `momentum-simulation/thermal_noise_spindown.py`, never measured |
+| `I_KGM2` | 1.88e-11 | **calculated, not measured** | disk + sail. Root is `laser-cutting/optimize_sail.py::disk_I_M()` (I_disk = 1.2612e-11, M = 7.617e-6 kg) plus 6.19e-12 for the sail = 33% of the total; propagated via `momentum-simulation/thermal_noise_spindown.py:37` to 15+ places. **A sail IS fitted (confirmed 2026-09-09)** so this is the correct value; bare disk would be 1.26e-11. See `CLAUDE.md` "the two numbers that govern everything" for the full chain and the mass discrepancy (7.617e-6 vs the 7.0e-6 hardcoded in `spinup_estimates.py`). |
 | `KAPPA_PD_OLD` | 7.35e-16 N·m/count | step-down gain only | do not reuse post-amp-removal |
 
 ### Decision: which γ goes in which notebook
