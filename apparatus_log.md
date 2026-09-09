@@ -156,7 +156,16 @@ clean 1× / 2× / 3× harmonic series — the silhouette is not sinusoidal.
 
 Fitting was redone properly on 2026-09-09 in
 `analysis/spindown_20260908.ipynb`, rebuilt from the raw archive rather than the
-7-point live CSV. Two changes mattered:
+7-point live CSV.
+
+> **Data archived to Dropbox** in the standard convention, window
+> `1472933400 - 1472935200` (30 min: ~12 min of drive, drive-off at
+> `1472934149`, ~17 min of decay through capture):
+> `Microspheres/TFINER/data/{LES_yaw, LES_pit, Electrodes}/Y1_RDS-*_1472933400_1472935200.h5`.
+> The notebook reads those, falling back to `rclone` then a live NDS fetch.
+> (V1's file is 155 kB against ~1.7 MB for V2/V3/V4 — it compresses 11x better
+> because the CTR electrode is flat zero, an independent check that the matrix
+> is silencing it as specified.) Two changes mattered:
 
 - **Track `LES_YAW_IN1_DQ`, not `OUT_DQ`.** `IN1_DQ` is tapped upstream of the
   input switch, gain and output switch, so it recorded faithfully through the
