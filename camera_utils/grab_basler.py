@@ -35,15 +35,15 @@ def gps_now():
 # --------------------------------------------------------------------------- args
 p = argparse.ArgumentParser(description=__doc__,
                             formatter_class=argparse.RawDescriptionHelpFormatter)
-p.add_argument('--exposure', type=float, default=3.0, help='exposure in ms (default 3.0)')
+p.add_argument('--exposure', type=float, default=2.0, help='exposure in ms (default 2.0)')
 p.add_argument('--gain', type=float, default=0.0, help='gain in dB (default 0)')
 p.add_argument('--fps', type=float, default=30.0,
                help='cap acquisition frame rate (default 30; raise usbfs_memory_mb '
                     'to 1000 before going much above ~60). Use 0 for uncapped.')
-p.add_argument('--roi', type=str, default='544,332,256,392',
-               help='hardware ROI as x,y,w,h. Default 544,332,256,392 crops to the rotor '
-                    '+ electrodes (glare clipped). NOTE: with the hardware flip active the '
-                    'sensor is mirrored BEFORE the AOI, so x,y are DISPLAY (post-flip) '
+p.add_argument('--roi', type=str, default='544,432,256,292',
+               help='hardware ROI as x,y,w,h. Default 544,432,256,292 crops to the rotor '
+                    '+ electrodes (glare clipped, top trimmed). NOTE: with the hardware flip '
+                    'active the sensor is mirrored BEFORE the AOI, so x,y are DISPLAY (post-flip) '
                     'coords, not raw sensor coords. Pass 0,0,1440,1080 for the full frame.')
 p.add_argument('--snapshot', type=str, default='/dev/shm/basler_latest.jpg',
                help='path for the latest-frame JPEG (default /dev/shm/basler_latest.jpg); '
@@ -60,6 +60,10 @@ p.add_argument('--duration', type=float, default=0.0,
 p.add_argument('--show', action='store_true',
                help='pop up a live window like the uEye image mode '
                     '(needs a graphical display; use --mjpeg over plain SSH)')
+p.add_argument('--show-scale', type=float, default=2.0,
+               help='enlarge the --show window by this factor (default 2.0). Display only '
+                    '-- does not change the ROI, recording or snapshot. The window is also '
+                    'resizable by dragging.')
 p.add_argument('--flip-v', action='store_true',
                help='flip the image top<->bottom to match the physical view. Applied at '
                     'the source (hardware ReverseY if available, else software) so the '
@@ -297,7 +301,13 @@ strategy = (pylon.GrabStrategy_OneByOne if args.record
             else pylon.GrabStrategy_LatestImageOnly)
 cam.StartGrabbing(strategy)
 if args.show:
-    print("  live window   -> 'Basler live' (press q in the window to quit)")
+    # resizable window, opened pre-enlarged by --show-scale (display only)
+    cv2.namedWindow('Basler live', cv2.WINDOW_NORMAL)
+    if args.show_scale and args.show_scale > 0:
+        cv2.resizeWindow('Basler live',
+                         int(W * args.show_scale), int(H * args.show_scale))
+    print(f"  live window   -> 'Basler live' ({args.show_scale:g}x, resizable; "
+          f"press q in the window to quit)")
 print(f"Running{' with live window' if args.show else ' headless'} -- Ctrl-C to stop.")
 
 jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, int(args.jpeg_quality)]
