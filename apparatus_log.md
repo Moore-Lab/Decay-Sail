@@ -116,6 +116,54 @@ rotation = comb/2 — far enough apart to be unambiguous.
 to LES without bookkeeping. This ambiguity has cost three separate analyses
 (09-08, 09-09, 09-11) and the camera is the only independent check that exists.
 
+#### Timestamps for the 09-11 run
+
+All front-end GPS. Offset to true GPS measured **9873–9876 s** across the
+session; it wanders, so re-measure rather than reusing these.
+
+| event | front-end GPS |
+|---|---|
+| ND05A inserted | 1473192682 |
+| pre-ND baseline window (archived) | 1473191140 – 1473191740 |
+| post-ND window (archived) | 1473192742 – 1473194400 |
+| **electrodes OFF — laser-only segment starts** | **1473204806** |
+| video recording start | 1473206549 (true 1473196674) |
+| video recording end | 1473208206 (true 1473198333) |
+
+**`1473204806` is the anchor.** Everything after it is the rotor turning under
+the 660 nm laser alone, with the electrodes disconnected, and it is the segment
+the optical-torque measurement comes from.
+
+#### The laser-only segment — PRELIMINARY, divisor-dependent
+
+The rotor **accelerated continuously** for the whole ~45 min after the
+electrodes stopped, at **1.9 × 10⁻⁴ Hz/s** in the comb (comb 1.4012 → 1.4976 Hz
+across the video alone). Drag by itself would give −2.9 × 10⁻⁵ Hz/s, so the
+laser is winning comfortably — as the constant-torque threshold argument
+predicted it would if it could deliver ≳200–400 µW to the sail.
+
+On the assumption `rotation = comb`, that gives
+**τ_laser ≈ 2.6 × 10⁻¹⁴ N·m, about 7.6× the drag torque** of 3.46 × 10⁻¹⁵ N·m.
+It cross-checks against the 5.8 mW measured at the chamber: 2.6 × 10⁻¹⁴ N·m at
+r_c = 2.625 mm needs ~3.0 mW absorbed, i.e. roughly half the arriving beam doing
+useful work, which is plausible for an asymmetric hit on one wing.
+
+⚠ **All absolute figures here scale with the unverified divisor** — rate,
+τ_laser, and the record factor all halve if `rotation = comb/2`. The
+*acceleration itself* and the fact that the laser beats drag are
+divisor-independent and stand either way.
+
+**Still open, and worth the wait:** the acceleration had not rolled off. When it
+does, `2πI·γ·f = τ_laser` gives **γ**, which has never been measured on this
+rotor and decides whether a viscous terminal speed exists at all.
+
+**Check when pulling the longer window:** PD (`Y1:RDS-PD_IN1_DQ`, recording
+continuously at 1024 Hz) across the acceleration. If the 660 nm power drifted or
+mode-hopped — a documented instability near `LASER_OFFSET` 1300 — then τ_laser
+is not constant and the linear fit to the rate is wrong. The moment the pushing
+beam was briefly blocked should also show as a step in PD, and that interval
+should be excluded from the fit rather than left to an outlier filter.
+
 ### 2026-09-09 — CONFIRMED: `LES_YAW` rectifies libration and reports 2× the mechanical frequency
 
 **While the rotor is librating, the frequency of the `LES_YAW` line is twice the
