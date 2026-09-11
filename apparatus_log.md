@@ -35,6 +35,87 @@ dated entry.
 
 ## Changes
 
+### 2026-09-11 — PD recentred, ND05A added to the imaging beam, laser powers measured
+
+**Front-end GPS ~1473207805, true GPS ~1473197929, 17:38 EDT.**
+Front-end clock offset re-measured: **9876 s** (was 9506 on 09-10 — it wanders,
+always re-measure).
+
+**Two lasers, and they had been conflated in earlier notes. They are separate:**
+
+| | wavelength | role | power at chamber |
+|---|---|---|---|
+| **pushing** | **660 nm** | applies torque to the sail | **5.8 mW** at `LASER_OFFSET = 1300` |
+| **imaging** | **405 nm** | feeds the LES | **27.5 µW** with ND05A (91.0 µW without) |
+
+Imaging powers are net of a **51.8 µW meter offset** (raw readings 79.3 and
+142.8 µW). The ND05A is OD 0.5, nominal 3.16×; measured ratio 3.31×, agreeing to
+5%, which confirms the offset subtraction.
+
+**`LASER_OFFSET = 1300 → 5.8 mW at the chamber` is the first counts→mW point
+recorded for the 660 nm pushing laser**, and it is at the chamber, not
+close-to-diode. Do not compare it to the close-to-diode figures (1600 counts =
+19 mW) — those are diode emission and the gap is optical loss.
+
+**PD recentred** so laser power can be monitored going forward. Any counts/mW or
+PD-response figure from before today is not comparable.
+
+#### ⚠ Adding the ND moved the beam, and that changed the LES geometry
+
+Inserting the ND05A displaced the beam laterally — a tilted flat plate offsets
+the beam — landing the spot somewhere the rotor's motion projects onto **both**
+sensor axes.
+
+| | pre-ND | post-ND |
+|---|---|---|
+| x DC (`LES_YAW`) | −947 | −478 |
+| y DC (`LES_PIT`) | 5760 | 3657 |
+| `LES_SUM` | 912 | 240 |
+| **y/x amplitude** | **0.0024** | **0.60** |
+
+The rotor did not change: inter-axis coherence was already 0.88–0.99 beforehand,
+so y was always seeing the same motion, merely projected badly. **The 1000:1
+imbalance was geometric.**
+
+**No clipping at the new spot** — `SUM` varies only 1.6% across the full
+excursion and correlates *positively* with displacement, so the beam stays on
+the detector. Excursions are small (x 491, y 283 counts) against the ~4700 seen
+while spinning.
+
+**This is a working configuration that arrived by accident.** If the beam gets
+bumped, these are the numbers to find the way back: x ≈ −478, y ≈ 3657,
+SUM ≈ 240, ND05A in, 27.5 µW at the chamber.
+
+#### ⚠ The LES divisor is now UNVERIFIED — not known to have changed
+
+**Established, before today:** `rotation = comb/2`. The sail reads as a 2-fold
+silhouette, calibrated by eye on **two** separate runs (09-08: 4 s/turn
+counted against comb 0.545 Hz; 09-09: three counts across a decay, 5.03 / 7.98 /
+9.42 s, all on the tracked curve). Those two runs are *consistent* with each
+other under that rule.
+
+**Not established:** what the divisor is now. The beam moved today, and the fold
+number the LES reports could in principle depend on where the spot sits — but
+that has **not been demonstrated**. Attempts to check it by eye failed only
+because the rotor is now at ~1 turn/s, where counting is imprecise enough that
+both candidate readings fit. **Unknown is not the same as changed.**
+
+⚠ **Do not repeat this error:** an earlier draft of this entry claimed the beam
+move changed the divisor, and that this explained the divisor "wandering"
+between runs. Both halves were wrong. The apparent wandering was an *analysis*
+error — repeatedly taking the loudest line as the comb fundamental, when which
+harmonic dominates varies between runs. Once the comb spacing is used instead,
+09-08 and 09-09 agree. The rotor and the optics were never the problem.
+
+**What would settle it:** a video clip with a distinguishable feature, counted
+over 10 s. At the present rate that is 14 turns if rotation = comb, 7 if
+rotation = comb/2 — far enough apart to be unambiguous.
+
+**Record video for any run where rotation rate matters.** `grab_basler.py
+--record` names files with true GPS, so a clip is self-timestamping and aligns
+to LES without bookkeeping. This ambiguity has cost three separate analyses
+(09-08, 09-09, 09-11) and the camera is the only independent check that exists.
+
 ### 2026-09-09 — CONFIRMED: `LES_YAW` rectifies libration and reports 2× the mechanical frequency
 
 **While the rotor is librating, the frequency of the `LES_YAW` line is twice the
