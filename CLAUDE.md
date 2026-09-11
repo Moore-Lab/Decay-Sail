@@ -382,6 +382,49 @@ script is not a substitute. Clear the output with `sw2 & ~1024`, preserving the
 rest. `stator_osc_drive.py stop` did exactly this wrong until 2026-09-09 and
 left all four electrodes with the limiter disengaged.
 
+### ⚠ `LES_PIT` and `LES_YAW` are X AND Y POSITION, not pitch and yaw angle
+
+**The names are misleading and have caused real reasoning errors.** The sensor is
+a **lateral-effect sensor**: it reports where the beam centroid lands, in two
+orthogonal position axes. Neither channel is an angle.
+
+- `LES_YAW` = **x** position
+- `LES_PIT` = **y** position
+- `LES_SUM` = **total light** (the denominator; also the dropout detector)
+
+**Do not reason "tilt will show up in PIT".** Both axes see a mixture of
+everything that moves the centroid: the sail sweeping through the beam, the
+rotor translating, and tilt changing the silhouette. There is no channel that
+isolates tilt. On 2026-09-10 an entire argument about the drive exciting
+out-of-plane motion was built on the wrong reading of these names, and was wrong.
+
+**The y axis is ~1000x attenuated, but NOT blind — MEASURED 2026-09-10.** From
+an hour of quiet undriven data (front-end GPS 1473050000–1473053600):
+
+| | x (`YAW`) | y (`PIT`) |
+|---|---|---|
+| broadband rms | 915.6 | 0.357 |
+| per-bin noise floor | 7.38 (rotor motion) | **0.00174** (instrumental) |
+| line SNR, 0.185–0.45 Hz | 3–15 | **25–76** |
+
+**Coherence between the axes is 0.88–0.99 at every line**, so y is measuring the
+same physical motion, merely projected badly. That makes the imbalance a
+**geometry/alignment problem, not a light problem** — `LES_SUM` sits at ~800
+counts with no dropouts.
+
+Note the two axes are limited by *different* things: y by instrument noise, x by
+the rotor's own broadband motion. So **x is not light-limited at all**, and y has
+SNR 25–76 of headroom — roughly 4x less light is safe under any assumption, 10x
+is the edge depending on whether the sensor is shot- or electronics-limited
+(untested).
+
+**What balanced x and y would buy**, and why it is worth the alignment work:
+plotting x against y gives the actual 2D trajectory — a line means pure
+libration, an ellipse means whirl, a circle means the rotor centre is orbiting.
+That distinguishes wobble from in-plane motion directly, which no single axis
+can. It would also settle the rotation fold number geometrically, without a
+stopwatch.
+
 ### ⚠ Reading libration off LES: halve the frequency (2026-09-09)
 
 **While the rotor is librating, `LES_YAW` reports 2× the mechanical frequency.**
