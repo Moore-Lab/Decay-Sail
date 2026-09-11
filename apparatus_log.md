@@ -1229,6 +1229,38 @@ is in.
 
 ## Open items
 
+- [ ] **TODO 2026-09-11 — COUNT THE VIDEO, settle the LES divisor.** Molly to do
+      from the laptop. Everything numeric from the 09-11 laser run is blocked on
+      this: the rotation rate, `τ_laser`, and whether the speed record is 3.2× or
+      6.4× the previous best all scale by the same factor of 2.
+
+      **The clip:** `output_basler_gps<true GPS>.avi` in `/home/controls/stator_detent/`,
+      recorded front-end GPS 1473206549 – 1473208206 (true GPS 1473196674 –
+      1473198333), ~28 min, 10 fps.
+
+      **The test — count turns over 10 s near the END of the clip** (it
+      accelerated ~7% across the recording, so a count spanning the whole thing
+      will smear):
+
+      | turns in 10 s | verdict |
+      |---|---|
+      | **15** | `rotation = comb` = 1.498 Hz, 0.668 s/turn |
+      | **7** | `rotation = comb/2` = 0.749 Hz, 1.335 s/turn |
+
+      ⚠ **Follow a feature that distinguishes the two ends of the sail** — the
+      paint mark, or a one-sided glint. Counting the sail returning to the same
+      *orientation* gives the half-turn number and settles nothing. That single
+      detail is the entire reason this has stayed open across three analyses.
+
+      LES comb was 1.4012 Hz at the start mark, 1.4976 Hz at the end mark.
+
+- [ ] **TODO 2026-09-11 — PD check across the laser-only segment** (from
+      `1473204806`). `Y1:RDS-PD_IN1_DQ` records continuously at 1024 Hz. Look for
+      660 nm power drift or a mode hop — a documented instability near
+      `LASER_OFFSET` 1300 — which would make `τ_laser` non-constant and the
+      linear rate fit wrong. The brief pushing-beam block should appear as a step;
+      exclude that interval explicitly rather than relying on an outlier filter.
+
 - [ ] **PENDING: accuracy audit of the whole log.** Go entry by entry and label
       each load-bearing claim as *measured directly*, *inferred from a
       measurement*, *inherited from elsewhere*, or *assumed*; then list only those
