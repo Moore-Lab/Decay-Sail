@@ -1229,10 +1229,20 @@ is in.
 
 ## Open items
 
-- [ ] **TODO 2026-09-11 — COUNT THE VIDEO, settle the LES divisor.** Molly to do
-      from the laptop. Everything numeric from the 09-11 laser run is blocked on
-      this: the rotation rate, `τ_laser`, and whether the speed record is 3.2× or
-      6.4× the previous best all scale by the same factor of 2.
+- [x] **TODO 2026-09-11 — COUNT THE VIDEO, settle the LES divisor.** **RESOLVED
+      2026-09-14 — `rotation = comb/2`.** Molly re-spun the rotor 2026-09-14 at the
+      same `LASER_OFFSET = 1300` and timed 10 turns live by eye/stopwatch against
+      the two predicted durations (6.7 s if `rotation = comb`, 13.3 s if
+      `rotation = comb/2`): **it timed to ~13.3 s, i.e. comb/2.** Molly confirms
+      today's setup matches the 09-13 run's conditions exactly, so this settles the
+      divisor for that whole episode (09-11 → 09-14), not just today.
+      **This is a live re-timing on 2026-09-14, not a re-analysis of the original
+      09-11 clip below** — worth keeping that distinction precise given how much
+      this ambiguity has cost. `analysis/spindown_20260913.ipynb` and
+      `analysis/damping_law_comparison.ipynb` already used divisor=2 (hyp B) as
+      their working default throughout, so neither needs recomputing.
+
+      Original open-item text, kept for the record:
 
       **The clip:** `output_basler_gps<true GPS>.avi` in `/home/controls/stator_detent/`,
       recorded front-end GPS 1473206549 – 1473208206 (true GPS 1473196674 –
