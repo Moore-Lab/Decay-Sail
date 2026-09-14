@@ -35,6 +35,53 @@ dated entry.
 
 ## Changes
 
+### 2026-09-14 — laser step-down rebuilt (settled-check + transition trigger); run started
+
+**A laser power step-down run is in progress** (started 21:52 UTC, DAQ_GPS 1473468167,
+pressure 1.7e-7 mbar). `LASER_OFFSET` 1300 → 800; log
+`lab_utils/laser_stepdown_log_gps1473468167.csv`. The rewritten `lab_utils/laser_step_down.py`
+is the tool for this and future runs.
+
+**Current operating point (this run's baseline):** 1300 counts = **5.8 mW at the chamber =
+0.75 Hz rotor** (LES line 1.5 Hz = 2× the 2-fold sail; DIVISOR=2 confirmed 2026-09-14 by live
+timing). This is **~3.6× slower per count than July** (1300 → 2.72 Hz then), i.e. torque per
+count has dropped a lot — so the sustaining-rotation threshold is expected **much closer to
+1300** than July's ~1000, and the run starts finer than July's 50–100-count steps.
+
+**What the script now does (all validated this session):**
+- **Settled-check gates every drop in the rotation regime** — `settled_check.check_settled` on
+  the last 20 min of LES_YAW; wait ~1τ (70 min), recheck every 25 min, hard ceiling 340 min
+  then flag-and-move-on (never loops forever). `check_settled` validated LIVE on worker2;
+  **NDS2 real-time latency ~4 s** (the plan's open question — resolved, cadence is safe).
+- **Rotation→libration transition trigger**, thresholds from `analysis/spindown_20260913.ipynb`,
+  first-wins, and **only the FIRST transition is trusted**: SNR < 20, waveform kurtosis > −1.0
+  (sinusoid → cusp), or tracked frequency **rises above its running minimum by >2%** (a
+  power-decreasing rotor cannot speed up). On transition → 25-min quick libration steps toward
+  0 (`ON_TRANSITION='quick'`; `'halt'` stops for a camera call).
+- **Live-editable schedule:** `OFFSET_VALUES` only seeds `laser_stepdown_schedule.txt`; the
+  script re-reads it before every step, so upcoming steps can be edited mid-run — **no restart
+  (Ctrl-C zeros the laser) and no re-spin-up.** A step UP is rejected as a safety guard.
+- Logs every step and every check to CSV.
+
+**Key methodology finding — how to (and how NOT to) tell rotation from libration on LES**
+(so this isn't re-derived): 
+- **The odd/even harmonic ratio does NOT work** — the 2-fold-symmetric sail suppresses odd
+  harmonics while *rotating* (looks identical every half-turn) exactly as rectified libration
+  does. Tested on live rotating data: odd/even = 0.01 (looked like libration) but kurtosis
+  −1.4 (a clean sinusoid) correctly said rotation. **Degenerate; do not use odd/even.**
+- **Single-window shape (kurtosis) alone does not cleanly separate** across a real transition
+  either (tested on the 09-13 spindown: presumed-libration tail kurtosis −1.0 ± 0.4, never the
+  +0.9 cusp; wanders continuously).
+- **What IS reliable: detecting the FIRST transition**, corroborated 3 ways (SNR collapse +
+  kurtosis crossing + frequency rising above its running min) — these converge (~1.7–2 h in
+  the 09-13 spindown; full amplitude collapse later, ~11.5 h; a gradual multi-stage fade, not
+  one clean capture). **Continuous rotation-vs-libration classification is NOT reliable and is
+  not attempted.**
+
+Open for the morning: reassess the 10-count low-end density/dwell if it runs slow (~17–20 h as
+scheduled) — edit the live schedule file, do not restart. Pressure is start/stop manual only
+(gauge not logging).
+
 ### 2026-09-11 — PD recentred, ND05A added to the imaging beam, laser powers measured
 
 **Front-end GPS ~1473207805, true GPS ~1473197929, 17:38 EDT.**

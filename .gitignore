@@ -24,3 +24,7 @@ output.png
 ringdown_0730.png
 analysis/q_vs_pressure*.png
 analysis/levitation_*.png
+
+# laser step-down run artifacts (per-run, regenerable)
+lab_utils/laser_stepdown_log_gps*.csv
+lab_utils/laser_stepdown_schedule.txt
