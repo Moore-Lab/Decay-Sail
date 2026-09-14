@@ -49,7 +49,8 @@ NDS_HOST, NDS_PORT = 'cymac1', 8088
 # NOTE the calibration/torque have changed since July: 1300 counts = ~5.8 mW and
 # ~0.75 Hz rotor now (vs 6.66 mW / 2.72 Hz then), so the sustaining-rotation
 # threshold is likely much closer to 1300 -- start finer than 100-count steps.
-OFFSET_VALUES = [1250, 1200, 1150, 1100, 1050, 1000,
+OFFSET_VALUES = [1300,                                   # baseline anchor (already settled)
+                 1250, 1200, 1150, 1100, 1050, 1000,
                  975, 950, 925, 900, 875, 850, 825, 800]
 
 # ----------------------------------------------------------------- settling policy
