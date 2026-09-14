@@ -65,7 +65,9 @@ SNR_MIN    = 20.0                # line SNR below this = line dying
 KURT_ROT   = -1.0               # kurtosis above this = leaving the sinusoid (rotation)
 RISE_FRAC  = 0.02               # freq above running-min by this fraction = a rise
 ON_TRANSITION   = 'quick'       # 'quick' (short dwells to 0) or 'halt' (stop + flag)
-LIBRATION_DWELL_S = 5 * 60      # post-transition per-step dwell (quick mode)
+LIBRATION_DWELL_S = 25 * 60     # post-transition per-step dwell: long enough for a clean
+                                # 20-min f_lib measurement window, well under the 70-min
+                                # rotation wait (5 min was too short -- poor statistics)
 _run_min_f = np.inf             # running minimum LES line freq across the whole run
 
 # ----------------------------------------------------------------- pressure (manual)
