@@ -55,6 +55,12 @@ OFFSET_VALUES = ([1300,                                  # baseline anchor (alre
                                                          # (1040 -> 800). Reassess in the morning
                                                          # if the low end runs too slow.
 
+# LIVE-EDITABLE schedule: OFFSET_VALUES above only SEEDS this file on startup; thereafter
+# the script re-reads SCHEDULE_FILE before every step, so you can edit UPCOMING steps while
+# it runs -- no restart, no re-spin-up. Edit only steps below the current one (the log prints
+# "i=<n> offset=<x>"). A step UP (offset above the previous) is rejected -- this is a step-down.
+SCHEDULE_FILE = 'laser_stepdown_schedule.txt'
+
 # ----------------------------------------------------------------- settling policy
 WINDOW_MIN      = 20.0            # LES window the check uses (matches settled_check)
 INITIAL_WAIT_S  = 70 * 60        # ~1 tau before the first check
@@ -197,6 +203,33 @@ def safe_shutdown():
     caput(OUTPUT_LASER, 0, wait=True, timeout=3.0)
     log('ABORT: laser offset set to 0 for safe shutdown.')
 
+# ----------------------------------------------------------------- live schedule file
+def seed_schedule(path):
+    """Write OFFSET_VALUES to the live-editable schedule file (overwrites on each run)."""
+    with open(path, 'w') as f:
+        f.write('# laser step-down schedule -- one offset (counts) per line.\n')
+        f.write('# LIVE-EDITABLE: re-read before every step. Edit steps BELOW the current one\n')
+        f.write('# (the log prints "i=<n> offset=<x>"). A step UP (> the previous) is rejected.\n')
+        for v in OFFSET_VALUES:
+            f.write(f'{v}\n')
+
+def read_schedule(path):
+    """Parse the schedule file into int offsets. Robust to comments, blanks and a
+    mid-edit partial read (unparseable tokens are skipped). None if missing."""
+    try:
+        vals = []
+        with open(path) as f:
+            for line in f:
+                s = line.split('#', 1)[0].strip()
+                for tok in s.replace(',', ' ').split():
+                    try:
+                        vals.append(int(round(float(tok))))
+                    except ValueError:
+                        pass
+        return vals
+    except FileNotFoundError:
+        return None
+
 # ----------------------------------------------------------------- main
 def main():
     global _gps0
@@ -214,30 +247,52 @@ def main():
     if PRESSURE_START is None:
         print('  (reminder: set PRESSURE_START before an unattended run)')
 
+    seed_schedule(SCHEDULE_FILE)
+    log(f'# live schedule file: {os.path.abspath(SCHEDULE_FILE)} -- edit UPCOMING steps here')
+    print(f'  edit the schedule live at: {os.path.abspath(SCHEDULE_FILE)}')
+
     post_rotation = False
+    prev_offset = float(initial)     # current laser level; enforce step-DOWN only
+    step_i = 0
     try:
-        for offset in OFFSET_VALUES:
-            caput(OUTPUT_LASER, float(offset), wait=True, timeout=3.0)
+        while True:
+            sched = read_schedule(SCHEDULE_FILE)
+            if not sched:                       # unreadable/empty -> fall back to the seed
+                sched = list(OFFSET_VALUES)
+            if step_i >= len(sched):
+                log('# schedule exhausted (no more steps in the file).')
+                break
+            offset = float(sched[step_i])
+
+            # safety: reject a step UP -- a typo in the file must never raise laser power
+            if offset > prev_offset + 0.5:
+                log(f'i={step_i} offset={offset:.0f}: > previous {prev_offset:.0f} -- step UP '
+                    f'REJECTED (this is a step-down). Skipping; fix the schedule file.')
+                step_i += 1
+                continue
+
+            caput(OUTPUT_LASER, offset, wait=True, timeout=3.0)
             time.sleep(1.0)
-            log(f'step,offset={offset},readback={caget(OUTPUT_LASER)},gps={gps_now()},'
-                f'UTC={datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ}')
+            log(f'step,i={step_i},offset={offset:.0f},readback={caget(OUTPUT_LASER)},'
+                f'gps={gps_now()},UTC={datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ}')
 
             if post_rotation:
                 quick_dwell(conn, offset)
-                continue
-
-            status, res = wait_until_settled(conn, offset)
-            if status == 'transition':
-                if ON_TRANSITION == 'halt':
-                    log('*** TRANSITION + ON_TRANSITION=halt: stopping and flagging for a '
-                        'human/camera call. Laser left at current offset. ***')
-                    print('\n*** ROTATION ENDED -- halted. Check the rotor (camera) before continuing. ***')
-                    break
-                log('*** TRANSITION: switching to POST-ROTATION quick-step mode toward 0. ***')
-                post_rotation = True
-                quick_dwell(conn, offset)   # give this step a quick dwell too
             else:
-                log(f'step {offset}: done (status={status})')
+                status, res = wait_until_settled(conn, offset)
+                if status == 'transition':
+                    if ON_TRANSITION == 'halt':
+                        log('*** TRANSITION + ON_TRANSITION=halt: stopping and flagging for a '
+                            'human/camera call. Laser left at current offset. ***')
+                        print('\n*** ROTATION ENDED -- halted. Check the rotor (camera) before continuing. ***')
+                        break
+                    log('*** TRANSITION: switching to POST-ROTATION quick-step mode toward 0. ***')
+                    post_rotation = True
+                    quick_dwell(conn, offset)   # give this step a quick dwell too
+                else:
+                    log(f'i={step_i} offset={offset:.0f}: done (status={status})')
+            prev_offset = offset
+            step_i += 1
         log('# schedule complete. RECORD END PRESSURE manually now.')
         print('\n*** RECORD THE END PRESSURE from the gauge now. ***')
     except KeyboardInterrupt:
