@@ -80,7 +80,7 @@ LIBRATION_DWELL_S = 25 * 60     # post-transition per-step dwell: long enough fo
 _run_min_f = np.inf             # running minimum LES line freq across the whole run
 
 # ----------------------------------------------------------------- pressure (manual)
-PRESSURE_START = None            # gauge reading (mbar) before launch, logged once
+PRESSURE_START = 1.7e-7          # gauge reading (mbar) before launch, logged once
 
 # ----------------------------------------------------------------- logging
 _gps0 = None
