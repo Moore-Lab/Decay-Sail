@@ -35,6 +35,70 @@ dated entry.
 
 ## Changes
 
+### 2026-09-15 — laser step-down RUN RESULTS (threshold ~1000-1010 counts; PD axis suspect; fit-don't-hold)
+
+The run from the 09-14 entry ran **09-14 21:52 → 09-15 ~15:00 UTC**, 11 completed steps
+(1300 → 1000, 50-count then 10-count), then stopped by hand and laser returned to 1300.
+Results:
+
+**Sustaining-rotation threshold is ~1000-1010 counts.** Above ~1010 the rotor reaches a
+(slowly-relaxing) steady f_ss; **at 1000 it does NOT settle** — a continuous ~linear decline
+(coasting down, no steady state). Seen directly in the rotor-freq-vs-time track: step-and-
+plateau at 1020/1010, then a smooth linear slide at 1000. So 1000 is at/below where the laser
+torque can hold a fixed speed.
+
+**Baseline: 1300 counts = 0.75 Hz rotor** (LES line 1.5 Hz = 2×, DIVISOR=2). Response is MUCH
+shallower than July: 1300→1010 barely moved the frequency (~−3%) despite the PD dropping ~15%,
+then it rolled over near ~1030 and steepened.
+
+**⚠ The PD (power axis) is SUSPECT — probably misaligned to the pick-off.** PD was flat 1300→
+1200 (461-468 cts, saturation-looking), then declined below 1150 — BUT the flatness is
+non-monotonic (rose 1300→1250 then flat) and the PD noise grew going down (std 5 → 15 cts):
+hallmarks of a beam walking on a clipped/mis-centred detector, not clean power. **Do NOT trust
+the PD as the power axis.** Use commanded **COUNTS** (exact) as the independent variable, and
+calibrate counts→true-power separately with the **Ophir**. Realign the PD before the next run:
+align the whole lens-tube + notch-filter + PD *as a unit* to the beam, and use a defocused /
+diffused spot so the reading tracks power, not beam position.
+
+**Extract f_ss by FITTING the transient, not by holding to full settling.** July's on-drive
+τ ≈ 160 min (2.4× the free-decay τ), so the 70-min holds are only ~36% relaxed — the "settled"
+values are biased high, and full settling would need ~8 h/step (impractical). Instead fit
+`f(t) = f_ss + (f0−f_ss)·e^(−t/τ)` to each dwell's dense LES frequency track to recover the
+asymptotic f_ss + τ. Viable for the plateau-ing steps (1010/1020); NOT at 1000 (no plateau).
+
+**Double-1000 settling test:** at fixed 1000, frequency kept declining across two full cycles
+(1.4125 → 1.39 and still falling, *re-accelerating* in the 2nd cycle) — not settling. Confirms
+1000 is below threshold. (A repeated offset in the schedule file was how this was tested live.)
+
+**Settled-check weakness found:** it judges settling from ONE 20-min window's internal slope,
+so a slow continuous decline can momentarily look flat and pass (it called 1000 "settled" at
+120 min while still declining). Next run: also require agreement ACROSS consecutive checks
+(check-to-check Δf small), not just within one window.
+
+**Plateau drift:** a slow ~+0.5 mHz/step *upward* creep on the flat top (1300-1100). Most is
+real (rotor speeding up ~750 ppm, likely decreasing drag as vacuum improved) with a small
+(~380 ppm) timebase component — the 60 Hz mains reads 59.94 Hz and drifted +378 ppm, so the
+cymac clock isn't perfectly clean (frequencies are ~700 ppm low in absolute scale, immaterial
+for the physics).
+
+#### Data for the analysis notebook (to be started on a personal machine — no NDS2 there)
+On Dropbox `Microspheres/TFINER/stepdown_20260914/` (all pushed 2026-09-21):
+- `laser_stepdown_log_gps1473468167.csv` — every step + every settled-check line (offset, gps,
+  elapsed_min, f_line, f_mean, snr, kurt, slope, settled). The step/settle history — parse this
+  for step boundaries and the sparse settled f_line values.
+- `Y1_RDS-LES_YAW_IN1_DQ_1473468000_1473531000.h5` — **x** position; the rotation line, ÷2 =
+  rotor Hz. Main channel for the dense frequency track and the transient fits.
+- `Y1_RDS-LES_PIT_IN1_DQ_1473468000_1473531000.h5` — **y** position.
+- `Y1_RDS-PD_IN1_DQ_1473468000_1473531000.h5` — laser monitor (**suspect alignment — relative
+  trend only, do NOT use as the power axis**).
+
+All 1024 Hz; window DAQ-GPS 1473468000→1473531000 (run start 1473468171). Suggested analysis:
+dense frequency track (`peak_in_band` on sliding LES_YAW windows, ÷2), overlay step boundaries
+from the log, fit each plateau-ing step's transient for f_ss + τ, plot **f_ss vs counts** (not
+PD), and pin the ~1000-1010 threshold. Reuse the peak-tracker + fit patterns in
+`analysis/spindown_20260913.ipynb`. On a synced-Dropbox Mac, point the loader at the local
+`.../Microspheres/TFINER/stepdown_20260914` path.
+
 ### 2026-09-14 — laser step-down rebuilt (settled-check + transition trigger); run started
 
 **A laser power step-down run is in progress** (started 21:52 UTC, DAQ_GPS 1473468167,
