@@ -114,9 +114,23 @@ coupling the electrode annulus actually sees (89.4% at h=0.27, 84.2% at h=0.37).
   `sqrt(2τ/I)/2π` is the *side-post* case; that 2 is the induced dipole's 2-fold symmetry,
   not a universal constant.)
 - Max ramp rate = `0.5·τ_max/(2πI)` Hz mech/s (the 0.5 is the ≤50% torque margin).
-- **`I = 1.88e-11 kg·m²` is CALCULATED, never measured.** Both formulas above
-  inherit it, and so does every torque, ramp-rate and drag number in this repo.
-  Provenance traced 2026-09-09:
+- ✅ **SUPERSEDED 2026-10-09 — `I` IS NOW MEASURED: `I = 1.10e-11 kg·m²`, ±10%,
+  from the weighed 7 mg assembly** (`analysis/noise_budget_20260911_clean.ipynb`,
+  parameter cell). That is **1.71× smaller** than the calculated 1.88e-11 below.
+  *(Derived, not measured: capture bandwidth `sqrt(m·τ_max/I)/2π` would rise by
+  ×1.31 and max ramp rate `0.5·τ_max/(2πI)` by ×1.71 — arithmetic on the ratio of
+  the two `I` values, nothing re-measured.)*
+
+  ⚠ **The 15+ downstream call sites still hardcode 1.88e-11** and were NOT
+  updated in this pass. Every torque, capture-bandwidth and ramp-rate figure
+  computed from them — including the Performance table above — is high by 1.71×.
+  Check which value a script uses before trusting its output.
+
+  The calculated chain is kept below, because it is still the only source for
+  the mass and the disk/sail split:
+
+- **`I = 1.88e-11 kg·m²` was CALCULATED, never measured.** Provenance traced
+  2026-09-09:
 
   | | |
   |---|---|
@@ -126,8 +140,9 @@ coupling the electrode annulus actually sees (89.4% at h=0.27, 84.2% at h=0.37).
   | → `stator_flex/spinup_estimates.py:28` → 15 other places | all inherit it |
 
   **It is the DISK + SAIL assembly, and a sail IS fitted** (confirmed
-  2026-09-09), so the value is the right one to use. A bare disk would be
-  1.26e-11 and would change capture bandwidth by ×1.22 and ramp rate by ×1.5.
+  2026-09-09). A bare disk would be 1.26e-11. Note the weighed value (1.10e-11)
+  comes out *below* even the bare-disk calculation, so the geometric model was
+  overestimating — another reason to prefer the measurement.
 
   ⚠ **Inconsistent mass**: `optimize_sail.py` computes the disk at 7.617e-6 kg
   while `spinup_estimates.py` and `planar_drive_estimates.py` both hardcode

@@ -35,6 +35,141 @@ dated entry.
 
 ## Changes
 
+### 2026-10-09 — new pickoff + beam realignment: PD is good again, and the LES signal axis FLIPPED
+
+> **Provenance of this entry — written by Claude, not yet reviewed by Molly.**
+>
+> **MEASURED** (raw readings, Molly's or read live off the front end):
+> the Ophir power / PD table; the LES PIT-vs-YAW amplitudes, SNRs and kurtoses;
+> the 150 s → 600 s window comparison; the x–y phase and correlation; the GPS
+> offset; the harmonic amplitudes behind the divisor check.
+>
+> **DERIVED** (arithmetic on the above — each is an inference, not a reading):
+> "PD linear to ±4%" and the 411 counts/mW scale; "11.10 µW/count above 764"
+> (a fit to five points); the 814× ND ratio; "DIVISOR = 2" (an interpretation of
+> the harmonic pattern, though it agrees with the independent 09-14 timing);
+> the `T ≈ sqrt(1/|df/dt|) ≈ 100 s` coherence limit; the per-block PD standard
+> error.
+>
+> **Nothing here has been cross-checked by a second method except the divisor.**
+> Treat the derived items as working numbers to be re-established, not as facts.
+
+**Front-end GPS offset re-measured: +12833 s** (9876 on 09-11, 10155 on 09-14). It wanders
+and it is accelerating. Re-measure every session.
+
+#### The pushing beam, the ND30, and the pickoff
+
+The pushing beam was cleaned up and the pickoff replaced, and **an ND30 now sits upstream
+of both the pickoff and the chamber**. Measured with the Ophir at the chamber:
+
+| counts | mW | PD | | counts | mW | PD |
+|---|---|---|---|---|---|---|
+| 1300 | 5.94 | 2440 | | 1150 | 4.29 | 1750 |
+| 1250 | 5.40 | 2225 | | 1100 | 3.72 | 1545 |
+| 1200 | 4.87 | 1980 | | 1300 + ND30 | **0.0073** | **2.35** |
+| | | | | 0 | — | −0.80 (−0.85 with PD blocked) |
+
+- ✅ **The PD is LINEAR to ±4% across an 814× range** — 411 counts/mW at 5.94 mW, 408 from
+  the high-power slope, **432 at 7.3 µW**. This **supersedes the 2026-09-15 warning** that
+  the PD was misaligned and must not be used as the power axis. It is a good power axis
+  again. Supersedes the 283 (07-28) and 203 (08-03) scales.
+- **Commanded→power is now 11.10 µW/count above a 764-count threshold** (was 11.87 above
+  735 — 6% apart, consistent).
+- **The ND30 measures 814×, i.e. OD 2.91**, not the nominal OD 3. Measure a stack, never
+  assume it.
+- ⚠ **`LASER_OFFSET = 0` is a TRUE optical off**: PD reads −0.80 unblocked and −0.85
+  blocked, a 0.05-count difference, so essentially no light. July's 15.9 µW sub-threshold
+  leakage is killed by the ND (→ ~20 nW at the sail). Software chopping with
+  `laser_on.py` / `laser_off.py` is therefore clean and needs no shutter.
+- ⚠ **A PD reading of ~0 at `LASER_OFFSET = 1300` is EXPECTED with the ND in**, because the
+  pickoff now sits downstream of it (7.3 µW → ~3 counts). Do **not** read it as the
+  2026-10-06 loose-MOD-cable failure. The 3.15-count step above dark is still a usable
+  monitor: at 1024 Hz over a 600 s block its standard error is ~0.02 counts, 0.6% of the
+  step. Check the dark level at the start *and* end of a session — drift there is the only
+  thing that breaks it.
+- The ND being in the science path promotes the existing open item **"tilt the ND filter to
+  break the air-gap etalon"**: an untilted ND's transmission drifts with temperature, which
+  would masquerade as a slowly changing force. The pickoff sitting *downstream* of the ND
+  means the PD sees that drift — that is the compensation for losing absolute power
+  monitoring.
+
+#### ⚠ The LES signal axis has FLIPPED — track `LES_PIT`, not `LES_YAW`
+
+Measured live on a rotating rotor, 150 s window, electrodes off:
+
+| axis | DC | line amp | SNR | rms | kurtosis |
+|---|---|---|---|---|---|
+| **PIT** | +1362 | **397 cts** | **511** | 341 | −0.77 |
+| YAW | −7357 | 148 cts | 212 | 167 | −0.81 |
+
+Reference, `noise_budget_20260911_clean` **on LES_YAW**: line amplitude 331–539 counts,
+median SNR 622. So PIT is now within ~20% of that reference and YAW is 3× worse.
+Frequency precision goes as 1/SNR, and σ_f *is* the measurement in every force estimate —
+so **the beam does not need moving, but the channel does.** `settled_check.py`,
+`monitor_libration.py`, `track_spindown.py` and both noise-budget notebooks all still
+default to `LES_YAW`. `LES_SUM = 80` is low versus 240 on 09-11 but irrelevant: SNR, not
+light level, is the limit.
+
+**x–y is usable again.** Both axes now see the motion (amplitude ratio 2.75:1, against the
+old 1000:1). At the dominant line the relative phase is +2.4° with corr(x, y) = +0.81 — a
+**line, not an ellipse**, so no whirl and no handedness to read. Rotation direction still
+needs the camera.
+
+#### DIVISOR = 2 confirmed independently, from the comb rather than by timing
+
+A genuine line sits at 0.3550 Hz (44 counts) under a dominant 0.7100 Hz (137 counts), with
+4f at 28 counts and the odd harmonics suppressed (3f = 8, 5f = 7) — exactly a 2-fold sail.
+So the dominant line is 2f and rotation = dominant/2. This is a **third** independent route
+to the same answer as the 09-14 stopwatch re-timing, and it needs no video.
+
+#### ⚠ Coherent FFT window limit ≈ 100 s on a coasting rotor
+
+Widening the analysis window from 150 s to 600 s made the measurement **worse**: PIT SNR
+511 → 114 and amplitude 397 → 137. A coasting rotor chirps, and at the measured −1.0e-4
+Hz/s the line smears across ~37 bins in 600 s. The limit is `T ≈ sqrt(1/|df/dt|) ≈ 100 s`.
+**Use 100–150 s windows, or demodulate** — which is why `noise_budget_20260911_clean` made
+demodulation its primary estimator. Do not widen a window expecting finer resolution.
+
+#### New tool
+
+`lab_utils/track_drive.py` — live rotor-frequency tracker for the electrode run. Reports
+f_elec, f_rot and the **slip ratio** once per poll, plus SNR and the rotating/librating
+kurtosis. Reads NDS2 rather than `cdsutils.getdata` (which streams in real time and so
+blocks for the full window). **Derives the fundamental from the comb, with no divisor
+constant anywhere in the file.** Validated against the 09-11 record: returns 0.7489 /
+0.7487 / 0.7492 Hz at +1 h / +2 h / +10 h, matching the notebook's 0.748876 Hz.
+
+```
+python3 lab_utils/track_drive.py --h5 scan_fwd.h5          # headless, for an overnight run
+python3 lab_utils/track_drive.py --gui --h5 scan_fwd.h5    # + live plot (needs DISPLAY)
+```
+
+`--h5` appends and **flushes one row at a time**, so a kill, a dropped ssh session or a dead
+X server costs at most the poll in flight; re-running against an existing file appends
+rather than truncating. `--gui` plots f_rot against the commanded f_elec/8 (the gap is the
+slip), SNR and kurtosis, and the accumulating **f_elec → rotor curve**, which is the
+deliverable of the scan and is expected to be non-monotonic. Acquisition runs in a daemon
+thread so a fetch never freezes the window, and both paths call the same `poll_once()`, so
+the plot cannot drift from the validated CLI.
+
+**The GUI works over `ssh -X`/`-Y`**, and is built not to abuse it: it repaints only when a
+new estimate actually arrives, rather than on a fixed animation tick. `FuncAnimation` would
+have redrawn the whole canvas every interval regardless — at 1 Hz against a 60 s data
+cadence that is ~60× more repaints than there is new data, which is barely noticeable
+locally and is exactly what makes a forwarded plot feel sluggish. `--gui-interval` (default
+2 s) only sets how often it checks.
+
+#### ⚠ Two drag laws are in the repo and they disagree — unresolved
+
+| source | law | γ | τ₀ |
+|---|---|---|---|
+| `damping_law_comparison.ipynb`, this log | τ_drag = τ₀ + γω | 3.53e-15 N·m·s/rad | 8.06e-16 N·m |
+| `noise_budget_20260911_clean` | linear, γ = I/τ_mech | **2.2974e-15** | none |
+
+γ differs by 1.5× and the constant term vanishes entirely. Both are in active use. Which is
+right changes every sensitivity estimate in the programme. **Do not silently adopt one** —
+see Open items.
+
 ### 2026-09-15 — laser step-down RUN RESULTS (threshold ~1000-1010 counts; PD axis suspect; fit-don't-hold)
 
 The run from the 09-14 entry ran **09-14 21:52 → 09-15 ~15:00 UTC**, 11 completed steps
@@ -51,7 +186,7 @@ torque can hold a fixed speed.
 shallower than July: 1300→1010 barely moved the frequency (~−3%) despite the PD dropping ~15%,
 then it rolled over near ~1030 and steepened.
 
-**⚠ The PD (power axis) is SUSPECT — probably misaligned to the pick-off.** PD was flat 1300→
+**⚠ The PD (power axis) is SUSPECT — probably misaligned to the pick-off.** *(SUPERSEDED 2026-10-09 — the pickoff was replaced and the PD is now linear to ±4% over 814×. See that entry. The rest of this paragraph is kept as the record of what a bad power axis looks like.)* PD was flat 1300→
 1200 (461-468 cts, saturation-looking), then declined below 1150 — BUT the flatness is
 non-monotonic (rose 1300→1250 then flat) and the PD noise grew going down (std 5 → 15 cts):
 hallmarks of a beam walking on a clipped/mis-centred detector, not clean power. **Do NOT trust
@@ -252,6 +387,41 @@ electrodes stopped, at **1.9 × 10⁻⁴ Hz/s** in the comb (comb 1.4012 → 1.4
 across the video alone). Drag by itself would give −2.9 × 10⁻⁵ Hz/s, so the
 laser is winning comfortably — as the constant-torque threshold argument
 predicted it would if it could deliver ≳200–400 µW to the sail.
+
+> ### ⚠ DERIVED, NOT MEASURED — added 2026-10-09 by Claude. Do not use as a premise.
+>
+> **Nothing in this box was measured.** It is arithmetic on three inputs that were
+> each established elsewhere, and it is recorded so the chain is visible — not as
+> a result. Molly has not checked it. **If any input moves, every number here
+> moves with it.**
+>
+> Inputs it inherits, none of them re-verified here:
+>
+> | input | value used | source | status |
+> |---|---|---|---|
+> | `I` | 1.10e-11 kg·m² | `noise_budget_20260911_clean.ipynb` param cell | weighed, ±10% |
+> | `γ` | 2.2974e-15 N·m·s | same, = I/τ_mech with τ_mech = 79.8 min | **inherits `I`**; and the repo holds a second, incompatible drag law (see Open items) |
+> | divisor | rotation = line/2 | 09-14 re-timing | measured |
+> | lever arm | r_eff = 1.38 mm | same notebook | geometric |
+> | f_ss | 0.748876 Hz | 09-11 steady state | measured |
+>
+> On those inputs, the subsection's **τ_laser ≈ 2.6e-14 N·m becomes ≈ 7e-15**, and
+> a steady-state route (laser torque balancing linear drag, so no transient fit
+> and no divisor) gives
+>
+> > τ = γω = 2.2974e-15 × 2π × 0.748876 = 1.081e-14 N·m at 5.94 mW
+> > ⇒ κ = 1.82e-15 N·m per mW at the chamber
+>
+> **What would settle it:** a torque measured directly from a spin-up or
+> spin-down in the *current* configuration, rather than back-computed from a
+> steady state through an inherited γ.
+>
+> ⚠ Separately, κ is geometry-dependent — it moved 4.5× between July and August
+> when the tilt stage came out, and the beam and pickoff were both changed
+> 2026-10-09 — so even if the arithmetic is right it describes the 09-11
+> configuration only.
+
+Original text, kept for the reasoning:
 
 On the assumption `rotation = comb`, that gives
 **τ_laser ≈ 2.6 × 10⁻¹⁴ N·m, about 7.6× the drag torque** of 3.46 × 10⁻¹⁵ N·m.
@@ -1282,11 +1452,12 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 
 | constant | value | valid for | note |
 |---|---|---|---|
-| commanded→power | 11.87 µW/count above 735 | **still good** | verified to 3.6% by direct measurement 08-03 |
-| PD counts/mW | 283 | 07-28 → 07-31 only | **203 on 08-03** (−28%); use measured chamber power |
+| commanded→power | 11.87 µW/count above 735 | ≤ 2026-10-08 | **superseded: 11.10 µW/count above a 764-count threshold, measured 2026-10-09** (−6%, consistent) |
+| PD counts/mW | 283 | 07-28 → 07-31 only | 203 on 08-03 (−28%). **Both superseded: the pickoff was replaced and reads ~411 counts/mW, measured 2026-10-09** — see the 2026-10-09 entry |
+| lever arm | r_c = 2.625 mm | ≤ 2026-10-08 | **superseded: `R_EFF = 1.38 mm`** (wing centroid), with `R_TIP = 1.88 mm` for geometry comparison — `noise_budget_20260911_clean.ipynb` |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
-| `I_KGM2` | 1.88e-11 | **calculated, not measured** | disk + sail. Root is `laser-cutting/optimize_sail.py::disk_I_M()` (I_disk = 1.2612e-11, M = 7.617e-6 kg) plus 6.19e-12 for the sail = 33% of the total; propagated via `momentum-simulation/thermal_noise_spindown.py:37` to 15+ places. **A sail IS fitted (confirmed 2026-09-09)** so this is the correct value; bare disk would be 1.26e-11. See `CLAUDE.md` "the two numbers that govern everything" for the full chain and the mass discrepancy (7.617e-6 vs the 7.0e-6 hardcoded in `spinup_estimates.py`). |
+| `I_KGM2` | 1.88e-11 | **SUPERSEDED 2026-10-09 — now MEASURED at 1.10e-11 kg·m², ±10%, from the weighed 7 mg assembly** (`noise_budget_20260911_clean.ipynb`). 1.71× smaller; the 15+ downstream call sites still hardcode the old value, so anything computed from them is high by 1.71×. | disk + sail. Root is `laser-cutting/optimize_sail.py::disk_I_M()` (I_disk = 1.2612e-11, M = 7.617e-6 kg) plus 6.19e-12 for the sail = 33% of the total; propagated via `momentum-simulation/thermal_noise_spindown.py:37` to 15+ places. **A sail IS fitted (confirmed 2026-09-09)** so this is the correct value; bare disk would be 1.26e-11. See `CLAUDE.md` "the two numbers that govern everything" for the full chain and the mass discrepancy (7.617e-6 vs the 7.0e-6 hardcoded in `spinup_estimates.py`). |
 | `KAPPA_PD_OLD` | 7.35e-16 N·m/count | step-down gain only | do not reuse post-amp-removal |
 
 ### Decision: which γ goes in which notebook
@@ -1339,6 +1510,35 @@ is in.
 ---
 
 ## Open items
+
+- [ ] **⚠ TWO DRAG LAWS, 2026-10-09 — decide which one the programme uses.**
+      `damping_law_comparison.ipynb` fits `τ_drag = τ₀ + γω` with γ = 3.53e-15 N·m·s/rad
+      and a clearly nonzero τ₀ = 8.06e-16 N·m (~10σ) across 09-08/09-09/09-13.
+      `noise_budget_20260911_clean` uses pure linear drag, γ = I/τ_mech = 2.2974e-15,
+      τ_mech = 79.8 min, with no constant term. γ differs by 1.5× and τ₀ vanishes.
+      Both are in live use and every force-sensitivity estimate depends on the choice.
+      **To settle it:** a single long free spindown spanning a wide ω range, fitted both
+      ways — the constant-torque term only shows up at low ω, which is exactly where the
+      existing runs are thinnest. Note the γ discrepancy partly tracks the `I` change
+      (γ = I/τ_mech inherits it), so recompute before concluding the fits disagree.
+
+- [ ] **Channel debt from the 2026-10-09 beam move: `LES_YAW` → `LES_PIT`.**
+      `settled_check.py`, `monitor_libration.py`, `track_spindown.py` and both
+      `noise_budget_20260911*` notebooks hardcode `LES_YAW`, which is now the *weak* axis
+      (SNR 212 vs PIT's 511). Nothing errors — the frequency precision just quietly gets
+      3× worse. `lab_utils/track_drive.py` already defaults to PIT.
+
+- [ ] **`F0_PB` in `noise_budget_20260911_clean.ipynb` — UPDATED 2026-10-09 to 0.81e-15,
+      §2 still needs re-running.** The PI's figure for the Pb-212 recoil is 0.81 fN, not
+      the 5.1 fN originally hardcoded. The quasi-static signal drops from 0.488 mHz to
+      0.077 mHz — from *above* the 2-hour block scatter (0.065–0.151 mHz) to *level with*
+      it — so every SNR statement in §2 falls by 6.3×. Re-execute and restate the margin.
+
+- [ ] **Chase the 15+ call sites that still hardcode `I = 1.88e-11`** (root:
+      `momentum-simulation/thermal_noise_spindown.py:37`, via
+      `stator_flex/spinup_estimates.py:28`). The weighed value is 1.10e-11, so every
+      torque, capture-bandwidth and ramp-rate figure derived from them is high by 1.71×,
+      including the Performance table in `CLAUDE.md`.
 
 - [x] **TODO 2026-09-11 — COUNT THE VIDEO, settle the LES divisor.** **RESOLVED
       2026-09-14 — `rotation = comb/2`.** Molly re-spun the rotor 2026-09-14 at the
