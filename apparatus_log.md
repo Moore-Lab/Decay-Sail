@@ -35,6 +35,59 @@ dated entry.
 
 ## Changes
 
+### 2026-10-14 — stator drive: the rotor is DRIVEN at f_elec/8 but NOT carried round
+
+> **Provenance.** MEASURED: all LES amplitudes/rms, the video coherence and centroid
+> figures, the 6 h quiet baseline, both drive runs. DERIVED (Claude's arithmetic,
+> unchecked by Molly): the 0.030 Hz mechanical frequency and `k_off`. Molly's direct
+> visual observation is noted as such.
+
+**Headline: the rotor is driven at f_elec/8 but is not carried around by the wave —
+synchronised in frequency, not locked in the motor sense.**
+
+Two runs of `stator_osc_drive.py hold --felec 0.08 --amp 6400 --duration 400 --live
+--enable-outputs` (rotor 0.0100 Hz commanded), front-end GPS **1476056543–1476056950**
+(from rest) and **1476057672–1476058080** (from leftover motion).
+
+| | LES rms (cts) | line at 0.0200 Hz (f_e/8) | at 0.0400 Hz (f_e/4) |
+|---|---|---|---|
+| run 1 before | 15.6 | 2.6 | 1.6 |
+| **run 1 during** | **304.9** | **150.6 (SNR 24)** | 56.4 |
+| run 2 before | 287.8 | 22.6 | 18.4 |
+| **run 2 during** | **325.2** | **65.7 (SNR 8.4)** | 39.7 |
+
+- **Rotor was genuinely at rest first** — 6 h with no drive and no laser (V2 rms = 0 in
+  all 72 five-min bins, PD = −1) showed **no libration line at all** in 0.03–2 Hz. Video
+  coherence 1.000, centroid stable to 0.10 px. This is the Test A answer: *neither
+  librating nor rotating*, which is why Test B's premise (a line to shift) did not hold.
+- **Drive on ⇒ 19× rms jump**, line within one bin of the f_e/8 prediction, twice.
+- **It did not go round.** Video `|⟨e^{2iθ}⟩|` = 0.670 / 0.658 during drive; four turns
+  would give ≈0.04. Noise only reduces coherence, so this is a bound.
+- **Starting from motion barely changed the driven state** (coherence 0.670 vs 0.658,
+  centroid rms 3.21 vs 3.16 px) but halved the drive line — pre-existing motion competes
+  with capture rather than helping it.
+- **Molly observed directly:** sometimes forward motion with sudden backward slips,
+  sometimes back-and-forth — consistent with a drive at its capture threshold.
+- **Free oscillation at 0.0600 Hz** (117 cts, SNR 25.6) seen in run 2's pre-drive window,
+  excited by run 1. This is the f_off that Test A could not measure on an unexcited rotor.
+  The drive suppressed it, 117 → 27.5 cts.
+- **Preliminary answer to the plan's open question:** the response sits at f_elec/8, not
+  the backward f_elec/4 — the 0.0400 Hz line was smaller in both runs. One frequency, two
+  runs; not conclusive.
+
+⚠ **`--amp 6400` is the ceiling** (amp + pedestal = 12800 = `V{n}_LIMIT`, keeping the HV
+amp input inside 0–2.1 V). No more drive torque is available in software, so the deficit
+has to be closed by geometry — which is what the hardware change below is for.
+
+**Open:** the V² test (repeat at `--amp 3200`, all else identical) to find how far from
+threshold the drive is. Also unresolved: rocking vs slipping, rotation direction, and
+whether 0.0600 Hz is really the trap frequency.
+
+**Camera note:** `grab_basler.py` default `--exposure 2.0` saturates ~19% of the frame and
+destroys the sail-angle measurement; **0.5 ms** works. The `/dev/shm` snapshot is throttled
+to 2 Hz by `--snapshot-every 0.5`, fine below ~0.5 Hz rotor but aliased at the 1 Hz target
+— use `--record` for anything faster.
+
 ### 2026-10-09 — new pickoff + beam realignment: PD is good again, and the LES signal axis FLIPPED
 
 > **Provenance of this entry — written by Claude, not yet reviewed by Molly.**
