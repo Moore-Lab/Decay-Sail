@@ -79,8 +79,36 @@ Two runs of `stator_osc_drive.py hold --felec 0.08 --amp 6400 --duration 400 --l
 amp input inside 0–2.1 V). No more drive torque is available in software, so the deficit
 has to be closed by geometry — which is what the hardware change below is for.
 
-**Open:** the V² test (repeat at `--amp 3200`, all else identical) to find how far from
-threshold the drive is. Also unresolved: rocking vs slipping, rotation direction, and
+#### ⚠ V² test ATTEMPTED and INCONCLUSIVE — do not read a scaling out of it
+
+A third run at **`--amp 3200`** (FE GPS **1476062143–1476062550**) was taken to test
+τ ∝ V². **It does not measure the scaling and must not be quoted as if it does.**
+
+| run | amp | start state | 0.0200 Hz line during |
+|---|---|---|---|
+| 1 | 6400 | at rest | 150.6 cts |
+| 2 | 6400 | in motion | 65.7 cts |
+| 3 | 3200 | in motion | 95.1 cts |
+
+Halving the amplitude *raised* the line (ratio 0.69 against the 4.00 that V² predicts),
+but **the initial condition alone moves the answer by 2.3× at fixed amplitude** — runs 1
+and 2, both at 6400. The systematic is bigger than the effect. The three runs also began
+from genuinely different states: the 0.0200 Hz line *before* the drive was 2.6, 22.6 and
+1.6 cts respectively.
+
+**Why it failed, for whoever retries it:** the test needs both amplitudes started from the
+*same* condition, and the only clean one is rest — which took hours to reach after a drive.
+It cannot be done back-to-back in an evening. Either allow the rotor to settle fully
+between points, or find a reproducible way to prepare the initial state.
+
+Two observations that do stand, independent of the scaling question:
+- **The drive still couples strongly at half amplitude** — 95.1 cts, SNR 16.4 at
+  `--amp 3200`. It did not switch off.
+- **The driven rms is the same in all three runs** — 304.9 / 325.2 / 320.0 cts —
+  independent of both amplitude and starting state. **Unexplained.** For a mechanism that
+  should go as V² this is worth noticing rather than explaining away.
+
+**Still open:** how far from the capture threshold the drive is. That remains unmeasured. Also unresolved: rocking vs slipping, rotation direction, and
 whether 0.0600 Hz is really the trap frequency.
 
 **Camera note:** `grab_basler.py` default `--exposure 2.0` saturates ~19% of the frame and
