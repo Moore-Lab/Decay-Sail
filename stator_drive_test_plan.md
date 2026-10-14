@@ -113,10 +113,14 @@ libration line shifts upward:
     k_stator / k_int = (f_on² − f_off²) / f_off²     (independent of I)
     tau_max = k_stator / m   (m = 8 if it couples via m = 8; see "Open question")
 
-A single earlier pair (amp 6400) gave f_off 0.2704, f_on 0.2923 Hz, i.e.
-k_int/k_stator ≈ 6. That's one measurement against a drifting baseline. The check the
-script was written for is **V² scaling**: halving amp should quarter
-(f_on² − f_off²). As far as I know that hasn't been done.
+A single earlier pair (amp 6400, 2026-08-28) gave f_off 0.2704, f_on 0.2923 Hz,
+i.e. k_int/k_stator ≈ 6. **That predates the 2026-09-08 Simulink model change**
+(Mux → DRVMTRX → Demux) and was driven through the old AWG path, which had
+intermittent arming and clock-frame problems. So it is **not a baseline to compare
+against**. As far as Molly knows, this test hasn't been run since the model change.
+Treat Test B as the first stiffness measurement on the current oscillator drive.
+The check the script was written for is **V² scaling**: halving amp should quarter
+(f_on² − f_off²). That hasn't been done on either path.
 
 **Note:** `stator_epics_drive.py` has a `detent` subcommand (DC on one electrode via
 `_OFFSET`). Since the amp maps any input DC to 0 V out, check whether it can do
@@ -128,7 +132,11 @@ path). `stator_osc_drive.py` says it replaces the AWG route entirely. So the
 stiffness script may need porting to the oscillator drive before it can run.
 
 ```
-Test B. Read measure_stator_stiffness.py and check whether it can run against the
+Test B. This has not been run since the y1rds model change on 2026-09-08 (see
+y1rds_model_change_muxmatrix.md). The 2026-08-28 result in the script's
+docstring used the old AWG path. Don't treat it as a baseline.
+
+Read measure_stator_stiffness.py and check whether it can run against the
 current oscillator drive (stator_osc_drive.py). If not, propose the smallest port
 that keeps its ON/OFF alternation and pairing (each ON vs its neighbouring OFFs,
 to cancel drift) and reuses stator_osc_drive's bring-up / ramp_down instead of new
