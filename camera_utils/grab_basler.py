@@ -32,14 +32,30 @@ def gps_now():
     return int(time.time()) - _GPS_UNIX_OFFSET
 
 
+def display_stretch(img, lo, hi):
+    """Percentile contrast stretch for DISPLAY ONLY (never the recording/snapshot).
+
+    Maps the lo/hi intensity percentiles to 0..255 so the dark graphite rotor and
+    the faint grey mark become visible on screen. Returns the frame unchanged if
+    the percentiles collapse (e.g. a flat frame).
+    """
+    p_lo, p_hi = np.percentile(img, (lo, hi))
+    if p_hi <= p_lo:
+        return img
+    out = (img.astype(np.float32) - p_lo) * (255.0 / (p_hi - p_lo))
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 # --------------------------------------------------------------------------- args
 p = argparse.ArgumentParser(description=__doc__,
                             formatter_class=argparse.RawDescriptionHelpFormatter)
 p.add_argument('--exposure', type=float, default=2.0, help='exposure in ms (default 2.0)')
 p.add_argument('--gain', type=float, default=0.0, help='gain in dB (default 0)')
-p.add_argument('--fps', type=float, default=30.0,
-               help='cap acquisition frame rate (default 30; raise usbfs_memory_mb '
-                    'to 1000 before going much above ~60). Use 0 for uncapped.')
+p.add_argument('--fps', type=float, default=50.0,
+               help='cap acquisition frame rate (default 50; raise usbfs_memory_mb '
+                    'to 1000 before going much above ~60). Use 0 for uncapped. '
+                    'NOTE: --exposure sets a hard ceiling of 1000/exposure_ms fps, so '
+                    'e.g. 20 ms caps you at 50 fps however high this is set.')
 p.add_argument('--roi', type=str, default='544,432,256,292',
                help='hardware ROI as x,y,w,h. Default 544,432,256,292 crops to the rotor '
                     '+ electrodes (glare clipped, top trimmed). NOTE: with the hardware flip '
@@ -74,6 +90,19 @@ p.add_argument('--flip-h', action='store_true',
                     'software). NOTE: a single flip (-v OR -h) mirrors the image and so '
                     'reverses the apparent sense of rotation; combining -v AND -h is a '
                     '180 deg rotation that preserves rotation direction.')
+p.add_argument('--codec', type=str, default='ffv1',
+               help="recording codec (default 'ffv1'). 'ffv1' writes LOSSLESS Mono8 "
+                    "directly (isColor=False) so faint marks on the rotor survive -- this "
+                    "is the point of the change. If FFV1 cannot open on this build it "
+                    "falls back to MJPG at quality 100 (still lossy). Pass 'mjpg' to force "
+                    "the old colour MJPG path. The codec actually used is printed at start.")
+p.add_argument('--stretch', action='store_true',
+               help='DISPLAY-ONLY contrast stretch for the --show window and the MJPEG '
+                    'stream, so the dark graphite rotor shows detail. Does NOT touch the '
+                    'recorded .avi or the /dev/shm snapshot that tooling reads -- those '
+                    'stay the raw sensor frame.')
+p.add_argument('--stretch-pct', type=str, default='1,99',
+               help='low,high percentiles for --stretch (default 1,99). Display only.')
 args = p.parse_args()
 
 SNAP = bool(args.snapshot)
@@ -262,16 +291,51 @@ print(f"  {W}x{H} Mono8, exposure {cam.ExposureTime.Value/1000:.2f} ms, "
 
 # ------------------------------------------------------------------ optional .avi
 writer = None
+writer_is_color = True
+csv_file = None
 if args.record:
     os.makedirs(args.outdir, exist_ok=True)
-    fname = os.path.join(args.outdir, f"output_basler_gps{gps_now()}.avi")
-    writer = cv2.VideoWriter(fname, cv2.VideoWriter_fourcc(*'MJPG'),
-                             actual_fps, (W, H), isColor=True)
+    gps = gps_now()
+    fname = os.path.join(args.outdir, f"output_basler_gps{gps}.avi")
+
+    # FFV1 is lossless and keeps Mono8 as a single plane (isColor=False), so the
+    # faint grey paint mark that MJPG's colour compression washed out survives.
+    # Fall back to MJPG q=100 only if this OpenCV build can't open FFV1.
+    codec = args.codec.lower()
+    codec_used = None
+    if codec == 'ffv1':
+        w = cv2.VideoWriter(fname, cv2.VideoWriter_fourcc(*'FFV1'),
+                            actual_fps, (W, H), isColor=False)
+        if w.isOpened():
+            writer, writer_is_color, codec_used = w, False, 'FFV1 (lossless Mono8)'
+        else:
+            w.release()
+            print("  FFV1 could not open on this build -- falling back to MJPG q=100")
+            codec = 'mjpg'
+    if writer is None:
+        # MJPG (or any requested colour codec): gray promoted to BGR, quality maxed.
+        fourcc = 'MJPG' if codec in ('mjpg', 'ffv1') else args.codec.upper()
+        w = cv2.VideoWriter(fname, cv2.VideoWriter_fourcc(*fourcc),
+                            actual_fps, (W, H), isColor=True)
+        try:
+            w.set(cv2.VIDEOWRITER_PROP_QUALITY, 100)
+        except Exception:
+            pass
+        writer, writer_is_color, codec_used = w, True, f'{fourcc} q=100 (lossy)'
     if not writer.isOpened():
         cam.Close()
         sys.exit(f"VideoWriter failed to open ({fname})")
+
+    # Per-frame timestamp sidecar, same GPS-stamped name with .csv. Lets the
+    # tracker put each frame on an absolute clock and spot dropped frames.
+    csv_name = os.path.join(args.outdir, f"output_basler_gps{gps}.csv")
+    csv_file = open(csv_name, 'w', buffering=1)
+    csv_file.write('frame_index,block_id,cam_timestamp_ns,host_time\n')
+
     utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
     print(f"  recording -> {fname}  ({utc})")
+    print(f"  codec     -> {codec_used}")
+    print(f"  timestamps-> {csv_name}")
 
 # ------------------------------------------------------------------ optional MJPEG
 server = None
@@ -311,9 +375,18 @@ if args.show:
 print(f"Running{' with live window' if args.show else ' headless'} -- Ctrl-C to stop.")
 
 jpeg_params = [cv2.IMWRITE_JPEG_QUALITY, int(args.jpeg_quality)]
+stretch_lo, stretch_hi = (float(v) for v in args.stretch_pct.split(','))
+if args.stretch:
+    print(f"  display stretch -> {stretch_lo:g}-{stretch_hi:g} percentile "
+          f"(--show + MJPEG only; recording/snapshot unchanged)")
+want_disp = args.show or (server is not None)
 last_snap = 0.0
 t0 = time.time()
 n = 0
+# dropped-frame bookkeeping from camera BlockID gaps (recording path only)
+dropped = 0
+prev_block = None
+first_block = None
 try:
     while running['go']:
         res = cam.RetrieveResult(2000, pylon.TimeoutHandling_ThrowException)
@@ -325,23 +398,49 @@ try:
                 frame = cv2.flip(frame, 1)         # flip left<->right (y-axis)
             n += 1
             if writer is not None:
-                writer.write(cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))
-            # encode once, reuse for stream + snapshot
-            if server is not None or SNAP:
+                # FFV1 path writes the Mono8 plane as-is (lossless); the MJPG
+                # fallback still needs gray promoted to BGR.
+                writer.write(frame if not writer_is_color
+                             else cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR))
+            # per-frame timestamps + dropped-frame accounting
+            if csv_file is not None:
+                block = int(res.BlockID)
+                tstamp = int(res.TimeStamp)
+                host = time.time()
+                csv_file.write(f"{n},{block},{tstamp},{host:.6f}\n")
+                if first_block is None:
+                    first_block = block
+                if prev_block is not None and block > prev_block + 1:
+                    dropped += block - prev_block - 1
+                prev_block = block
+            # display frame is stretched ONLY for show/stream; the snapshot that
+            # tooling reads is always the raw sensor frame.
+            disp = display_stretch(frame, stretch_lo, stretch_hi) \
+                if (want_disp and args.stretch) else frame
+            # snapshot (raw) and stream (disp) -- share the encode when not stretching
+            raw_jpeg = None
+            if SNAP or (server is not None and not args.stretch):
                 ok, buf = cv2.imencode('.jpg', frame, jpeg_params)
                 if ok:
-                    jpeg = buf.tobytes()
-                    if server is not None:
-                        hub.update(jpeg)
-                    now = time.time()
-                    if SNAP and now - last_snap >= args.snapshot_every:
-                        tmp = args.snapshot + '.tmp'
-                        with open(tmp, 'wb') as f:
-                            f.write(jpeg)
-                        os.replace(tmp, args.snapshot)   # atomic
-                        last_snap = now
+                    raw_jpeg = buf.tobytes()
+            if server is not None:
+                if args.stretch:
+                    ok, buf = cv2.imencode('.jpg', disp, jpeg_params)
+                    stream_jpeg = buf.tobytes() if ok else None
+                else:
+                    stream_jpeg = raw_jpeg
+                if stream_jpeg is not None:
+                    hub.update(stream_jpeg)
+            if SNAP and raw_jpeg is not None:
+                now = time.time()
+                if now - last_snap >= args.snapshot_every:
+                    tmp = args.snapshot + '.tmp'
+                    with open(tmp, 'wb') as f:
+                        f.write(raw_jpeg)
+                    os.replace(tmp, args.snapshot)   # atomic
+                    last_snap = now
             if args.show:
-                cv2.imshow('Basler live', frame)
+                cv2.imshow('Basler live', disp)
                 if (cv2.waitKey(1) & 0xFF) == ord('q'):
                     running['go'] = False
         res.Release()
@@ -355,8 +454,15 @@ finally:
     cam.Close()
     if writer is not None:
         writer.release()
+    if csv_file is not None:
+        csv_file.close()
     if server is not None:
         server.shutdown()
     if args.show:
         cv2.destroyAllWindows()
-    print(f"\nStopped. {n} frames in {dt:.1f}s ({n/dt:.1f} fps effective).")
+    eff = n / dt if dt > 0 else 0.0
+    print(f"\nStopped. {n} frames in {dt:.1f}s ({eff:.1f} fps effective).")
+    if csv_file is not None:
+        span = (prev_block - first_block + 1) if first_block is not None else 0
+        print(f"Dropped frames (BlockID gaps): {dropped}"
+              f"  ({n} received of {span} expected across the BlockID span).")

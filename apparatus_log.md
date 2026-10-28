@@ -35,6 +35,77 @@ dated entry.
 
 ## Changes
 
+### 2026-10-28 — ACTUATOR IS FAST: matrix → DAC in under one 1024 Hz sample
+
+> **Provenance.** MEASURED: everything below. The one INFERENCE is flagged in place.
+
+**`DRVMTRX` reaches the DAC within a single 1024 Hz sample.** EPICS is not a
+bottleneck and neither is the matrix.
+
+Method: drive at `--felec 1.0 --amp 200` (torque 0.1% of amp 6400, negligible),
+`DRVMTRX_TRAMP = 0`, step `SETTING_2_2` between +1 and −1 four times ~8 s apart,
+then read `V2_OUT_DQ` at 1024 Hz from NDS.
+
+| | |
+|---|---|
+| largest single-sample change at the step | **−283.8 counts** |
+| median sample-to-sample change elsewhere | 0.63 counts |
+| ratio | **453×**, inside one 1 ms sample |
+| `caput` round-trip | 0.38–0.44 ms |
+
+**Internal check:** the final transition, where `TRAMP` had been restored to 2.0,
+took **1.48 s** — i.e. TRAMP does exactly what it says, while TRAMP = 0 steps
+complete within one sample. The ramp machinery is not the slow thing; nothing is.
+
+#### ⚠ CORRECTION — an earlier attempt the same day reported a "250 ms floor". It was wrong.
+
+That attempt polled the **EPICS readback** `DRVMTRX_{r}_{c}` after `LOAD_MATRIX`
+and saw ~250 ms regardless of TRAMP. **That is the readback scan rate, not the
+actuator.** Measured on this front end from monitor callbacks: `LES_YAW_INMON`,
+a continuously-changing channel, updates at **8.0 Hz (125 ms median interval)**.
+The 250 ms "floor" is two of those.
+
+> **EPICS readbacks cannot be used to measure front-end latency here.** Use a DAQ
+> channel (`_OUT_DQ`, 1024 Hz) and a signal that is actually flowing.
+
+Also note monitors fire on *change*: `DRVMTRX_2_2`, `V2_OUTMON` and `DRV_FREQ`
+produced 0–1 callbacks in 12 s simply because they were static, which is not a
+statement about their update rate.
+
+#### Consequence for a feedback loop
+
+| element | time |
+|---|---|
+| camera frame interval at 50 fps | **20 ms** |
+| angle from a raw array | 0.14 ms (0.78 ms in `rotor_angle_loop.py`, larger box) |
+| `caput` | 0.44 ms |
+| matrix → DAC | < 1 ms |
+
+The camera is the slowest element by ~20×. *(INFERRED, not tested: this supports
+letting the front end synthesise the waveform at 16 kHz while Python writes
+setpoints at camera rate. No loop has been closed.)*
+
+#### New tool and a camera fact
+
+`camera_utils/rotor_angle_loop.py` — in-process angle at frame rate, pypylon →
+numpy → angle, no files and no JPEG. Measures only; commands nothing. Sustained
+**50.0 fps, 0.78 ms/frame** live.
+
+⚠ **The Basler is held EXCLUSIVELY.** One process at a time: `grab_basler.py` and
+`rotor_angle_loop.py` cannot both run, and whichever opens first wins. The loop
+writes `/dev/shm/rotor_angle_latest.jpg`, a *different* path from
+`basler_latest.jpg`, so a viewer pointed at the usual file shows a frozen frame
+rather than failing visibly.
+
+#### Open, unexplained
+
+- Live detection ran **31% good** where the same code on the 17:03 recording gives
+  **83%**. Not the search box — two different boxes give identical results on the
+  recording (centre 106.0,175.9, radius 29.8 px, 83%). Unexplained.
+- An earlier claim in-session that the camera had moved further back was **wrong**;
+  it came from reading an ill-conditioned circle fit as a measurement.
+- A 3× harmonic carrying 25% of the orbit's radial variance. No candidate cause.
+
 ### 2026-10-14 — stator drive: the rotor is DRIVEN at f_elec/8 but NOT carried round
 
 > **Provenance.** MEASURED: all LES amplitudes/rms, the video coherence and centroid
