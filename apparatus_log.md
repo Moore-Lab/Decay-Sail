@@ -586,6 +586,10 @@ should be excluded from the fit rather than left to an outlier filter.
 
 ### 2026-09-09 — CONFIRMED: `LES_YAW` rectifies libration and reports 2× the mechanical frequency
 
+> **Superseded in part (2026-09-14):** the last paragraph ("do not halve rotation") is
+> wrong. Live timing on 09-14 gave rotation = comb/2, because the 2-fold sail repeats
+> every half turn. Current rule: CLAUDE.md, LES sensor.
+
 **While the rotor is librating, the frequency of the `LES_YAW` line is twice the
 mechanical libration frequency.** Divide by two. This is a readout property, not
 a property of the rotor, and it has been silently inflating every libration
@@ -1064,6 +1068,10 @@ on `OUTS_V1..V4` (the only filter in the file is a PID on `PD`).
 
 ### 2026-08-28 — HV amp identified (HV265), calibration confirmed, PI confirms bipolar is normal
 
+> **Superseded in part (2026-08-28 afternoon, §5):** there is no amp zero-crossing near
+> 6400 counts. The amp maps any DC input to 0 V out; 6400 was just where the offset sat.
+> The zero-crossing reasoning below is kept for the record.
+
 Follow-up to the 2026-08-25 entry below, from a from-scratch electrical
 characterization session (different machine/session than the 08-25 one).
 
@@ -1384,6 +1392,9 @@ fighting a 1-second ramp.
 ---
 
 ### 2026-08-22 — rotor librates ~20 h with drive AND laser off: floating/domed board suspected
+
+> **Later:** the board was flattened (shims under the PEEK) and grounded by 2026-10-27.
+> Whether the rotor still moves with drive and laser off is open (`docs/STATUS.md`).
 
 Left the rotor after the 08-21 stator tests; it was still librating the next morning with,
 as far as the records show, **no drive of any kind**:
