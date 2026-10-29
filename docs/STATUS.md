@@ -43,8 +43,12 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
   there costs torque (τ ∝ exp(−m·h/r)).
 - **Rotor dimensions:** disk thickness (the models assume 0.5 mm, the V1.3 design
   note says 0.75 mm; both look too thick for the weighed 5.8 mg) and OD (3.4–3.5 mm).
-- **Trap / libration frequency:** treat as not known. Re-examine
-  `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the time domain.
+- **Trap / libration frequency:** treat as not known. Three values disagree: 0.310 Hz
+  mech (09-09, small amplitude, timed), 0.12–0.16 Hz LES before the 09-08 drive
+  (0.06–0.08 mech if halved), ~0.13 Hz at capture on 09-08 (band-limited tracker).
+  Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the time domain (cusp
+  spacing, not a peak finder) and get f₀ at small amplitude.
+- **Rotation direction:** which way A→B→C turns the rotor has not been observed.
 - **PD check** across the 09-11 laser-only segment (from GPS 1473204806) for drift or
   mode hops.
 - **`VOLTS_PER_COUNT`:** measure (`stator_epics_drive.py calibrate` + meter on the amp
@@ -52,7 +56,8 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
 - **Capture bracket:** detent runs at 4000 / 4800 / 5600 counts, recording the
   pre-drive rms each time.
 - **Measure `I` directly** from the high-frequency asymptote of χ(f).
-- **Tilt stage:** install the replacement, align, re-measure τ with a free spindown.
+- **Tilt stage:** install the replacement, align, re-measure τ with a free spindown
+  (laser off). That gives the post-tilt γ the 08-03/08-04 notebooks still need.
 - **PD / pickoff:** measure the pickoff ratio; find why the PD lost ~28% response when
   the PBS went in; replace the PBS251 with a wedged window or characterise its drift.
 - **Torque-per-mW drop (4.5×):** separate beam geometry from sail alignment once the
@@ -66,3 +71,5 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
   magnification (16 mm lens is at ~0.09×).
 - **Log housekeeping:** accuracy audit (label claims measured / derived / assumed);
   restructure `apparatus_log.md` into short entries, archive pre-October.
+- **Calibration history:** `analysis/calibration_history.md` (which constants applied
+  to which datasets).

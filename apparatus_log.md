@@ -1,35 +1,15 @@
-# Apparatus change log
+# Apparatus log
 
-Dated record of physical changes to the rotor / optics / vacuum system, and what each
-one invalidates. Analysis notebooks assume constants (γ, counts/mW, the thermal floor)
-that are only valid for a particular apparatus state — this file is the record of which
-state each dataset was taken in.
+Dated record of what changed and what was run. **New entries go at the top of
+`## Changes`**, newest first. Dates are UTC unless noted.
 
-**Add an entry whenever anything in the beam path, the chamber, or the readout chain
-changes**, even if it seems minor at the time. A change that is obvious in the lab is
-invisible in an HDF5 file six months later.
+Each entry is short: what was done or run (command, front-end GPS start–stop), what was
+seen, and a link to any analysis. Label claims as measured, derived or assumed.
+Open items live in `docs/STATUS.md`, current values in `docs/DECISIONS.md`, and which
+constants applied to which datasets in `analysis/calibration_history.md`.
 
-Dates are UTC unless noted.
-
-**Ordering — read the date in each heading, do not infer it from position.** The
-file is not consistently chronological: entries from 2026-09-09 back to
-2026-07-27 run newest-first, then from 2026-07-27 forward to 2026-08-24 they run
-oldest-first. The two blocks meet at the 07-27 entries. (The header previously
-claimed "newest-last", which was wrong for both halves.) **New entries go at the
-top of `## Changes`.** Reordering the older block is a pending tidy-up.
-
-**Mark confidence explicitly.** A measurement and an inference from it are
-different things and the difference stops being obvious within weeks. State which
-one an entry is:
-
-- **Established** — measured, ideally by two independent routes. State the
-  numbers and the conditions.
-- **⚠ Uncertain / hypothesis** — say so in the entry itself, say what would
-  settle it, and do not let it silently become a premise elsewhere.
-
-If something is uncertain enough that it would be misleading to record as fact,
-it belongs in `## Open items` with the test that would resolve it — not in a
-dated entry.
+**Ordering:** entries from 2026-09-09 back to 2026-07-27 run newest-first, then from
+07-27 forward to 08-24 they run oldest-first. Read the date in each heading.
 
 ---
 
@@ -320,7 +300,7 @@ locally and is exactly what makes a forwarded plot feel sluggish. `--gui-interva
 
 γ differs by 1.5× and the constant term vanishes entirely. Both are in active use. Which is
 right changes every sensitivity estimate in the programme. **Do not silently adopt one** —
-see Open items.
+see `docs/STATUS.md`.
 
 ### 2026-09-15 — laser step-down RUN RESULTS (threshold ~1000-1010 counts; PD axis suspect; fit-don't-hold)
 
@@ -428,6 +408,13 @@ count has dropped a lot — so the sustaining-rotation threshold is expected **m
   the 09-13 spindown; full amplitude collapse later, ~11.5 h; a gradual multi-stage fade, not
   one clean capture). **Continuous rotation-vs-libration classification is NOT reliable and is
   not attempted.**
+
+**Divisor resolved (2026-09-14): `rotation = comb/2`.** Molly timed 10 turns live by
+stopwatch at `LASER_OFFSET = 1300`: ~13.3 s, against 6.7 s if `rotation = comb`. Setup
+matched the 09-13 run, so this applies to the whole 09-11 → 09-14 episode. It is a live
+re-timing, not a re-analysis of the 09-11 clip. `spindown_20260913.ipynb` and
+`damping_law_comparison.ipynb` already used divisor 2. (Lesson from the clip: follow a
+feature that marks one end of the sail; the sail's orientation repeats every half turn.)
 
 Open for the morning: reassess the 10-count low-end density/dwell if it runs slow (~17–20 h as
 scheduled) — edit the live schedule file, do not restart. Pressure is start/stop manual only
@@ -552,7 +539,7 @@ predicted it would if it could deliver ≳200–400 µW to the sail.
 > | input | value used | source | status |
 > |---|---|---|---|
 > | `I` | 1.10e-11 kg·m² | `noise_budget_20260911_clean.ipynb` param cell | weighed, ±10% |
-> | `γ` | 2.2974e-15 N·m·s | same, = I/τ_mech with τ_mech = 79.8 min | **inherits `I`**; and the repo holds a second, incompatible drag law (see Open items) |
+> | `γ` | 2.2974e-15 N·m·s | same, = I/τ_mech with τ_mech = 79.8 min | **inherits `I`**; and the repo holds a second, incompatible drag law (see `docs/STATUS.md`) |
 > | divisor | rotation = line/2 | 09-14 re-timing | measured |
 > | lever arm | r_eff = 1.38 mm | same notebook | geometric |
 > | f_ss | 0.748876 Hz | 09-11 steady state | measured |
@@ -1621,235 +1608,4 @@ thinner or less dense than assumed.
   insulated wire soldered to a top GND pad (r 10.8 mm, az 60°/240°), crimped into an
   MB-R6 ring lug under a base screw. The magnet and base were already grounded.
 - PEEK height is now set with the stainless shims **under the PEEK plate**, not
-  under the pads (see the terminal-shim to-do).
-
-## Vacuum
-
-Pressure ~**2.9e-7 mbar**, consistent across this period. No logger yet
-(`lab_utils/log_pressure.py` written, gauge not recording).
-
-Because pressure was steady, it is **not** the explanation for the elevated damping from
-07-27 onward — that is the tilt-stage removal.
-
----
-
-## Dataset → apparatus state
-
-| dataset | window (UTC) | tilt stage | PD | meter |
-|---|---|---|---|---|
-| laser step-down | 07-05 → 07-09 | **yes** | misaligned + LN amp | none |
-| 3 mW dark / ON | 07-27 → 07-29 | removed same day | good | at chamber, head-on |
-| 10 mW noise run | 07-31 → 08-02 | no | good | at chamber, head-on |
-| spindown (electrode drive-off) | 08-03 → 08-04 | no | good | PBS251 pickoff |
-| stability run (1600 cts) | 08-04 → 08-05 | no | good | PBS251 pickoff |
-
-τ_free = 67.65 min applies **only to the first row**.
-
----
-
-## Known-stale constants
-
-| constant | value | valid for | note |
-|---|---|---|---|
-| commanded→power | 11.87 µW/count above 735 | ≤ 2026-10-08 | **superseded: 11.10 µW/count above a 764-count threshold, measured 2026-10-09** (−6%, consistent) |
-| PD counts/mW | 283 | 07-28 → 07-31 only | 203 on 08-03 (−28%). **Both superseded: the pickoff was replaced and reads ~411 counts/mW, measured 2026-10-09** — see the 2026-10-09 entry |
-| lever arm | r_c = 2.625 mm | ≤ 2026-10-08 | **superseded: `R_EFF = 1.38 mm`** (wing centroid), with `R_TIP = 1.88 mm` for geometry comparison — `noise_budget_20260911_clean.ipynb` |
-| `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
-| `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
-| `I_KGM2` | ~~1.88e-11~~ → **1.1e-11** | **superseded 2026-09-30** | 1.88e-11 was a calc with an older 2×2 mm sail and a heavier disk model; SolidWorks 1.7e-11 is also too heavy (11.05 mg CAD). Now from the **weighed 7 mg** assembly + model shape, ±10%. See the 2026-09-30 entry and `CLAUDE.md`. Dated notebooks still using 1.88e-11 have torques/forces ×0.585 too high. |
-| `KAPPA_PD_OLD` | 7.35e-16 N·m/count | step-down gain only | do not reuse post-amp-removal |
-
-### Decision: which γ goes in which notebook
-
-The two uses of γ are different questions and take different values.
-
-- **`laser_dark_vs_on.ipynb` keeps τ = 67.65 min** (tilt stage present). Its measurements
-  are laser properties, unaffected by the chamber; the requirement line is a *design
-  target* for the configuration the experiment is meant to run in. With a replacement
-  tilt stage on order, that is the tilt-present state — so the 0.735 µW/√Hz line stands,
-  and the 89× / 361× margins quoted against it are the honest ones. Re-drawing it ~2×
-  looser to match a temporary no-tilt excursion would flatter the result.
-- **`spindown_20260803` / `rotor_stability_20260804` need the measured post-tilt γ**,
-  because they describe how the rotor actually behaved, not what it should achieve.
-
-Revisit both once the new stage is installed and τ re-measured.
-
----
-
-## PD scale shift — the PD, not the commanded calibration
-
-On the 2026-08-03 run the laser was commanded to **1400 counts** and the chamber power
-was **measured at 7.62 mW**. The 2026-07-20 commanded-count calibration
-(11.87 µW/count above a 735-count threshold) predicts 7.89 mW — **agreement to 3.6%**,
-inside its own repeatability. **That calibration is sound.**
-
-What moved is the PD. It read 1550 counts for that 7.62 mW, i.e. **203 counts/mW**,
-against **280.6** (07-28) and **284.6** (07-31) measured head-on against the Ophir. The
-PD has lost **~28% of its response relative to chamber power**, between 07-31 and 08-03
-— which is when the PBS pickoff was installed.
-
-- **Use measured chamber power** for post-08-03 datasets, not the 283 counts/mW scale.
-- The PD remains fine as a *relative* monitor (its 1.4% linearity was measured across
-  3–10 mW); it is the absolute scale that has shifted.
-- Worth finding out *why* — a 28% change in the PD's share of the beam suggests its tap
-  was disturbed when the PBS went in.
-
-### Consequence: the laser torque has dropped too
-
-The 08-03 fit gives a drive torque of 2.03e-14 N·m at 7.62 mW, i.e. **2.66e-15 N·m/mW**
-against the July calibration of **1.19e-14 N·m/mW** — **4.5× lower** (4.5–5.4× across the
-f_ss method spread).
-
-Combined with damping 6.4× worse, the sustainable rotation rate
-`f_ss = κP/(2πIγ)` is **~29× lower than in July**. That is why the laser could not hold
-the rotor at a power that would have worked before the tilt stage came out, and it is a
-torque-coupling change as well as a damping change — worth separating once the new stage
-is in.
-
----
-
-## Open items
-
-- [ ] **⚠ TWO DRAG LAWS, 2026-10-09 — decide which one the programme uses.**
-      `damping_law_comparison.ipynb` fits `τ_drag = τ₀ + γω` with γ = 3.53e-15 N·m·s/rad
-      and a clearly nonzero τ₀ = 8.06e-16 N·m (~10σ) across 09-08/09-09/09-13.
-      `noise_budget_20260911_clean` uses pure linear drag, γ = I/τ_mech = 2.2974e-15,
-      τ_mech = 79.8 min, with no constant term. γ differs by 1.5× and τ₀ vanishes.
-      Both are in live use and every force-sensitivity estimate depends on the choice.
-      **To settle it:** a single long free spindown spanning a wide ω range, fitted both
-      ways — the constant-torque term only shows up at low ω, which is exactly where the
-      existing runs are thinnest. Note the γ discrepancy partly tracks the `I` change
-      (γ = I/τ_mech inherits it), so recompute before concluding the fits disagree.
-
-- [ ] **Channel debt from the 2026-10-09 beam move: `LES_YAW` → `LES_PIT`.**
-      `settled_check.py`, `monitor_libration.py`, `track_spindown.py` and both
-      `noise_budget_20260911*` notebooks hardcode `LES_YAW`, which is now the *weak* axis
-      (SNR 212 vs PIT's 511). Nothing errors — the frequency precision just quietly gets
-      3× worse. `lab_utils/track_drive.py` already defaults to PIT.
-
-- [ ] **`F0_PB` in `noise_budget_20260911_clean.ipynb` — UPDATED 2026-10-09 to 0.81e-15,
-      §2 still needs re-running.** The PI's figure for the Pb-212 recoil is 0.81 fN, not
-      the 5.1 fN originally hardcoded. The quasi-static signal drops from 0.488 mHz to
-      0.077 mHz — from *above* the 2-hour block scatter (0.065–0.151 mHz) to *level with*
-      it — so every SNR statement in §2 falls by 6.3×. Re-execute and restate the margin.
-
-- [ ] **Chase the 15+ call sites that still hardcode `I = 1.88e-11`** (root:
-      `momentum-simulation/thermal_noise_spindown.py:37`, via
-      `stator_flex/spinup_estimates.py:28`). The weighed value is 1.10e-11, so every
-      torque, capture-bandwidth and ramp-rate figure derived from them is high by 1.71×,
-      including the Performance table in `CLAUDE.md`.
-
-- [x] **TODO 2026-09-11 — COUNT THE VIDEO, settle the LES divisor.** **RESOLVED
-      2026-09-14 — `rotation = comb/2`.** Molly re-spun the rotor 2026-09-14 at the
-      same `LASER_OFFSET = 1300` and timed 10 turns live by eye/stopwatch against
-      the two predicted durations (6.7 s if `rotation = comb`, 13.3 s if
-      `rotation = comb/2`): **it timed to ~13.3 s, i.e. comb/2.** Molly confirms
-      today's setup matches the 09-13 run's conditions exactly, so this settles the
-      divisor for that whole episode (09-11 → 09-14), not just today.
-      **This is a live re-timing on 2026-09-14, not a re-analysis of the original
-      09-11 clip below** — worth keeping that distinction precise given how much
-      this ambiguity has cost. `analysis/spindown_20260913.ipynb` and
-      `analysis/damping_law_comparison.ipynb` already used divisor=2 (hyp B) as
-      their working default throughout, so neither needs recomputing.
-
-      Original open-item text, kept for the record:
-
-      **The clip:** `output_basler_gps<true GPS>.avi` in `/home/controls/stator_detent/`,
-      recorded front-end GPS 1473206549 – 1473208206 (true GPS 1473196674 –
-      1473198333), ~28 min, 10 fps.
-
-      **The test — count turns over 10 s near the END of the clip** (it
-      accelerated ~7% across the recording, so a count spanning the whole thing
-      will smear):
-
-      | turns in 10 s | verdict |
-      |---|---|
-      | **15** | `rotation = comb` = 1.498 Hz, 0.668 s/turn |
-      | **7** | `rotation = comb/2` = 0.749 Hz, 1.335 s/turn |
-
-      ⚠ **Follow a feature that distinguishes the two ends of the sail** — the
-      paint mark, or a one-sided glint. Counting the sail returning to the same
-      *orientation* gives the half-turn number and settles nothing. That single
-      detail is the entire reason this has stayed open across three analyses.
-
-      LES comb was 1.4012 Hz at the start mark, 1.4976 Hz at the end mark.
-
-- [ ] **TODO 2026-09-11 — PD check across the laser-only segment** (from
-      `1473204806`). `Y1:RDS-PD_IN1_DQ` records continuously at 1024 Hz. Look for
-      660 nm power drift or a mode hop — a documented instability near
-      `LASER_OFFSET` 1300 — which would make `τ_laser` non-constant and the
-      linear rate fit wrong. The brief pushing-beam block should appear as a step;
-      exclude that interval explicitly rather than relying on an outlier filter.
-
-- [ ] **PENDING: accuracy audit of the whole log.** Go entry by entry and label
-      each load-bearing claim as *measured directly*, *inferred from a
-      measurement*, *inherited from elsewhere*, or *assumed*; then list only those
-      other work depends on. Entries recording physical changes will pass quickly;
-      the risk is concentrated in the derived numbers — γ, `I`, `VOLTS_PER_COUNT`,
-      counts/mW, τ, and the m = 8 assumption. Triage first, no content edits, so
-      the list can be checked against memory of what actually happened before
-      anything is rewritten.
-- [ ] **PENDING: reorder the older half of `## Changes`.** Entries from 07-27
-      forward to 08-24 run oldest-first while the rest runs newest-first. Do it as
-      a mechanical-only diff with no content changes.
-- [ ] **Libration frequency bookkeeping — UNRESOLVED, low confidence.** The
-      2026-09-09 entry establishes firmly that `LES_YAW` reports 2× the mechanical
-      libration frequency. What that implies for the numbers already recorded is
-      *not* established, and the following is a hypothesis, not a finding.
-      Three values are in tension:
-      **(a)** 0.310 Hz mechanical, measured 09-09 at small amplitude;
-      **(b)** 0.12–0.16 Hz, the "trap frequency" read off LES in the hour before
-      the 09-08 drive, which would be 0.06–0.08 Hz mechanical if the same factor
-      applies;
-      **(c)** ~0.13 Hz, the apparent libration at capture on 09-08, from a tracker
-      that was band-limited to 0.30–1.2 Hz and dividing by 3 for rotation — an
-      indexing that is meaningless once the rotor stops going round.
-      A pendulum's frequency falls toward zero at the separatrix, so a
-      large-amplitude libration in the 0.06–0.08 Hz range relaxing to 0.310 Hz at
-      small amplitude is *directionally* consistent — and the rotor was recorded
-      doing large librations, and escaping near 180°, in that period. But a 4–5×
-      ratio demands amplitude extremely close to the separatrix, and none of this
-      has been checked against the raw data. **To settle it:** re-examine the
-      pre-drive hour and the post-capture segment of the archived
-      `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5`, identify the cusp spacing
-      directly in the time domain rather than trusting a peak finder, and get f₀
-      at genuinely small amplitude. Until then, treat the trap frequency as
-      **not known** rather than as 0.13 Hz.
-- [ ] Clean post-tilt γ measurement — driven-relaxation fit to the 08-03 decay, or a
-      deliberate spindown. Needed by the spindown and stability notebooks.
-- [ ] Install the replacement tilt stage, align to best tilt, and **re-measure τ** with a
-      deliberate free spindown (laser off, so the free-decay formula applies). This
-      becomes the new design-target γ for the requirement.
-- [ ] Measure the pickoff ratio (meter at chamber vs meter at pickoff, one reading).
-- [ ] Replace the PBS251 pickoff with a wedged uncoated window, or characterise the
-      polarization drift so the amplification can be corrected for.
-- [ ] Tilt the ND filter to break the air-gap etalon.
-- [ ] Commanded laser counts before and after the 08-03 step (PD went 2359 → 1545).
-- [ ] Get the pressure gauge logging.
-- [ ] Find out why the PD lost ~28% of its response relative to chamber power when the
-      PBS pickoff was installed — was its tap disturbed? Re-anchor counts/mW against the
-      Ophir head-on.
-- [ ] Separate the 4.5× torque-per-mW drop into beam-geometry vs sail-alignment causes
-      once the new tilt stage is in.
-- [ ] Measure `I` directly rather than inheriting it — the electrode drive gives it from
-      the high-frequency asymptote of χ(f).
-- [ ] Measure `VOLTS_PER_COUNT` (`stator_epics_drive.py calibrate` + a meter on the
-      amplifier output). Until then the 3200–6400 count capture bracket cannot be turned
-      into a torque in N·m. The old placeholder 0.03125 is provably wrong — it implies
-      200 V at 6400 counts on an amplifier that stops at ~80 V.
-- [ ] Narrow the capture bracket: detent runs at 4000 / 4800 / 5600 counts against a
-      comparable starting libration amplitude. Note the threshold depends on the rotor's
-      energy at the time, so record the pre-drive rms for each.
-- [x] Settle which `V{n}` is the centre electrode by continuity check at the next chamber
-      opening. **DONE 2026-08-24 — V1 IS the centre electrode, conclusive.** Clockwise the
-      sector phases read V3, V4, V2, which is a *cyclic rotation* of (2,3,4), so
-      `stator_epics_drive.py`'s `PHASE_ELECTRODES = (2,3,4)` was already correct and no
-      recabling was needed. See the 08-24 entry. Rotation **direction** is still open.
-- [x] Swap the ½" electrode stands for 4-40 screws. **DONE by 2026-10-19** with
-      4-40 × 1/8" screws into the 3/32" tapped PEEK. (The "≤Ø5.8 mm, 0.1 mm centre
-      shim" originally listed here was never Molly's plan and is dropped — there is
-      no centre shim.)
-- [x] Level the board with the magnet so the flex doesn't dome. **DONE 2026-10-27:**
-      shims under the PEEK plate (stack: _to fill in_), flex flat; meter checks pass
-      (phases open to GND and base, GND pad to base connected). Metal shims under the
-      pads would short a phase to GND (bare GND around each pad), so none are used.
+  under the pads (a metal shim under a pad shorts that phase to the bare GND around it).
