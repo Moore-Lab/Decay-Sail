@@ -1,45 +1,27 @@
-# Directive
+# Measurement objective
 
-**Reliably spin up the rotor with the electrodes.**
+## Goal
 
-Spin up to a set frequency, on demand, repeatably. Nothing else.
+Measure the alpha-recoil force on the sail from a Pb-212 source.
+Expected force **F0 = 0.81 fN** (PI's figure, 2026-10-09).
 
----
+## Current directive
 
-## Where it stands
+**Reliably spin up the rotor with the electrodes:** to a set frequency, on demand,
+repeatably, in both directions.
 
-Measured 2026-10-14, two runs, `hold --felec 0.08 --amp 6400`:
+## Success criteria
 
-- Drive on → LES rms 15.6 → 304.9 counts, with a line within one FFT bin of the
-  0.0200 Hz that f_elec/8 predicts. Reproduced.
-- Video phase coherence 0.670 during drive; four full turns would give ~0.04.
+Each stage is passed when it succeeds in **8 of 10 consecutive attempts** in **each
+direction** (final target: 10 of 10). Every stage is done before moving to the next.
 
-**The rotor is driven at f_elec/8 but not carried around by the wave.**
-
-Observed directly: sometimes forward motion with sudden backward slips,
-sometimes back-and-forth.
-
-## The constraint
-
-`--amp 6400` is the ceiling. amp + pedestal = 12800 = `V{n}_LIMIT`, which keeps
-the HV amp input inside 0–2.1 V. **There is no more drive torque available in
-software.**
-
-## Tools
-
-| | |
+| Stage | Pass when |
 |---|---|
-| drive | `lab_utils/stator_osc_drive.py` (oscillator + DRVMTRX) |
-| rotor angle | white dot on the rotor, Basler acA1440-220um, `camera_utils/grab_basler.py` |
-| LES frequency | `lab_utils/track_drive.py` |
+| 1. Carry | At a fixed low speed (0.01–0.05 Hz mech, below capture), the rotor follows the wave with **no slips for 5 min** |
+| 2. Ramp | From rest, ramp to **0.2 Hz** and hold it for 5 min |
+| 3. Target | From rest to **1 Hz within 5 min**, then held at **1 Hz ± 1% for ≥ 5 min** |
 
-Camera, measured 2026-10-28 at 50 fps: 84% good detections, 0 dropped frames,
-0.14 ms to compute an angle, 0.44 ms for an EPICS write. The dot gives a full
-360° angle, so no divisor convention is involved.
+For each attempt, record which LES divisor was used and confirm the frequency once
+by stopwatch or camera.
 
-## Unmeasured
-
-Whether `DRVMTRX` can be stepped fast enough to control the field phase. Writes
-go through `SETTING_*` then `LOAD_MATRIX` and ramp over `DRVMTRX_TRAMP`.
-
-This decides whether a feedback loop is possible. Nothing else is blocking.
+Progress: `docs/STATUS.md`. Tools: the drive-script table in `CLAUDE.md`.

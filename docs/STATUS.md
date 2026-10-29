@@ -4,7 +4,21 @@ What is open now. Overwrite freely: when an item closes, delete it here and reco
 the outcome in `apparatus_log.md` (and `docs/DECISIONS.md` if it sets a value).
 The goal these serve is in `measurement_objective.md`.
 
+## Spin-up (the current directive)
+
+Stage 1 (carry) is **not yet passed**. 2026-10-14, two runs of `stator_osc_drive.py hold
+--felec 0.08 --amp 6400`: LES rms 15.6 → 304.9 counts, with a line within one FFT bin
+of the f_elec/8 prediction (reproduced), but the rotor is **not carried round**: video
+phase coherence 0.670 during drive (four full turns would give ~0.04). Observed by eye:
+sometimes forward with sudden backward slips, sometimes back-and-forth.
+`--amp 6400` is the software ceiling (see DECISIONS).
+
 ## Open
+
+- **Angle tracking (white dot):** good detections 83% on the 2026-10-28 recording but
+  31% live, unexplained (`apparatus_log.md` 2026-10-28). Scope it as a multi-agent
+  project (ground truth + scoring, detector, angle → frequency, capture on worker2,
+  live loop) once the docs are clean.
 
 - **Drag law:** `damping_law_comparison.ipynb` (τ₀ + γω, γ = 3.53e-15) vs
   `noise_budget_20260911_clean` (pure linear, γ = 2.30e-15). Decide which the programme
