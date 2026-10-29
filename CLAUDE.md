@@ -21,8 +21,7 @@ Deeper detail lives in `apparatus_log.md`, `stator_flex/flex_spec.md`,
 - Front-end model prefix is **`Y1:RDS`** (cf. Aaron Markowitz's microdiamond experiment
   on the same cymac1, which is `Y1:DMD` — *different model, do not assume they match*).
 - Front-end (cymac1) GPS: read it live, do not use a stored offset.
-- **Never restart GNOME Shell / the compositor on a live worker2 session** without
-  checking X11-vs-Wayland and asking first — it caused a login-loop lockout on 2026-07-10.
+- **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
 
 ---
 
