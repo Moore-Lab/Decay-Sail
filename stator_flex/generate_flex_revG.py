@@ -16,7 +16,6 @@ Key routing (all clearances >= 0.08, live bottom copper outside r=4.0):
   at the pad azimuths to 3-via clusters under the pads.
 - GND: exposed bottom ENIG contact ring (r 2.95-3.40, coverlay opening)
   pressed on the grounded magnet; 8 stitching vias at r=3.2 up to top pour.
-  Center shim (if used) must be <= Ø5.8 to not lift the contact ring.
 
 Outputs: flexG_top_copper.dxf, flexG_bottom_copper.dxf, flexG_outline.dxf,
 flexG_preview.png/pdf.
@@ -219,13 +218,12 @@ checks = [
 for name, v in checks:
     print(f"  {name:44s} {v:6.3f} mm  {'OK' if v >= 0.079 else 'FAIL'}")
 
-A1SQ, I_TOT = 0.438, 1.88e-11     # 3-phase stator rotating-wave amplitude^2
+A1SQ, I_TOT = 0.438, 1.1e-11      # I: measured mass + model shape; 3-phase stator rotating-wave amplitude^2
 # cap: fraction of the rotor's available m=8 coupling seen by the electrode
 # annulus at this gap (coupling_vs_radius.py); tau_raw is the full-coupling
 # value from analyze_snowflake_dxf.py at 100 V
 print(f"\nDrive performance (3-phase m=8, annulus {R_IN:.2f}-{R_OUT:.2f} mm):")
-for label, tau_raw, cap in [("no shim,    h=0.37", 3.37e-12, 0.842),
-                            ("0.1mm shim, h=0.27", 9.81e-12, 0.894)]:
+for label, tau_raw, cap in [("h=0.37", 3.37e-12, 0.842)]:
     for V in (100, 200):
         tau = tau_raw * A1SQ * cap * (V / 100) ** 2
         om = np.sqrt(M * tau / I_TOT)

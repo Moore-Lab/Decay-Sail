@@ -20,9 +20,10 @@ or capture-bandwidth problem -- all of which were real bugs, and all of which
 were fixed today without the rotor caring.
 
 The ratio is (f_on^2 - f_off^2)/f_off^2, a ratio of frequencies squared, so it
-does NOT depend on the moment of inertia. That matters here: I = 1.88e-11 kg m^2
-is assumed and has never been measured, and it contaminates every torque and
-capture number in CLAUDE.md. This one is clean.
+does NOT depend on the moment of inertia. That matters here: I (now ~1.1e-11
+kg m^2, from the weighed 7 mg mass and a model shape, ±10%) is not directly
+measured, and it scales every torque and capture number in this repo. This one
+is clean.
 
 WHAT THIS SCRIPT ADDS
 

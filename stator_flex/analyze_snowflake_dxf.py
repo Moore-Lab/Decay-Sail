@@ -23,7 +23,7 @@ DXF = "../Snowflake disk V1.3.DXF.dxf"
 EPS0 = 8.854e-12
 V0 = 100.0
 ETA = 0.5
-I_TOT = 1.88e-11
+I_TOT = 1.1e-11  # kg m^2, measured mass + model shape (docs/DECISIONS.md)
 TOL = 1e-3  # mm endpoint-matching tolerance
 
 # ---------- read segments ----------

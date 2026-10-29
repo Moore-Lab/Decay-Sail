@@ -128,12 +128,12 @@ Summary of what changed relative to the analysis above:
   modulation is in the **m = 8 family**, not the m = 12 the drawing note
   implies. Folding in gap attenuation exp(-m h / r), m = 8 is the fab-robust
   optimum. Implemented as 24 sectors, 15 deg pitch, 3-phase.
-- **Torque:** ~1.5e-11 N m at 200 V with a 0.1 mm shim (h ~ 0.27 mm) —
-  about 300x the side posts. Capture bandwidth 0.41 Hz mechanical (vs 5-70 mHz),
-  so fixed-frequency starts below ~0.4 Hz simply work and a ramp to 10 Hz takes
-  ~2.6 min. Reverse by swapping two phases.
-- **The gap is the dominant knob:** h = 0.37 -> 0.27 mm is worth 3x. A shim disk
-  under the board centre sets it.
+- **Torque:** ~5.0e-12 N m at 200 V at the installed gap (h ~ 0.37 mm, no
+  centre shim). Capture bandwidth 0.23 Hz mechanical (vs 5-70 mHz), so
+  fixed-frequency starts below ~0.2 Hz simply work and a ramp to 10 Hz takes
+  ~7.9 min. Reverse by swapping two phases.
+- **The gap is the dominant knob:** torque falls as exp(-m h / r), so every
+  0.1 mm of gap is worth ~3x.
 
 The lossy-dielectric induction-motor variant (old Sec. 8) was not pursued: it
 needs surface resistivity ~1e9-1e10 ohm m, which is unstable in vacuum, and a

@@ -1576,6 +1576,53 @@ it off), TRAMP restored to 1.0 s on all four, DRVON 0, SW1R 12 / SW2R 1792.
 
 ---
 
+### 2026-09-30 — rotor weighed: 7 mg; moment of inertia now 1.1e-11
+
+Weighed the disk + sail assembly: **0.007 g**. Every model was heavier: SolidWorks
+11.05 mg, and `optimize_sail.py` slotted disk + SAL-001 sail 8.77 mg.
+
+- **Sail** (SAL-001 "Sail Al V1.0", Kilian Schlager 2026-07-09, Al shim 0.1 mm):
+  integrating the drawing outline (half-sail = wing 0.88–1.88 × 1.40 mm, bar
+  0–0.88 × 0.70 mm, tab 0.30–0.69 × 0.30 mm) gives 1.156 mg, which matches the
+  drawing's 1.16 mg. **I_sail = 1.61e-12.**
+- **Disk** = 7 − 1.16 = **5.8 mg**. I_disk = k·M·R² with R = 1.75 mm. k = 0.51 for
+  the SolidWorks disk shape (backed out of the CAD totals) and 0.54 for the slotted
+  calc, so the shape barely matters → 9.1–9.7e-12.
+- **I_total = 1.07–1.13e-11; adopted 1.1e-11.** A ±0.5 mg balance uncertainty
+  widens this to 0.99–1.21e-11.
+
+**Why the old value was wrong:** `1.88e-11` = `optimize_sail.py` slotted disk
+(1.26e-11) + the script's *reference* sail, 2×2 mm wings at r_c = 2.625 mm
+(6.19e-12, four times the real sail). The SAL-001 tabs sit at r = 0.30–0.69 mm,
+which can't fit the slotted disk (hole to 0.55, slots from 0.877), so that disk
+model isn't the built one either.
+
+**Consequences:** torques, drag torques and forces ×0.585 vs 1.88e-11. Capture
+bandwidth ×1.31. Ramp time ×0.585, so `stator_drive.py` / `stator_epics_drive.py`
+now allow a 1.7× faster ramp. The force sensitivity (`noise_budget_20260911`) is
+re-run with the new value.
+
+**Still open:** balance readability; the disk OD (enters as R²); why the disk is
+lighter than a 3.5 × 0.5 mm graphite disk would be (10.6 mg solid), probably
+thinner or less dense than assumed.
+
+### 2026-10-21/22 — rotor centred on the board to 0.02–0.05 mm; board GND wired
+
+- **Centring** (flight rotor on the rev G flex, top-down microscope, microscope
+  straightened first). The rotor-edge circle fit, measured against the board centre
+  (via ring + CTR disk, agreeing to 9 µm), gives |δ| = 19, 22, 48, 46 µm in four
+  photos with different lighting. The spread between lighting setups is the
+  systematic error. Torque factor J0(8δ/1 mm) ≥ 0.96, so no re-centring is needed.
+  An earlier 0.09–0.12 mm reading with the microscope tilted was probably partly
+  parallax. Details, script and the fit-window pitfall are in
+  `analysis/rotor_centering/README.md`.
+- **Board ground:** the 1/4" magnet only overlaps the bottom GND contact ring
+  (r 2.95–3.40) by ~0.23 mm, so the ring never made contact. Fix: 22–24 AWG
+  insulated wire soldered to a top GND pad (r 10.8 mm, az 60°/240°), crimped into an
+  MB-R6 ring lug under a base screw. The magnet and base were already grounded.
+- PEEK height is now set with the stainless shims **under the PEEK plate**, not
+  under the pads (see the terminal-shim to-do).
+
 ## Vacuum
 
 Pressure ~**2.9e-7 mbar**, consistent across this period. No logger yet
@@ -1609,7 +1656,7 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 | lever arm | r_c = 2.625 mm | ≤ 2026-10-08 | **superseded: `R_EFF = 1.38 mm`** (wing centroid), with `R_TIP = 1.88 mm` for geometry comparison — `noise_budget_20260911_clean.ipynb` |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
-| `I_KGM2` | 1.88e-11 | **SUPERSEDED 2026-10-09 — now MEASURED at 1.10e-11 kg·m², ±10%, from the weighed 7 mg assembly** (`noise_budget_20260911_clean.ipynb`). 1.71× smaller; the 15+ downstream call sites still hardcode the old value, so anything computed from them is high by 1.71×. | disk + sail. Root is `laser-cutting/optimize_sail.py::disk_I_M()` (I_disk = 1.2612e-11, M = 7.617e-6 kg) plus 6.19e-12 for the sail = 33% of the total; propagated via `momentum-simulation/thermal_noise_spindown.py:37` to 15+ places. **A sail IS fitted (confirmed 2026-09-09)** so this is the correct value; bare disk would be 1.26e-11. See `CLAUDE.md` "the two numbers that govern everything" for the full chain and the mass discrepancy (7.617e-6 vs the 7.0e-6 hardcoded in `spinup_estimates.py`). |
+| `I_KGM2` | ~~1.88e-11~~ → **1.1e-11** | **superseded 2026-09-30** | 1.88e-11 was a calc with an older 2×2 mm sail and a heavier disk model; SolidWorks 1.7e-11 is also too heavy (11.05 mg CAD). Now from the **weighed 7 mg** assembly + model shape, ±10%. See the 2026-09-30 entry and `CLAUDE.md`. Dated notebooks still using 1.88e-11 have torques/forces ×0.585 too high. |
 | `KAPPA_PD_OLD` | 7.35e-16 N·m/count | step-down gain only | do not reuse post-amp-removal |
 
 ### Decision: which γ goes in which notebook
@@ -1798,6 +1845,11 @@ is in.
       sector phases read V3, V4, V2, which is a *cyclic rotation* of (2,3,4), so
       `stator_epics_drive.py`'s `PHASE_ELECTRODES = (2,3,4)` was already correct and no
       recabling was needed. See the 08-24 entry. Rotation **direction** is still open.
-- [ ] Swap the ½" electrode stands for 4-40 vented screws and fit a ≤Ø5.8 mm, 0.1 mm
-      shim. The stands are a live confound (tall conductors at r ≈ 9 mm) and the shim is
-      worth 3.2× torque, which at the ~80 V ceiling is no longer optional.
+- [x] Swap the ½" electrode stands for 4-40 screws. **DONE by 2026-10-19** with
+      4-40 × 1/8" screws into the 3/32" tapped PEEK. (The "≤Ø5.8 mm, 0.1 mm centre
+      shim" originally listed here was never Molly's plan and is dropped — there is
+      no centre shim.)
+- [x] Level the board with the magnet so the flex doesn't dome. **DONE 2026-10-27:**
+      shims under the PEEK plate (stack: _to fill in_), flex flat; meter checks pass
+      (phases open to GND and base, GND pad to base connected). Metal shims under the
+      pads would short a phase to GND (bare GND around each pad), so none are used.

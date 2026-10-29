@@ -98,8 +98,8 @@ TRAMP_PV = f'{PV}_TRAMP'
 # Machine constants
 # ===========================================================================
 M_DRIVE = 8              # rotor speed = f_elec / M_DRIVE; also the detent count
-I_KGM2  = 1.88e-11       # ASSUMED, never measured (see apparatus_log.md)
-GAP_MM  = 0.27           # 0.27 with the 0.1 mm shim, 0.37 without
+I_KGM2  = 1.1e-11        # measured mass (7 mg) + model shape, ±10% (see apparatus_log.md)
+GAP_MM  = 0.37           # rotor-electrode gap; no centre shim (0.27 is only a model point below)
 DRIVE_COUNTS = 6400.0    # peak AC amplitude per phase
 
 # DC pedestal per phase. NOT a workaround for a unipolar amplifier -- it is what
@@ -118,7 +118,8 @@ DRIVE_DC = DRIVE_COUNTS
 
 TORQUE_MARGIN = 0.5      # fraction of tau_max used while ramping ("<=50%")
 
-# tau_max at 100 V, from the design notes. Torque goes as V^2.
+# tau_max at 100 V, from the design notes, at two model gaps (used to interpolate
+# in h; not a hardware option). Torque goes as V^2.
 TAU_100V = {0.27: 3.8e-12, 0.37: 1.2e-12}   # N*m
 
 DRY_RUN = True           # flipped by --live
@@ -146,16 +147,17 @@ def f_capture_mech(tau):
     """Pull-in bandwidth (Hz mech). The drive torque is tau_max*sin(m*(th-th0)),
     so the restoring stiffness is m*tau_max and omega_lib = sqrt(m*tau_max/I).
 
-    Reproduces all four capture figures in the design notes (0.41 / 0.23 / 0.20
-    / 0.12 Hz). The notes' own sqrt(2*tau/I)/2pi is the SIDE-POST case -- that 2
-    is the induced dipole's 2-fold symmetry, not a universal constant."""
+    Reproduced the design notes' capture figures (0.41 / 0.23 / 0.20 / 0.12 Hz)
+    at the old I = 1.88e-11; with I = 1.1e-11 they are x1.31 (stator_flex/flex_spec.md table).
+    The notes' own sqrt(2*tau/I)/2pi is the SIDE-POST case -- that 2 is the
+    induced dipole's 2-fold symmetry, not a universal constant."""
     return np.sqrt(M_DRIVE * tau / I_KGM2) / (2 * np.pi)
 
 
 def max_ramp_rate_mech(tau, margin=TORQUE_MARGIN):
     """Fastest mechanical spin-up the drive can carry without slipping (Hz/s).
-    Reproduces the notes' 0 -> 10 Hz mech times (2.6 / 7.9 / 10 / 32 min) at
-    margin = 0.5."""
+    Reproduced the notes' 0 -> 10 Hz mech times (2.6 / 7.9 / 10 / 32 min) at
+    margin = 0.5 and the old I = 1.88e-11; with I = 1.1e-11 they are x0.59."""
     return margin * tau / (2 * np.pi * I_KGM2)
 
 

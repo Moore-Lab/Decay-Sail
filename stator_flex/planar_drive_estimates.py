@@ -15,7 +15,7 @@ of the magnet, rotor floating h_gap above it.  Two mechanisms:
 import numpy as np
 
 eps0 = 8.854e-12
-I_tot = 1.88e-11
+I_tot = 1.1e-11       # kg m^2, measured mass + model shape (docs/DECISIONS.md)
 m = 7.0e-6
 g = 9.8
 

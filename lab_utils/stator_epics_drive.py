@@ -39,7 +39,7 @@ synthesise and the slow path is faithful.
 Nothing touches hardware without --live.
 
 References: lab_utils/stator_awg_drive.py, stator_flex/flex_spec.md,
-CLAUDE.md ("THE STATOR"), apparatus_log.md (2026-08-28).
+lab_utils/README.md, apparatus_log.md (2026-08-28).
 """
 
 import argparse
@@ -185,8 +185,8 @@ DEFAULT_AMP = 2000.0
 # Machine constants
 # ===========================================================================
 M_DRIVE = 8                  # rotor speed = f_elec / M_DRIVE; also the detent count
-I_KGM2  = 1.88e-11           # ASSUMED, never measured -- see apparatus_log.md
-GAP_MM  = 0.37               # 0.37 = no shim (current state); 0.27 with a 0.1 mm shim
+I_KGM2  = 1.1e-11            # measured mass (7 mg) + model shape, ±10% -- see apparatus_log.md
+GAP_MM  = 0.37               # rotor-electrode gap; no centre shim (0.27 is only a model point below)
 
 # tau at V_dc = V_ac = 100 V, from the design notes, per gap.
 TAU_REF_100V = {0.27: 3.8e-12, 0.37: 1.2e-12}
@@ -548,7 +548,7 @@ def _phase_index(spec):
 
 
 def cmd_detent(args):
-    """First-article test 3 -- and the one measurement the missing shim does not
+    """First-article test 3 -- and the one measurement the 0.37 mm gap does not
     degrade, because it is pure DC: no ramp, no capture bandwidth, no timing.
 
     Energise one phase: the rotor snaps to one of 8 detents. Step A -> B -> C and
@@ -666,7 +666,7 @@ def build_parser():
                         'V3<-LES_SUM, V4<-MON), so an open input adds an '
                         'uncommanded pedestal to that phase alone.')
     p.add_argument('--gap', type=float, default=GAP_MM,
-                   help=f'rotor-electrode gap in mm (default {GAP_MM} = no shim)')
+                   help=f'rotor-electrode gap in mm (default {GAP_MM} = installed gap)')
     p.add_argument('--amp', type=float, default=DEFAULT_AMP,
                    help=f'counts used only for the banner\'s physics summary '
                         f'(default {DEFAULT_AMP:.0f}). This script no longer '

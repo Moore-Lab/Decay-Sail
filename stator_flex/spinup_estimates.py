@@ -25,8 +25,8 @@ import numpy as np
 eps0 = 8.854e-12
 
 # ---- rotor (SGD03 + pinwheel sail) ----
-I_tot = 1.88e-11      # kg m^2, disk + sail (from momentum-simulation README)
-m = 7.0e-6            # kg
+I_tot = 1.1e-11       # kg m^2, disk + sail: measured mass + model shape (docs/DECISIONS.md)
+m = 7.0e-6            # kg, weighed 2026-09-30 (disk + sail)
 r_disk = 1.75e-3      # m
 h_lev = 0.41e-3       # m, levitation height above magnet plane
 

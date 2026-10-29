@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 
 M = 8
-H_LIST = [0.27, 0.37]          # rotor gap with / without the 0.1 mm shim
+H_LIST = [0.27, 0.37]          # rotor gaps evaluated; 0.37 is the installed (no-shim) gap
 R_IN_NOW, R_OUT_NOW = 0.69, 1.95
 DXF = "../Snowflake disk V1.3.DXF.dxf"
 TOL = 1e-3

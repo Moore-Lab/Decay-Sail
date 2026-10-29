@@ -16,9 +16,6 @@ Bodies in the STEP assembly:
       top copper      z =  0.025 .. 0.043  (electrodes; rotor gap starts here)
   so the board's overall thickness is 0.061 mm plus coverlay (not modelled;
   coverlay adds ~0.025 mm where present, outside the active area).
-
-Optional: PI shim disk (Ø5.8 x 0.1) that sets the rotor gap - exported as a
-separate body so it can be swapped/suppressed in CAD.
 """
 
 import numpy as np
@@ -33,7 +30,6 @@ T_CU = 0.018
 T_PI = 0.025
 Z_BOT_CU = -T_CU
 R_BOARD = g.R_BOARD
-SHIM_D, SHIM_T = 5.8, 0.10
 
 
 def shp_to_wires(geom, tol=0.004):
@@ -92,14 +88,10 @@ top_solid = drill(extrude(top_cu, T_PI, T_CU), T_PI, T_CU)
 print("extruding bottom copper...")
 bot_solid = drill(extrude(bot_cu, Z_BOT_CU, T_CU), Z_BOT_CU, T_CU)
 
-shim = cq.Workplane("XY", origin=(0, 0, -SHIM_T - T_CU)).circle(SHIM_D / 2)\
-         .extrude(SHIM_T)
-
 asm = (cq.Assembly(name="flexG_rev_G")
        .add(core_solid, name="polyimide_core", color=cq.Color(0.85, 0.72, 0.35))
        .add(top_solid, name="top_copper_electrodes", color=cq.Color(0.80, 0.55, 0.25))
-       .add(bot_solid, name="bottom_copper", color=cq.Color(0.60, 0.45, 0.25))
-       .add(shim, name="OPTIONAL_shim_D5p8x0p1", color=cq.Color(0.55, 0.75, 0.95)))
+       .add(bot_solid, name="bottom_copper", color=cq.Color(0.60, 0.45, 0.25)))
 
 asm.save("flexG_board.step")
 print("wrote flexG_board.step")
@@ -113,4 +105,4 @@ bb = top_solid.val().BoundingBox()
 print(f"top copper extent: x {bb.xmin:.2f}..{bb.xmax:.2f}, "
       f"y {bb.ymin:.2f}..{bb.ymax:.2f}, z {bb.zmin:.3f}..{bb.zmax:.3f}")
 print(f"electrode top surface at z = {T_PI + T_CU:.3f} mm above the plate face")
-print(f"rotor gap h = levitation_height - {T_PI + T_CU:.3f} mm (no shim)")
+print(f"rotor gap h = levitation_height - {T_PI + T_CU:.3f} mm")
