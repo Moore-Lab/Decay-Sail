@@ -137,8 +137,11 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 **LES sensor:**
 - `LES_YAW` = **x position**, `LES_PIT` = **y position**, `LES_SUM` = total light.
   Neither is an angle; there is no channel that isolates tilt.
-- **While the rotor librates, LES reports 2× the mechanical frequency.** Halve
-  libration lines. Do not halve rotation lines.
+- **LES frequency ≠ rotor frequency.** Libration: the line is 2× the mechanical
+  frequency (|θ| rectification, measured 2026-09-09). Rotation: the comb spacing is 2×
+  the rotation rate (2-fold sail, timed 2026-09-14). Both were measured before the
+  2026-10-09 beam move and are not re-verified since. Prefer the camera's white dot,
+  which gives the full 360° angle with no divisor.
 - Isolate LES/MON at their own output switches (`SW2R 512`), leaving gains at 1.0.
 
 ## Conventions
