@@ -74,3 +74,10 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
   in `logs/2026-q3.md`).
 - **Calibration history:** `analysis/calibration_history.md` (which constants applied
   to which datasets).
+
+## Process (later)
+
+- **Hooks:** `PreToolUse` guards that block `--live`/`--leave-running`, `ssh cymac1` and
+  GNOME Shell restarts without approval (about 15 lines each, in `.claude/settings.json`).
+- **Process improvements:** go through what has gone wrong with agents and fix the
+  owning doc or rule.
