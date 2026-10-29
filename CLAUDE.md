@@ -20,9 +20,7 @@ Deeper detail lives in `apparatus_log.md`, `stator_flex/flex_spec.md`,
 
 - Front-end model prefix is **`Y1:RDS`** (cf. Aaron Markowitz's microdiamond experiment
   on the same cymac1, which is `Y1:DMD` — *different model, do not assume they match*).
-- **cymac1's GPS clock runs +5836 s fast** of true GPS (measured 2026-06-03).
-  true GPS = cymac GPS − 5836. Scripts here use `GPS = Unix − 315964782`
-  (= 315964800 − 18 leap seconds).
+- Front-end (cymac1) GPS: read it live, do not use a stored offset.
 - **Never restart GNOME Shell / the compositor on a live worker2 session** without
   checking X11-vs-Wayland and asking first — it caused a login-loop lockout on 2026-07-10.
 
@@ -84,70 +82,60 @@ negation cancelled and it drove the same direction. **That script does not work.
 > and should not be trusted until a dedicated zero-crossing sweep is done** (see
 > "Known script issues").
 >
-> **No shims are fitted yet**, so the current configuration is the 0.37 mm row.
+> **There is no centre shim, and none is planned** (Molly, 2026-10-19 — earlier
+> "0.1 mm shim / 0.27 mm gap" text here was an unrequested assumption). The
+> configuration is the 0.37 mm gap.
 
 | Gap h | Drive | τ_max | Capture (mech) | 0 → 10 Hz mech |
 |---|---|---|---|---|
-| **0.37 mm (no shim) — TODAY** | **40/40 V** | **1.9e-13 N·m** | **0.045 Hz** | **3.4 hr** |
-| 0.27 mm (0.1 mm shim) | 40/40 V | 6.1e-13 N·m | 0.081 Hz | 65 min |
-| 0.37 mm (no shim) | 100 V | 1.2e-12 N·m | 0.12 Hz | 32 min |
-| 0.37 mm (no shim) | 200 V | 5.0e-12 N·m | 0.23 Hz | 7.9 min |
-| 0.27 mm (0.1 mm shim) | 100 V | 3.8e-12 N·m | 0.20 Hz | 10 min |
-| 0.27 mm (0.1 mm shim) | 200 V | 1.5e-11 N·m | 0.41 Hz | 2.6 min |
+| **0.37 mm — TODAY** | **40/40 V** | **1.9e-13 N·m** | **0.059 Hz** | **2.0 hr** |
+| 0.37 mm | 100 V | 1.2e-12 N·m | 0.16 Hz | 19 min |
+| 0.37 mm | 200 V | 5.0e-12 N·m | 0.30 Hz | 4.6 min |
 
-**At 80 V the shim stops being a tuning knob and becomes mandatory.** It is worth
-3.2× torque and 1.8× capture. Without it, capture is 0.045 Hz — *inside* the old
-side-post band (0.005–0.07 Hz), so on bandwidth alone the stator looks like a
-lateral move. It is not: the mechanism is different in kind (variable-capacitance,
-charge-independent, **static torque from rest**, which the synchronous side posts
-could not produce at any drive level). But the margin is thin until the shim is in.
+At 40/40 V capture is 0.059 Hz — *inside* the old side-post band (0.005–0.07 Hz),
+so on bandwidth alone the stator looks like a lateral move. It is not: the
+mechanism is different in kind (variable-capacitance, charge-independent,
+**static torque from rest**, which the synchronous side posts could not produce at
+any drive level). The margin is thin at that drive level.
 
 Ramp time scales linearly with target, so modest speeds stay practical even now:
-~10 min to 0.5 Hz, ~20 min to 1 Hz. Only the 10 Hz target becomes impractical.
+~6 min to 0.5 Hz, ~12 min to 1 Hz. Only the 10 Hz target becomes impractical.
 
 Includes the 3-phase stator amplitude (a₁² = 0.438) and the fraction of available m=8
-coupling the electrode annulus actually sees (89.4% at h=0.27, 84.2% at h=0.37).
+coupling the electrode annulus actually sees (84.2% at h=0.37).
 
-- **τ ∝ V², and rises steeply as h shrinks — the shim is the main tuning knob (2–3×).**
+- **τ ∝ V², and rises steeply as h shrinks** (attenuation ∝ exp(−m·h/r)).
 - `h = levitation height − 0.043 mm` (board thickness above the plate face).
 - Capture bandwidth = `sqrt(m·τ_max/I)/2π` with **m = 8**. (The Notion page's own
   `sqrt(2τ/I)/2π` is the *side-post* case; that 2 is the induced dipole's 2-fold symmetry,
   not a universal constant.)
 - Max ramp rate = `0.5·τ_max/(2πI)` Hz mech/s (the 0.5 is the ≤50% torque margin).
-- ✅ **SUPERSEDED 2026-10-09 — `I` IS NOW MEASURED: `I = 1.10e-11 kg·m²`, ±10%,
-  from the weighed 7 mg assembly** (`analysis/noise_budget_20260911_clean.ipynb`,
-  parameter cell). That is **1.71× smaller** than the calculated 1.88e-11 below.
-  *(Derived, not measured: capture bandwidth `sqrt(m·τ_max/I)/2π` would rise by
-  ×1.31 and max ramp rate `0.5·τ_max/(2πI)` by ×1.71 — arithmetic on the ratio of
-  the two `I` values, nothing re-measured.)*
-
-  ⚠ **The 15+ downstream call sites still hardcode 1.88e-11** and were NOT
-  updated in this pass. Every torque, capture-bandwidth and ramp-rate figure
-  computed from them — including the Performance table above — is high by 1.71×.
-  Check which value a script uses before trusting its output.
-
-  The calculated chain is kept below, because it is still the only source for
-  the mass and the disk/sail split:
-
-- **`I = 1.88e-11 kg·m²` was CALCULATED, never measured.** Provenance traced
-  2026-09-09:
+- **`I = 1.1e-11 kg·m²` (±10%) — measured mass + model shape** (2026-09-30).
+  Capture and ramp numbers above use it (capture ∝ I^-1/2, ramp time ∝ I).
+  Every torque, ramp-rate and drag number in this repo scales with it.
 
   | | |
   |---|---|
-  | `laser-cutting/optimize_sail.py :: disk_I_M()` | geometric calc — slotted, kerf- and taper-corrected. Gives **I_disk = 1.2612e-11**, M = 7.617e-6 kg |
-  | + sail about the spin axis | **6.19e-12** — 33% of the total |
-  | = `momentum-simulation/thermal_noise_spindown.py:37` | `I_TOTAL = 1.88e-11`, "disk + sail, from earlier calcs" |
-  | → `stator_flex/spinup_estimates.py:28` → 15 other places | all inherit it |
+  | Assembly weighed 2026-09-30 | **7 mg** (0.007 g; ±0.5 mg if the balance reads to 1 mg) |
+  | Sail, SAL-001 "Sail Al V1.0" (Al shim, 0.1 mm; drawing `~/Downloads/Screenshot 2026-07-09 134751.png`) | 1.156 mg (drawing: 1.16), **I_sail = 1.61e-12** by integrating the outline |
+  | Disk = 7 − 1.16 | **5.8 mg** |
+  | I_disk = k·M·R², R = 1.75 mm | k = 0.51 (SolidWorks shape) to 0.54 (`optimize_sail.py` slotted disk) → 9.1–9.7e-12 |
+  | **Total** | **1.07–1.13e-11** (0.99–1.21e-11 over ±0.5 mg) |
 
-  **It is the DISK + SAIL assembly, and a sail IS fitted** (confirmed
-  2026-09-09). A bare disk would be 1.26e-11. Note the weighed value (1.10e-11)
-  comes out *below* even the bare-disk calculation, so the geometric model was
-  overestimating — another reason to prefer the measurement.
+  **Superseded values — do not reuse:**
+  - `1.88e-11`: `optimize_sail.py` slotted disk (1.26e-11, 7.62 mg) + the
+    script's *reference* sail (2×2 mm wings at r_c = 2.625 mm, 6.19e-12). That
+    is an older sail, not SAL-001, and the disk is heavier than the real one.
+    It lives on in `momentum-simulation/thermal_noise_spindown.py:37` (Dave's,
+    left untouched), `analysis/laser_dark_vs_on.py:117`, and in the dated analysis notebooks, kept as records:
+    their torque/force numbers are ×0.585 too high.
+  - `1.7e-11`: SolidWorks assembly (11.05 mg). The shape is right, but the
+    CAD mass is 58% heavier than the weighed rotor.
 
-  ⚠ **Inconsistent mass**: `optimize_sail.py` computes the disk at 7.617e-6 kg
-  while `spinup_estimates.py` and `planar_drive_estimates.py` both hardcode
-  `m = 7.0e-6` — 9% apart, suggesting the geometry drifted between scripts.
-  Nothing currently depends on `m`, but do not mix them.
+  Remaining unknowns: the balance resolution, and the disk OD (it enters as R²).
+  The disk is lighter than any model (a solid 3.5 mm × 0.5 mm graphite disk
+  would be 10.6 mg), so it is probably thinner or less dense than assumed.
+  Its mass is measured, so that does not change I.
 
   **To measure it** rather than calculate it: apply a known static torque from
   rest and track the angular acceleration, α = τ/I, on LES or the camera. That
@@ -167,7 +155,7 @@ to bottom).
 | 105° | B | phase 120° |
 | 195° | C | phase 240° |
 | 285° | CTR | centre disk r = 0.58 mm — charge drive / DC height trim |
-| — | GND | bare bottom ring r 2.95–3.40 pressed on the grounded magnet; 2 optional top pads at r = 10.8, az 60/240° |
+| — | GND | grounded by a wire from a top GND pad (r = 10.8, az 60/240°) to a base screw. The bare bottom ring (r 2.95–3.40) barely overlaps the 1/4" magnet and does not make contact |
 
 > ✅ **RESOLVED 2026-08-24 by continuity check at the chamber opening.** V1 IS
 > the centre electrode. Clockwise viewed from the pad face the four terminals
@@ -241,7 +229,10 @@ gain, no external divider).
   check screw length so no tip protrudes toward ground.
 - **Max screw head / washer OD is 9.5 mm** before it reaches another net.
 - Clock the ring-terminal tongues radially outward.
-- A centre shim must be **≤ Ø5.8 mm** so it does not lift the GND contact ring off the magnet.
+- Nothing may sit between the board centre and the magnet.
+- **Board height:** shims go under the PEEK plate, and the flex lies flat (2026-10-27).
+  No metal under the pads: the bottom coverlay opening exposes bare GND around each
+  live pad, so a metal shim shorts that phase to GND.
 - Screw-in-hole fit centres the pattern to ~±0.1 mm, which meets the m=8 concentricity
   requirement without separate fiducials.
 - The board was hipot tested to **250 V** net-net and net-to-magnet.
@@ -257,9 +248,9 @@ gain, no external divider).
 
 ### First-article tests (the near-term experimental programme)
 
-1. Continuity at the four terminals; GND-ring-to-magnet resistance; hipot 250 V
+1. Continuity at the four terminals; GND pad to base continuity; hipot 250 V
    net-net **and** net-to-magnet.
-2. Measure V1.3 levitation height over the installed board → choose the shim.
+2. Measure V1.3 levitation height over the installed board → confirm the gap h.
 3. **DC detent test:** energise one phase → rotor snaps to one of 8 detents; stepping
    A→B→C walks it 15° mech per step. Directly calibrates τ_max vs V².
 4. Max sustainable ramp rate vs V (expect ∝ V²) — confirms the capacitance-motor mechanism.
@@ -269,29 +260,8 @@ choosing a drive backend (below).
 
 ### Known hardware issues
 
-- **The board is currently wired through the old electrode stands.** Those are tall
-  (½") conductors at r ≈ 9 mm carrying the drive voltage, which recreates the rotating
-  in-plane dipole field the stator redesign existed to escape. Its synchronous torque
-  averages to zero (the post field rotates 8× faster than the rotor), but any net rotor
-  charge sees a **rotating force at 8× rotor speed** — orbital heating, hunting for the
-  lateral trap resonance. This is a live confound for interpreting *any* drive test.
-  - **Fix, next chamber opening: standard 4-40 vented screws** in place of the stands.
-    A #4 head is ~4.6–5.6 mm OD, well inside the 9.5 mm limit (`flex_spec.md` line 74
-    notes the limit "fits all standard 4-40 hardware") and inside the Ø6.5 top pad at
-    r = 9.0. Vented is the right call for blind tapped PEEK. The plated barrels still
-    make **all four screws live**, so: stainless or silver-plated, and check length so
-    no tip protrudes toward ground — at 80 V into tapped PEEK the isolation is the
-    only thing between a live terminal and the plate. Also check the stack-up leaves
-    thread engagement with a ring terminal under the head.
-  - The win is height: dropping the live conductor from ½" to a screw head sitting at
-    the board plane, close to the grounded magnet, largely screens the stray in-plane
-    field that the tall stands radiated at the rotor.
-- **No shims fitted yet** — see the Performance note. A shim is improvisable: a disc of
-  0.1 mm shim stock or stacked Kapton at **Ø ≤ 5.8 mm**, so it stays inside the GND
-  contact ring (r = 2.95–3.40) and does not lift it off the magnet. The electrodes all
-  live at r ≤ 1.95 mm, well inside that, so they ride flat on it.
 - There is a **bright deposit near the centre of the rotor's underside**. That face flies
-  0.27 mm off the board and τ ∝ exp(−m·h/r), so anything standing proud there costs real
+  ~0.37 mm off the board and τ ∝ exp(−m·h/r), so anything standing proud there costs real
   torque.
 - Open from the design: measure the V1.3 levitation height; confirm the magnet sits flush
   in the plate's Ø7 hole; cross-check the quasi-planar exp(−m h/r) coupling model against
@@ -338,9 +308,9 @@ and it is the right one:
   to the `V{n}_OUT_DQ` response in the same NDS fetch;
 - it sidesteps the AWG slot limit, the test-point grant, and — decisively — **the cymac
   GPS clock offset**. An AWG excitation needs an absolute GPS start time to make three
-  phases coherent; the front end runs **~7630 s ahead of true GPS (2026-08-21, and
-  drifting** — it was 5836 s on 2026-06-03). Interpret that timestamp in the wrong clock
-  frame and the phases are silently randomised. Writing offsets from Python has no
+  phases coherent, and that start time must be in the **front end's** clock
+  (`Y1:DAQ-DC0_GPS`), not true GPS. Use the wrong clock frame and the phases are
+  silently randomised. Writing offsets from Python has no
   absolute-time dependence at all.
 
 **The cost is bandwidth.** Software-timed writes are good to a few Hz electrical.
@@ -551,9 +521,8 @@ there is no `cdsutils.awg` module. The real API is a bare `import awg` (top-leve
 duration, restart)` with **phase in radians and start in GPS seconds**. Three Sines on
 `V{n}_EXC` sharing one explicit `start` are a coherent three-phase drive — but with
 `start=0` each excitation independently picks `GPSnow() + 4*EPOCH` at `.start()` time,
-so the phases would be randomised per run. **And `awgbase.GPSnow()` returns *true* GPS
-while the front end runs ~7630 s ahead**, so the clock frame must be tested, not
-assumed. Limit is `MAX_NUM_AWG = 9` simultaneous channels.
+so the phases would be randomised per run. **And `awgbase.GPSnow()` returns *true* GPS,
+not the front end's clock**, so `start` must come from `Y1:DAQ-DC0_GPS`. Limit is `MAX_NUM_AWG = 9` simultaneous channels.
 
 To drive `_EXC` you must, per Aaron's verified recipe: set `GAIN = 1`, turn the module
 **input OFF** (blocks the `Sum`, i.e. the DRV fan-out — a cleaner per-electrode kill
