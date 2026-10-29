@@ -24,7 +24,7 @@
 
 Diamagnetically levitated rotor ("decay sail"): a Snowflake V1.3 disk floating over a
 magnet, spun by an under-rotor electrostatic stator, ultimately to measure the alpha-recoil
-thrust from a Pb-212 source (~40 kBq → ~1–5 fN).
+force from a Pb-212 source (expected force: `docs/DECISIONS.md`).
 
 This file travels with the repo, so a session on **any** machine gets the same context.
 Deeper detail lives in `apparatus_log.md`, `stator_flex/flex_spec.md`,
