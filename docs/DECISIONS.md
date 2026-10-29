@@ -17,4 +17,4 @@ Each entry says who decided and what it rests on (measured / derived / assumed).
 | 2026-09-30 | Moment of inertia **I = 1.1e-11 kg·m² (±10%)**. Supersedes 1.88e-11 and 1.7e-11. | Derived: weighed 7 mg assembly + model shape | `CLAUDE.md`, `apparatus_log.md` 2026-09-30 |
 | 2026-09-14 | LES divisor: **rotation = comb/2**. | Molly timed 10 turns by eye | `apparatus_log.md` open items (resolved) |
 | 2026-09 | Front-end (cymac1) GPS is read live from `Y1:DAQ-DC0_GPS`; no stored offset. worker2 file names (Basler, uEye) are true GPS. | Offset measured 3072–9876 s and wandering | `lab_utils/stator_awg_drive.py`, `spindown_gui.py` |
-| 2026-08-24 | V1 is the centre electrode; phases are `PHASE_ELECTRODES = (2,3,4)`. | Continuity check | `apparatus_log.md` 2026-08-24 |
+| 2026-08-24 | V1 is the centre electrode; phases (A, B, C) = (V2, V4, V3), `PHASE_ELECTRODES = (2, 4, 3)`. The old (2,3,4) swaps B and C. | Continuity check | `apparatus_log.md` 2026-08-24 |
