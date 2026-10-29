@@ -1,5 +1,27 @@
 # Decay-Sail — working context
 
+## Operating principles
+
+1. **Read first:** `measurement_objective.md` (the goal), `docs/STATUS.md` (what is
+   open), `docs/DECISIONS.md` (what is current).
+2. **One fact, one home.** Current values and decisions live in `docs/DECISIONS.md`.
+   Elsewhere, link to them; don't restate them.
+3. **Label claims** as measured, derived, or assumed. Never record your own
+   assumption as a decision. Decisions are made by a person and dated in DECISIONS.md.
+4. **Report what you observe and how big it is,** with uncertainties. Don't jump to
+   causes. If something is unexplained, say so.
+5. **Ask first** before: hardware actuation (drive, laser, HV, any `--live`), git
+   commit or push, purchases, deleting files, or changing a recorded decision.
+   Otherwise proceed.
+6. **Ask open questions once, in one batch.** For the rest, proceed on stated
+   assumptions.
+7. **Log each session** in `apparatus_log.md`: one short entry (did / ran, with command
+   and GPS start–stop / saw / link). Analysis goes in its own file.
+8. Never use `--leave-running` unless asked.
+9. Front-end (cymac1) GPS: read it live, do not use a stored offset.
+10. **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
+11. Git is the backup. Don't make copies of files.
+
 Diamagnetically levitated rotor ("decay sail"): a Snowflake V1.3 disk floating over a
 magnet, spun by an under-rotor electrostatic stator, ultimately to measure the alpha-recoil
 thrust from a Pb-212 source (~40 kBq → ~1–5 fN).
@@ -20,8 +42,6 @@ Deeper detail lives in `apparatus_log.md`, `stator_flex/flex_spec.md`,
 
 - Front-end model prefix is **`Y1:RDS`** (cf. Aaron Markowitz's microdiamond experiment
   on the same cymac1, which is `Y1:DMD` — *different model, do not assume they match*).
-- Front-end (cymac1) GPS: read it live, do not use a stored offset.
-- **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
 
 ---
 
