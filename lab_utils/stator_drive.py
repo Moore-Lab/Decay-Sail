@@ -421,7 +421,7 @@ def cmd_reverse(args):
 
 def cmd_sweep(args):
     """Stepped frequency response. Kept for measuring chi(f) -- the high-frequency
-    asymptote gives I directly, which apparatus_log.md lists as never measured.
+    asymptote gives I directly, which docs/STATUS.md lists as never measured.
     Not the way to spin up: use `spinup`."""
     f_cap, rate_max = banner()
     steps = np.arange(args.start, args.freq + 1e-9, args.step)

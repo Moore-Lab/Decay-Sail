@@ -44,7 +44,8 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
 | Path | What |
 |---|---|
 | `docs/DECISIONS.md`, `docs/STATUS.md` | current values; open items |
-| `apparatus_log.md` | dated session log |
+| `apparatus_log.md` | dated session log (pre-October 2026: `logs/2026-q3.md`) |
+| `analysis/calibration_history.md` | which constants applied to which datasets |
 | `stator_flex/` | stator design (`flex_spec.md`), generators, fab files |
 | `hv_amp_dc_investigation.md` | HV amplifier behaviour and the DC-pedestal question |
 | `y1rds_model_change_muxmatrix.md` | the 2026-09-08 front-end model change (DRVMTRX) |
@@ -139,7 +140,7 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
   Neither is an angle; there is no channel that isolates tilt.
 - **LES is the frequency readout, but the true rotor frequency is often half the LES
   line**, whether librating or rotating, and libration vs rotation is hard to tell
-  apart on LES. Say which divisor you used and why. (History: the log, 2026-09-09
+  apart on LES. Say which divisor you used and why. (History: `logs/2026-q3.md`, 2026-09-09
   and 2026-09-14.)
 - Isolate LES/MON at their own output switches (`SW2R 512`), leaving gains at 1.0.
 

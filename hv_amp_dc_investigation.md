@@ -125,7 +125,7 @@ agent with access to the Fusion 360 Electronics schematic (on Molly's laptop; th
 `.fsch` is a zip containing a plain Eagle-XML `.sch`, readable without the app)
 can answer questions that cannot be answered from the lab machine.
 
-Context lives in `CLAUDE.md` ("HV amplifier") and `apparatus_log.md` (2026-08-25,
+Context lives in `CLAUDE.md` ("HV amplifier") and `logs/2026-q3.md` (2026-08-25,
 2026-08-28). **U1 = Microchip HV265-I/QE**, 4-channel 205 V HV op-amp array,
 TSSOP24, datasheet DS20006234A. It drives electrodes V1–V4 of the rev G stator.
 

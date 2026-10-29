@@ -70,6 +70,7 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
 - **Basler:** lossless recording + per-frame timestamps in `grab_basler.py`; more
   magnification (16 mm lens is at ~0.09×).
 - **Log housekeeping:** accuracy audit (label claims measured / derived / assumed);
-  restructure `apparatus_log.md` into short entries, archive pre-October.
+  the October entries in `apparatus_log.md` are still long-form (pre-October is archived
+  in `logs/2026-q3.md`).
 - **Calibration history:** `analysis/calibration_history.md` (which constants applied
   to which datasets).

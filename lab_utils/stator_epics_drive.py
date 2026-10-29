@@ -39,7 +39,7 @@ synthesise and the slow path is faithful.
 Nothing touches hardware without --live.
 
 References: lab_utils/stator_awg_drive.py, stator_flex/flex_spec.md,
-lab_utils/README.md, apparatus_log.md (2026-08-28).
+lab_utils/README.md, logs/2026-q3.md (2026-08-28).
 """
 
 import argparse

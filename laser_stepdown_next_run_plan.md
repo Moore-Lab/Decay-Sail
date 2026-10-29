@@ -99,7 +99,7 @@ should inform this run:
 
 6. **Pressure logging is still an open gap.** No live DAQ record of chamber
    pressure exists right now (separate from this run -- it's the same open
-   `apparatus_log.md` TODO, "get the pressure gauge logging"). Not solved here.
+   `docs/STATUS.md`, "get the pressure gauge logging"). Not solved here.
    Cheapest partial mitigation: **manual spot-reading of the gauge at the start of
    each dwell**, logged alongside the step file above. Worth it even un-automated --
    this is the clean discriminator for the τ0-vs-γ / gas-drag-vs-eddy-current
