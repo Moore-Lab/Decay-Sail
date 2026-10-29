@@ -39,6 +39,28 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
 13. **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
 14. Git is the backup. Don't make copies of files.
 
+## Delegation (agents)
+
+Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
+
+- **Delegate the reading, never the deciding.** Send a `scout` for long reading where you
+  only need an extract (a long log, a notebook, a web page, a file over ~8 KB). Do short
+  lookups yourself. Many similar lookups become one script, not many agents.
+- **Route:** `scout` (Haiku) read-only extraction; `worker` (Sonnet) execution and
+  token-heavy work; `reviewer` (Fable) an independent re-check where a wrong result is
+  expensive (a number going into a talk, paper or recorded decision, a stage pass/fail, a
+  hardware order); `sub-orchestrator` (Opus) only when a sub-project passes all five
+  tests: too big for one context, splits into 3+ independent parts, needs its own
+  planning, has a checkable result, needs little from Molly mid-way. Anything else, do it
+  yourself or with workers: delegation costs a plan, a handoff and a merge.
+- **Every dispatch states** objective, files to read, write allowlist, output format and
+  path, and turn budget (`docs/templates/worker-brief.md`). One writer per file.
+- **Agents never actuate hardware**, `ssh cymac1`, push or delete; they hand back the
+  command. Check their results yourself before using them; judge from files, not summaries.
+- **Longer than one sitting:** keep a `HANDOFF.md` in the task folder whose top section
+  (≤150 lines) holds current state, verified results and the exact next commands. Prefer a
+  fresh session from HANDOFF over a degraded long one.
+
 ## Machines
 
 | Host | Role |

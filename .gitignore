@@ -14,8 +14,9 @@ analysis/laser_dark_vs_on_*.png
 # generated diagnostic figures
 analysis/spindown_*_overview.png
 
-# personal Claude Code config (absolute paths, per-machine)
-.claude/
+# personal Claude Code config (absolute paths, per-machine); agent definitions are shared
+.claude/*
+!.claude/agents/
 
 # notebook figure dumps + regenerable analysis figures
 plots/
