@@ -19,6 +19,9 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
 6. **Ask first** before: hardware actuation (drive, laser, HV, any `--live`), git
    commit or push, purchases, deleting files or scripts, or changing a recorded
    decision. Otherwise proceed.
+   **Git:** doc edits go straight to `main`. Code that touches hardware (drive scripts,
+   capture, anything worker2 runs) goes on a branch, is tested on worker2, then merged.
+   With several agents, one branch each.
 7. **Ask open questions once, in one batch.** For the rest, proceed on stated
    assumptions.
 8. **Log each session** in `apparatus_log.md`: one short entry (did / ran, with command
