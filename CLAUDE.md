@@ -60,6 +60,9 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 - **Longer than one sitting:** keep a `HANDOFF.md` in the task folder whose top section
   (≤150 lines) holds current state, verified results and the exact next commands. Prefer a
   fresh session from HANDOFF over a degraded long one.
+- **Advisor (Fable):** consult it before a costly or hard-to-reverse call (a plan, a
+  stage pass/fail, a result you can't explain), not for routine steps. If a consult fails
+  or times out, say so; never continue as if it answered.
 
 ## Machines
 
