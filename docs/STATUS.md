@@ -45,6 +45,9 @@ The goal these serve is in `measurement_objective.md`.
   tilt stage is in.
 - Tilt the ND filter to break the etalon. Commanded laser counts before/after the 08-03
   step. Get the pressure gauge logging.
+- **Rotor frequency from the white dot:** not done yet (so far the dot has only been
+  tested for angle detection). Once it works, compare against LES in one recording to
+  settle the divisor for libration and rotation.
 - **Basler:** lossless recording + per-frame timestamps in `grab_basler.py`; more
   magnification (16 mm lens is at ~0.09×).
 - **Log housekeeping:** accuracy audit (label claims measured / derived / assumed);
