@@ -9,26 +9,58 @@ All geometry comes from `generate_flex_revG.py`; `gerber_export.py` writes the
 fab files and runs the electrical checks; `verify_gerber.py` reads the shipped
 Gerbers back and rasterises them; `step_export.py` builds the CAD model.
 
+## Why under-rotor electrodes
+
+The old drive was **4 side posts in quadrature**, making a uniform rotating in-plane
+field. That can only torque the rotor through induced-dipole shape anisotropy or a
+permanent charge dipole — both synchronous, so the average torque is zero unless the
+rotor already co-rotates. Capture bandwidth was only `sqrt(2τ/I)/2π ≈ 5–70 mHz`, so
+switching on at an ordinary frequency almost never captured ("sometimes it works").
+The field was also screened by the grounded magnet plane (~6 kV/m free-space at
+±100 V → a few hundred V/m at the rotor).
+
+Electrodes *underneath* make a parallel-plate capacitor (E ~ V/h ~ 3e5 V/m) and turn
+the mechanism into a **variable-capacitance synchronous motor**, τ = ½ (dC/dθ) V²:
+charge-independent and reproducible, roughly 300× the side posts' torque.
+
 ## Drive
 
 24 sectors on a 15° pitch, 3-phase (0/120/240°), synthesising a rotating **m = 8**
-potential matched to the rotor's underside modulation (see
-`analyze_snowflake_dxf.py` — the modulation is in the m=8 family, *not* m=12).
+potential.
 
 **Rotor speed = f_electrical / 8. Reverse by swapping any two phases.**
 
-| Gap h | Drive | τ_max | Capture (mech) | 0 → 10 Hz mech |
-|---|---|---|---|---|
-| 0.37 mm (no shim) | 100 V | 1.2e-12 N·m | 0.12 Hz | 32 min |
-| 0.37 mm (no shim) | 200 V | 5.0e-12 N·m | 0.23 Hz | 7.9 min |
-| 0.27 mm (0.1 mm shim) | 100 V | 3.8e-12 N·m | 0.20 Hz | 10 min |
-| **0.27 mm (0.1 mm shim)** | **200 V** | **1.5e-11 N·m** | **0.41 Hz** | **2.6 min** |
+**Why m = 8, not 12 (derived, not yet measured).** Fourier analysis of the rotor
+drawing (`analyze_snowflake_dxf.py` on `Snowflake_disk_V1.3.dxf`) puts the underside
+modulation in the m = 8 family (8, 16, 24, 32; m = 16 strongest), not the m = 12 the
+drawing note ("features equally spaced 30°") implies. The drawing shows 8 forked arms;
+a microscope photo of the flown rotor shows the same 8-fold pattern (2026-10-29). An
+m = 12 board would have been nearly torque-less. With gap attenuation exp(−m·h/r),
+m = 8 is the fab-robust optimum: m = 16 couples ~1.5× better but would need 7.5°
+sectors (0.083 mm copper) and ~40 µm concentricity. More phases do not help: each
+extra phase boundary inserts another ≥0.08 mm gap into ~0.35 mm sectors, ×0.84
+(4-phase), ×0.44 (6-phase), ×0.14 (8-phase). The DC detent test (8 detents, 15° per
+A→B→C step) would confirm m = 8 directly.
 
-Includes the 3-phase stator amplitude (a₁² = 0.438) and the fraction of the
-rotor's available coupling the electrode annulus actually sees (89.4% at
-h = 0.27, 84.2% at h = 0.37, from `coupling_vs_radius.py`). Torque ∝ V² and
-rises steeply as h shrinks: **the shim is the main tuning knob (2-3×)**.
-h = levitation height − 0.043 mm (board thickness above the plate face).
+### Performance (at the 0.37 mm gap, I = 1.1e-11 kg·m²)
+
+| Drive | τ_max | Capture (mech) | 0 → 10 Hz mech |
+|---|---|---|---|
+| 100 V | 1.2e-12 N·m | 0.16 Hz | 19 min |
+| 200 V | 5.0e-12 N·m | 0.30 Hz | 4.6 min |
+
+Includes the 3-phase stator amplitude (a₁² = 0.438) and the fraction of the rotor's
+available coupling the electrode annulus actually sees (84.2% at h = 0.37, from
+`coupling_vs_radius.py`). Ramp time scales linearly with the target speed.
+
+- τ ∝ V², and rises steeply as h shrinks (attenuation ∝ exp(−m·h/r)).
+- h = levitation height − 0.043 mm (board thickness above the plate face). There is
+  no centre shim; the board lies directly on the magnet.
+- Capture bandwidth = `sqrt(m·τ_max/I)/2π` with m = 8. (`sqrt(2τ/I)/2π` is the
+  side-post case; that 2 is the induced dipole's 2-fold symmetry.)
+- Max ramp rate = `0.5·τ_max/(2πI)` Hz mech/s (≤50% torque margin).
+- I and the drive ceiling: `docs/DECISIONS.md`. The voltage actually reached at the
+  ceiling depends on the HV amplifier (`hv_amp_dc_investigation.md`).
 
 ## Geometry (mm)
 
@@ -43,7 +75,7 @@ h = levitation height − 0.043 mm (board thickness above the plate face).
 | Top pads | Ø6.5 at r = 9.0, az 15/105/195/285° |
 | Bottom pads | Ø4.0 (0.5 ring around the 3.0 hole) |
 | Ground keep-away | top 4.75 (screw head), bottom 2.20 (nothing clamps) |
-| GND contact ring | bottom, r 2.95-3.40, bare ENIG, presses on the magnet |
+| GND contact ring | bottom, r 2.95-3.40, bare ENIG; designed to press on the magnet, but a 1/4" magnet barely reaches it (no contact) |
 | Optional GND pads | top, Ø3.4 at r = 10.8, az 60/240°, bare ENIG |
 | Ground stitching | 23 vias at r = 3.15 (one per inter-tab gap) + 4 at r = 11.0 + a radial spoke at az 0° |
 | Board | Ø25.4, 0.1 mm, 2-layer PI, 18 µm Cu, ENIG |
@@ -56,7 +88,7 @@ h = levitation height − 0.043 mm (board thickness above the plate face).
 | 105° | B | phase 120° |
 | 195° | C | phase 240° |
 | 285° | CTR | centre electrode: charge drive / DC height trim |
-| — | GND | magnet contact ring + 2 optional top pads |
+| — | GND | top pad wired to the base (in use); bottom magnet-contact ring (no contact with a 1/4" magnet) |
 
 **CTR as a charge probe:** 10 V gives E_z ≈ 1.7e4 V/m on axis → 2.7e-15 N per
 elementary charge; driven at the vertical trap frequency with Q ~ 1e3-1e4,
@@ -93,9 +125,9 @@ Min track/space 0.08, min drill 0.15. One plated drill file: **64 holes**
 - Clock ring-terminal tongues radially outward.
 - Screw-in-hole fit centres the pattern to ~±0.1 mm, which meets the m=8
   concentricity requirement without separate fiducials.
-- The GND contact ring is the primary ground; a shim must be ≤ Ø5.8 mm so it
-  does not lift the ring off the magnet. The two optional top pads are the
-  fallback if that pressure contact measures high.
+- Nothing may sit between the board and the magnet. The bottom GND ring
+  (r 2.95–3.40) barely overlaps a 1/4" magnet and does not make contact, so the board
+  is grounded through a top GND pad wired to the base (2026-10-27).
 
 ## Operating protocol
 
@@ -105,20 +137,6 @@ Min track/space 0.08, min drill 0.15. One plated drill file: **64 holes**
 3. Reverse: swap two phases, ramp through zero.
 4. Science runs: A/B/C to GND — the board becomes a clean ground plane.
 
-## First-article tests
+## First-article tests and open items
 
-1. Continuity at the four terminals; GND-ring-to-magnet resistance;
-   hipot 250 V net-net **and net-to-magnet**.
-2. Measure V1.3 levitation height over the installed board → choose the shim.
-3. **DC detent test:** one phase on → rotor snaps to one of 8 detents;
-   step A→B→C → 15° mech per step. Calibrates τ_max vs V² directly.
-4. Max sustainable ramp rate vs V (expect ∝V²).
-
-## Open items
-
-- [ ] Measure the V1.3 levitation height (0.75 mm thick, 9.89 mg — likely
-      differs from SGD03's 0.41 mm); h enters the torque exponentially.
-- [ ] Confirm the magnet sits flush in the plate's Ø7 hole (board flatness).
-- [ ] Cross-check the coupling model with a 3-D BEM/COMSOL run (the analysis
-      uses a quasi-planar exp(−m h/r) approximation).
-- [ ] Verify a 3-phase, phase-locked drive chain at ±100-200 V.
+Tracked in `docs/STATUS.md`.

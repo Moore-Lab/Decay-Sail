@@ -16,9 +16,19 @@ The goal these serve is in `measurement_objective.md`.
   `thermal_noise_spindown.py:37`, left alone on purpose).
 - **Drive-off baseline** now that the board is flat and grounded: does the rotor still
   move with drive and laser off (cf. 2026-08-22)?
+- **DC detent test:** one phase on → rotor should snap to one of 8 detents; step
+  A→B→C → 15° mech per step. Confirms m = 8 (now only derived) and calibrates τ_max
+  vs V². The white-dot camera tracking can measure the steps.
+- **Max ramp rate vs V** (expect ∝ V²): confirms the capacitance-motor mechanism.
+- **DC pedestal:** what the commanded `V_dc` does to the m = 8 torque channel is
+  unresolved (`hv_amp_dc_investigation.md`).
 - **Levitation height** over the installed board, to confirm h ≈ 0.37 mm.
-- **Rotor dimensions:** disk thickness (0.5 mm looks too thick for 5.8 mg) and OD
-  (3.4–3.5 mm).
+- Confirm the magnet sits flush in the plate's Ø7 hole; cross-check the
+  exp(−m·h/r) coupling model against 3-D BEM/COMSOL.
+- **Bright deposit** near the centre of the rotor's underside: anything standing proud
+  there costs torque (τ ∝ exp(−m·h/r)).
+- **Rotor dimensions:** disk thickness (the models assume 0.5 mm, the V1.3 design
+  note says 0.75 mm; both look too thick for the weighed 5.8 mg) and OD (3.4–3.5 mm).
 - **Trap / libration frequency:** treat as not known. Re-examine
   `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the time domain.
 - **PD check** across the 09-11 laser-only segment (from GPS 1473204806) for drift or

@@ -25,14 +25,13 @@ all the checks follow. Nothing is hand-drawn.
 
 | Gap h | Drive | tau_max | capture | 0 -> 10 Hz mech |
 |---|---|---|---|---|
-| 0.37 mm (no shim) | 200 V | 5.0e-12 N m | 0.23 Hz | 7.9 min |
-| **0.27 mm (0.1 mm shim)** | **200 V** | **1.5e-11 N m** | **0.41 Hz** | **2.6 min** |
+| **0.37 mm** | **200 V** | **5.0e-12 N m** | **0.23 Hz** | **7.9 min** |
 
-(Includes the 3-phase stator amplitude and the 84-89% of the rotor's available
+(Includes the 3-phase stator amplitude and the ~84% of the rotor's available
 coupling that the electrode annulus actually sees. Torque scales as V^2.)
 
-Torque scales as V^2 and rises steeply as the rotor-electrode gap `h` shrinks:
-**the shim under the board centre is the main tuning knob**, worth 2-3x.
+Torque scales as V^2 and rises steeply as the rotor-electrode gap `h` shrinks.
+There is no centre shim; the board lies directly on the magnet.
 
 ## Board (rev G)
 
@@ -47,7 +46,7 @@ terminals clamp onto top pads, and the plated barrels tie top to bottom.
 | 105 deg | B | phase 120 |
 | 195 deg | C | phase 240 |
 | 285 deg | CTR | centre disk (r = 0.58): charge-measurement drive / DC height trim |
-| - | GND | exposed bottom ENIG ring (r 2.95-3.40) pressed on the grounded magnet, plus two optional bare pads on top at r = 10.8, az 60/240 |
+| - | GND | two bare pads on top at r = 10.8, az 60/240 (one is wired to the base, 2026-10-27); exposed bottom ENIG ring (r 2.95-3.40), which a 1/4" magnet barely reaches, so it does not make contact |
 
 Key geometry: electrodes span **r = 0.69 -> 1.95 mm** (captures ~89% of the
 available m = 8 coupling; inner edge is at the 0.08 mm minimum-copper limit),
@@ -107,12 +106,12 @@ Requires `numpy`, `matplotlib`, `ezdxf`, `shapely`, and `cadquery` (STEP only).
 Origin on the trap/magnet axis, matching `inputs/mounting_plate_sketch.dxf`.
 In the STEP model **z = 0 is the board's bottom face** (against the PEEK plate);
 the electrode surface sits at z = +0.043 mm, so the rotor gap is
-`h = levitation_height - 0.043 mm` with no shim.
+`h = levitation_height - 0.043 mm`.
 
 ## Open items before ordering
 
-- Measure the V1.3 rotor's levitation height over the installed board; pick the
-  shim thickness (must be <= 5.8 mm diameter so it does not lift the GND ring).
+- Measure the V1.3 rotor's levitation height over the installed board to confirm
+  the gap h.
 - Confirm the magnet sits flush in the plate's 7 mm hole.
 - Cross-check the coupling model with a 3-D BEM/COMSOL run (the analysis uses a
   quasi-planar `exp(-m h / r)` approximation).

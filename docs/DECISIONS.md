@@ -14,7 +14,9 @@ Each entry says who decided and what it rests on (measured / derived / assumed).
 | 2026-10-09 | Laser calibration 11.10 µW/count above 764 counts. PD pickoff ~411 counts/mW. Lever arm `R_EFF` = 1.38 mm. | Measured | `apparatus_log.md` 2026-10-09 |
 | 2026-10-09 | Use `LES_PIT`, not `LES_YAW`, after the beam move (SNR 511 vs 212). | Measured | `apparatus_log.md` 2026-10-09 |
 | 2026-10-09 | Pb-212 recoil force F0 = 0.81 fN. | PI's figure | `noise_budget_20260911_clean.ipynb` |
-| 2026-09-30 | Moment of inertia **I = 1.1e-11 kg·m² (±10%)**. Supersedes 1.88e-11 and 1.7e-11. | Derived: weighed 7 mg assembly + model shape | `CLAUDE.md`, `apparatus_log.md` 2026-09-30 |
+| 2026-09-30 | Moment of inertia **I = 1.1e-11 kg·m² (±10%)**. Supersedes 1.88e-11 and 1.7e-11. | Derived: weighed 7 mg assembly + model shape | `apparatus_log.md` 2026-09-30 |
+| 2026-09-08 | **`lab_utils/stator_osc_drive.py` is the drive** (front-end oscillator + `DRVMTRX`), after the model change. | Verified −120.00° phases, 5-sig-fig amplitudes | `y1rds_model_change_muxmatrix.md` |
+| design | **Drive harmonic m = 8** (rotor speed = f_elec/8). | **Derived** from the rotor drawing; the flown rotor's 8-fold holes agree (photo, 2026-10-29). Detent test pending | `stator_flex/flex_spec.md` |
 | 2026-09-14 | LES divisor: **rotation = comb/2**. | Molly timed 10 turns by eye | `apparatus_log.md` open items (resolved) |
 | 2026-09 | Front-end (cymac1) GPS is read live from `Y1:DAQ-DC0_GPS`; no stored offset. worker2 file names (Basler, uEye) are true GPS. | Offset measured 3072–9876 s and wandering | `lab_utils/stator_awg_drive.py`, `spindown_gui.py` |
 | 2026-08-24 | V1 is the centre electrode; phases (A, B, C) = (V2, V4, V3), `PHASE_ELECTRODES = (2, 4, 3)`. The old (2,3,4) swaps B and C. | Continuity check | `apparatus_log.md` 2026-08-24 |
