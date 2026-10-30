@@ -12,9 +12,6 @@ The goal these serve is in `measurement_objective.md`.
   project (ground truth + scoring, detector, angle → frequency, capture on worker2,
   live loop) once the docs are clean.
 
-- **Drag law:** `damping_law_comparison.ipynb` (τ₀ + γω, γ = 3.53e-15) vs
-  `noise_budget_20260911_clean` (pure linear, γ = 2.30e-15). Decide which the programme
-  uses. Settle with one long free spindown over a wide ω range, fitted both ways.
 - **`LES_YAW` → `LES_PIT`:** `settled_check.py`, `monitor_libration.py`,
   `track_spindown.py` and both `noise_budget_20260911*` notebooks still hardcode YAW.
 - **Re-run §2 of `noise_budget_20260911_clean.ipynb`** with F0 = 0.81 fN.

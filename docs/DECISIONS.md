@@ -6,8 +6,9 @@ Each entry says who decided and what it rests on (measured / derived / assumed).
 
 | Date | Decision or current value | Who / basis | Details |
 |---|---|---|---|
-| 2026-10-27 | Board height set with shims **under the PEEK plate**. Flex lies flat. No metal under the pads (bare GND around each live pad → phase-to-GND short). | Molly; meter checks passed | Shim stack: _to fill in_ |
+| 2026-10-30 | Drag model: **linear, τ_drag = γω, γ = I/τ_mech = 2.30e-15 N·m·s** (τ_mech = 79.8 min). A constant term (τ₀ = 4.7e-16 N·m, `damping_law_comparison.ipynb`, re-run with I = 1.1e-11) is < 4% of the drag above 0.5 Hz. | Molly. Derived from September spindowns (before the board and beam changes); re-measure with the next long free spindown | `noise_budget_20260911_clean.ipynb`, `damping_law_comparison.ipynb` |
 | 2026-10-28 | `DRVMTRX` changes reach the DAC within one 1024 Hz sample (with `DRVMTRX_TRAMP = 0`); `caput` ~0.4 ms. The camera (20 ms/frame at 50 fps) is the slowest element in a feedback loop. | Measured | `apparatus_log.md` 2026-10-28 |
+| 2026-10-27 | Board height set with shims **under the PEEK plate**. Flex lies flat. No metal under the pads (bare GND around each live pad → phase-to-GND short). | Molly; meter checks passed | Shim stack: _to fill in_ |
 | 2026-10-27 | Board GND is a wire from a top GND pad (r 10.8 mm, az 60/240°) to a base screw. The bottom GND ring barely overlaps the 1/4" magnet and does not make contact. | Molly; continuity measured | `apparatus_log.md` 2026-10-21/22 |
 | 2026-10-21 | Rotor centred on the board to 0.02–0.05 mm. | Measured (microscope photos) | `analysis/rotor_centering/README.md` |
 | 2026-10-19 | **No centre shim**, and none planned. Gap h ≈ 0.37 mm. | Molly. h is the design value; levitation height not yet measured | Earlier "0.1 mm shim / 0.27 mm gap" text was a Claude assumption |

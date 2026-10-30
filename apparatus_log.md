@@ -309,6 +309,9 @@ locally and is exactly what makes a forwarded plot feel sluggish. `--gui-interva
 
 #### ⚠ Two drag laws are in the repo and they disagree — unresolved
 
+> **Resolved 2026-10-30:** most of the gap was I (the comparison notebook used 1.88e-11).
+> Re-run with I = 1.1e-11: γ = 2.07e-15 vs 2.30e-15. Linear model adopted; see DECISIONS.
+
 | source | law | γ | τ₀ |
 |---|---|---|---|
 | `damping_law_comparison.ipynb`, this log | τ_drag = τ₀ + γω | 3.53e-15 N·m·s/rad | 8.06e-16 N·m |
