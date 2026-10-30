@@ -17,7 +17,7 @@ Each entry says who decided and what it rests on (measured / derived / assumed).
 | 2026-10-09 | Use `LES_PIT`, not `LES_YAW`, after the beam move (SNR 511 vs 212). | Measured | `apparatus_log.md` 2026-10-09 |
 | 2026-09-30 | Moment of inertia **I = 1.1e-11 kg·m² (±10%)**. Supersedes 1.88e-11 and 1.7e-11. | Derived: weighed 7 mg assembly + model shape | `logs/2026-q3.md` 2026-09-30 |
 | 2026-09-08 | **`lab_utils/stator_osc_drive.py` is the drive** (front-end oscillator + `DRVMTRX`), after the model change. | Verified −120.00° phases, 5-sig-fig amplitudes | `y1rds_model_change_muxmatrix.md` |
-| design | **Drive harmonic m = 8** (rotor speed = f_elec/8). | **Derived** from the rotor drawing; the flown rotor's 8-fold holes agree (photo, 2026-10-29). Detent test pending | `stator_flex/flex_spec.md` |
+| design | **Drive harmonic m = 8** (rotor speed = f_elec/8). | **Derived** from the rotor DXF: 8 arms branching into 2, harmonics only at m = 8, 16, 24, 32 (re-run 2026-10-30); Molly sees the same on the rotor. The drawing's "30°" note is wrong. Detent test pending | `stator_flex/flex_spec.md` |
 | 2026-09-14 | LES divisor, working rule: **rotation = comb/2**. | Molly timed 10 turns with a stopwatch, 2026-09-14 (before the 2026-10-09 beam move) | `logs/2026-q3.md` 2026-09-14 |
 | 2026-09 | Front-end (cymac1) GPS is read live from `Y1:DAQ-DC0_GPS`; no stored offset. worker2 file names (Basler, uEye) are true GPS. | Offset measured 3072–9876 s and wandering | `lab_utils/stator_awg_drive.py`, `spindown_gui.py` |
 | 2026-08-24 | V1 is the centre electrode; phases (A, B, C) = (V2, V4, V3), `PHASE_ELECTRODES = (2, 4, 3)`. The old (2,3,4) swaps B and C. | Continuity check | `logs/2026-q3.md` 2026-08-24 |

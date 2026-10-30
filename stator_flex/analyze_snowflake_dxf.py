@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 
-DXF = "../Snowflake disk V1.3.DXF.dxf"
+DXF = "inputs/Snowflake_disk_V1.3.dxf"  # run from stator_flex/
 EPS0 = 8.854e-12
 V0 = 100.0
 ETA = 0.5
@@ -108,7 +108,7 @@ fill = S.mean(axis=1)
 F = np.fft.fft(S, axis=1) / NTH          # a_m(r), complex
 ms = np.arange(1, 37)
 print("\nglobal harmonic weights  integral |a_m(r)| r dr  (no gap atten):")
-w = [np.trapezoid(np.abs(F[:, m]) * r_mm, r_mm) for m in ms]
+w = [np.trapz(np.abs(F[:, m]) * r_mm, r_mm) for m in ms]
 top = np.argsort(w)[::-1][:6]
 for i in top:
     print(f"  m={ms[i]:2d}: {w[i]:.4f} mm^2")
@@ -117,7 +117,7 @@ for i in top:
 def torque(m, h_mm, r_in, r_out):
     sel = (r_mm >= r_in) & (r_mm <= r_out)
     att = np.exp(-m * h_mm / r_mm[sel])
-    Am = np.abs(np.trapezoid(F[sel, m] * att * r_mm[sel], r_mm[sel]))  # mm^2
+    Am = np.abs(np.trapz(F[sel, m] * att * r_mm[sel], r_mm[sel]))  # mm^2
     Cm = EPS0 * Am * 1e-6 / (h_mm * 1e-3)
     return 0.5 * m * Cm * V0**2 * ETA, Cm
 

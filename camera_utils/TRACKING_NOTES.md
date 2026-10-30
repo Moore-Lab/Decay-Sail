@@ -17,17 +17,21 @@ From video, measure the rotor's **absolute angle** (full 360°), and from it the
 
 ![rotor under the microscope](reference/rotor_mark_microscope.jpg)
 
-`reference/rotor_mark_microscope.jpg` (microscope, top view, 2026-10):
-- **Sail:** the bright straight bar across the centre. It is edge-on to the camera and
-  turns with the rotor. In the Basler video it is the bright central blob that stays on
-  the rotation axis.
-- **Hole pattern:** two staggered rings of ~8 holes in the central recess (the m = 8
-  drive structure). Near-symmetric, so it aliases a tracker that keys on it.
-- **White mark:** an **irregular blob** of white paint filling part of the hole pattern,
-  off-centre, about 60° from the sail. Estimated r ≈ 0.55–1.6 mm (centre ~1.1 mm);
-  orbit radius 29.8 px in the 2026-10-28 Basler recording. It is the only feature that
-  is unique in angle (no 180° ambiguity).
-- **Rim:** a bright ring, rotationally symmetric, carries no angle.
+`reference/rotor_mark_microscope.jpg` (microscope, top view). The rotor is the patterned
+region in the middle (Snowflake V1.3, Ø3.5 mm, 0.75 mm thick, pyrolytic graphite; drawing
+`../stator_flex/inputs/Snowflake_disk_V1.3_drawing.png`). The larger smooth disk around
+it is not the rotor (Ø ≈ 6.4 mm by scale, probably the 1/4" magnet).
+- **Arms:** 8 arms, each branching into 2 (16 tips at the edge), cut through the disk.
+  The gaps between them are the dark "holes" in the photo. 8-fold symmetric, so a
+  tracker that keys on them is ambiguous every 45°. (The drawing's "equally spaced 30°"
+  note is wrong for this design; the DXF has no 12-fold content.)
+- **Sail:** the bright straight bar across the centre, held in a 0.05 mm slot through the
+  middle. Edge-on to the camera, it turns with the rotor and looks the same every 180°.
+  In the Basler video it is the bright central blob on the rotation axis.
+- **White mark:** an **irregular blob** of white paint filling gaps between arms,
+  off-centre, about 60° from the sail, centre at r ≈ 1.05 mm (≈ 1.1 mm from the 29.8 px
+  orbit in the 2026-10-28 Basler recording). It is the only feature that is unique in
+  angle (no 180° ambiguity).
 
 **In the Basler video it looks grey, not white** (Molly: it is clearly white by eye and
 under the microscope). At ~0.09× the mark is only ~10–15 px, so blur, the old MJPG

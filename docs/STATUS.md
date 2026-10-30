@@ -30,8 +30,10 @@ The goal these serve is in `measurement_objective.md`.
   exp(−m·h/r) coupling model against 3-D BEM/COMSOL.
 - **Bright deposit** near the centre of the rotor's underside: anything standing proud
   there costs torque (τ ∝ exp(−m·h/r)).
-- **Rotor dimensions:** disk thickness (the models assume 0.5 mm, the V1.3 design
-  note says 0.75 mm; both look too thick for the weighed 5.8 mg) and OD (3.4–3.5 mm).
+- **Rotor dimensions:** the drawing (`stator_flex/inputs/Snowflake_disk_V1.3_drawing.png`)
+  gives Ø3.50 mm × 0.75 mm, CAD mass 9.89 mg for the disk alone, but the whole rotor
+  (disk + sail) weighed 7 mg. Some models assume 0.5 mm thick. Measure the actual disk
+  thickness and OD.
 - **Trap / libration frequency:** treat as not known. Three values disagree: 0.310 Hz
   mech (09-09, small amplitude, timed), 0.12–0.16 Hz LES before the 09-08 drive
   (0.06–0.08 mech if halved), ~0.13 Hz at capture on 09-08 (band-limited tracker).
