@@ -4,14 +4,6 @@ What is open now. Overwrite freely: when an item closes, delete it here and reco
 the outcome in `apparatus_log.md` (and `docs/DECISIONS.md` if it sets a value).
 The goal these serve is in `measurement_objective.md`.
 
-## Spin-up (the current directive)
-
-Stage 1 (carry) is **not yet passed**. On 2026-10-14 the drive clearly moved the rotor
-(`stator_osc_drive.py hold`, at the `--amp 6400` ceiling), but it was **not carried
-round**. Observed by eye: sometimes forward with sudden backward slips, sometimes
-back-and-forth. Details and the numbers from that analysis: `apparatus_log.md`
-2026-10-14 (not re-checked).
-
 ## Open
 
 - **Angle tracking (white dot):** good detections 83% on the 2026-10-28 recording but
