@@ -6,12 +6,11 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Spin-up (the current directive)
 
-Stage 1 (carry) is **not yet passed**. 2026-10-14, two runs of `stator_osc_drive.py hold
---felec 0.08 --amp 6400`: LES rms 15.6 → 304.9 counts, with a line within one FFT bin
-of the f_elec/8 prediction (reproduced), but the rotor is **not carried round**: video
-phase coherence 0.670 during drive (four full turns would give ~0.04). Observed by eye:
-sometimes forward with sudden backward slips, sometimes back-and-forth.
-`--amp 6400` is the software ceiling (see DECISIONS).
+Stage 1 (carry) is **not yet passed**. On 2026-10-14 the drive clearly moved the rotor
+(`stator_osc_drive.py hold`, at the `--amp 6400` ceiling), but it was **not carried
+round**. Observed by eye: sometimes forward with sudden backward slips, sometimes
+back-and-forth. Details and the numbers from that analysis: `apparatus_log.md`
+2026-10-14 (not re-checked).
 
 ## Open
 
