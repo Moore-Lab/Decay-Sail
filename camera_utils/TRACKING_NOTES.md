@@ -29,7 +29,8 @@ it is not the rotor (Ø ≈ 6.4 mm by scale, probably the 1/4" magnet).
   middle. Edge-on to the camera, it turns with the rotor and looks the same every 180°.
   In the Basler video it is the bright central blob on the rotation axis.
 - **White mark:** an **irregular blob** of white paint filling gaps between arms,
-  off-centre, about 60° from the sail, centre at r ≈ 1.05 mm (≈ 1.1 mm from the 29.8 px
+  off-centre, about 50° from the sail (measured ~48° in the 2026-10-30 video, ~55° rough
+  read of the microscope photo; `tracking/HANDOFF.md`), centre at r ≈ 1.05 mm (≈ 1.1 mm from the 29.8 px
   orbit in the 2026-10-28 Basler recording). It is the only feature that is unique in
   angle (no 180° ambiguity).
 

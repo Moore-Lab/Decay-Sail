@@ -1,0 +1,8 @@
+{
+  "video": "output_basler_gps1477428272.avi",
+  "video_location": "Dropbox Microspheres/TFINER/videos/ (new lighting, 2026-10-30)",
+  "frame_size_wh": [256, 292],
+  "centre_xy_px": [132.3, 180.6],
+  "method": "circle fit to the blob orbit from blob_track.py (template frame 0 at 257 deg), iterated once: input (132.4,180.7) -> fit (132.31,180.60), radial scatter 0.28 px over 13071 frames. Cross-checks: gps1477419607 centre shifted by the board's image shift (+16.6,-0.2) px = (132.8,180.0); sail-line crossing (129.7,177.8)/(131.0,178.5), less reliable here (sail dim, ~90 lines found)",
+  "confirmed_by": "Molly, by eye on 12 frames (plots/gate1_2_frames_gps1477428272.png), 2026-10-30"
+}

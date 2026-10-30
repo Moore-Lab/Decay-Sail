@@ -14,6 +14,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-10-30 — Angle tracking gate 2: blob detector (analysis only, no hardware)
+
+Ran `camera_utils/tracking/blob_track.py` on `output_basler_gps1477419607.avi` (polar
+template match, 9 s). MEASURED: all 1957 frames tracked with no jumps (max step 6.9°);
+loop-closure de-rotation is sharp on the dim half too; orbit centred 0.70 px from the
+gate-1 centre (the earlier 4.6 px offset was a detector artefact); blob−sail 34.2° ± 1.8°.
+Gate 2 passed (Molly, by eye). New-lighting video `output_basler_gps1477428272.avi`
+(261 s): image moved +16.6 px in x; centre (132.3, 180.6) pending her check; tracks with
+no jumps, NCC median 0.96 (was 0.77). Details: `camera_utils/tracking/HANDOFF.md`.
+
 ### 2026-10-28 — ACTUATOR IS FAST: matrix → DAC in under one 1024 Hz sample
 
 > **Provenance.** MEASURED: everything below. The one INFERENCE is flagged in place.
