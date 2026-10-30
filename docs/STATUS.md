@@ -55,7 +55,11 @@ The goal these serve is in `measurement_objective.md`.
 - **Torque-per-mW drop (4.5×):** separate beam geometry from sail alignment once the
   tilt stage is in.
 - Tilt the ND filter to break the etalon. Commanded laser counts before/after the 08-03
-  step. Get the pressure gauge logging.
+  step.
+- **Slow-controls logging:** get **temperature** and the **pressure gauge** logging
+  continuously. Existing pieces: `lab_utils/log_pressure.py` (written, gauge not
+  recording); `analysis/ambient_temp_pull.py` pulls the GHS room sensor from InfluxDB
+  after the fact.
 - **Rotor frequency from the white dot:** not done yet (so far the dot has only been
   tested for angle detection). Once it works, compare against LES in one recording to
   settle the divisor for libration and rotation.
