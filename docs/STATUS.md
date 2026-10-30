@@ -16,7 +16,8 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
 ## Open
 
 - **Angle tracking (white dot):** good detections 83% on the 2026-10-28 recording but
-  31% live, unexplained (`apparatus_log.md` 2026-10-28). Scope it as a multi-agent
+  31% live, unexplained (`apparatus_log.md` 2026-10-28). Working doc:
+  `camera_utils/TRACKING_NOTES.md`. Scope it as a multi-agent
   project (ground truth + scoring, detector, angle → frequency, capture on worker2,
   live loop) once the docs are clean.
 
@@ -67,8 +68,8 @@ sometimes forward with sudden backward slips, sometimes back-and-forth.
 - **Rotor frequency from the white dot:** not done yet (so far the dot has only been
   tested for angle detection). Once it works, compare against LES in one recording to
   settle the divisor for libration and rotation.
-- **Basler:** lossless recording + per-frame timestamps in `grab_basler.py`; more
-  magnification (16 mm lens is at ~0.09×).
+- **Basler:** more magnification (16 mm lens is at ~0.09×; options in
+  `camera_utils/README.md`). Lossless FFV1 + per-frame timestamps are done (2026-10-28).
 - **Log housekeeping:** accuracy audit (label claims measured / derived / assumed);
   the October entries in `apparatus_log.md` are still long-form (pre-October is archived
   in `logs/2026-q3.md`).
