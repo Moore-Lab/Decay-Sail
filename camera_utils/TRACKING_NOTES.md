@@ -89,11 +89,18 @@ Later: a centring cross on the live view, to check the camera has not moved.
 
 ## Camera alignment (straight-on view)
 
-A tilted view makes the blob's circle an ellipse and shifts tall features (the sail)
-relative to flat ones (the blob). The angle error from tilt alone is small (about
-t²/4 rad, ~0.1° at 5° tilt), but the sail-vs-blob centre offset is not. Check: fit an
-ellipse to a circular board feature in a still frame (axis ratio = cos tilt), and check
-the 24 radial traces sit at even 15° spacing. Not done yet.
+A tilt t squashes circles by cos t and moves tall features (the sail top) relative to
+flat ones (the blob) by height × tan t. The **angle** error from tilt is small, about
+t²/4 rad (~0.2° at 5°, ~0.7° at 13°), so tilt does not matter for angle tracking.
+
+Checked 2026-10-30 on the median frame of `output_basler_gps1477419607.avi`: ellipse fits
+to two circular edges (r ≈ 38 and 48 px) gave axis ratios 0.98 and 0.97 but long axes in
+unrelated directions (214°, 99°), i.e. noise, not tilt. Tilt is below ~10–13° and the
+video cannot resolve less (5° is a 0.15 px squash). The board traces are **not** evenly
+spaced (they jog; 10–19° apart on the left), so trace spacing is not a tilt test.
+
+If the sail-vs-blob centre offset (gate 2) turns out real, measure tilt physically: a
+flat mirror on the board; the camera sees its own lens centred when straight on.
 
 ## History: the old rotor (July 2026)
 
