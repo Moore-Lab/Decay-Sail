@@ -70,17 +70,30 @@ mark, which then gives a plausible but wrong angle.
 - The motion is not purely in-plane (tilt, whirl); the orbit of the mark is not a perfect
   circle.
 
-## Open (the tracking project)
+## Plan: tests first, recorded video before live
 
-To be scoped as a multi-agent project (`../CLAUDE.md`, Delegation):
-- **Ground truth:** hand-label the mark angle on a few hundred frames from one recording;
-  score every detector against it.
-- **Detector:** find the mark reliably; reject sail/glint frames.
-- **Angle → frequency:** unwrap, frequency and direction, libration vs rotation; compare
-  with LES on the same recording.
-- **Capture:** lossless recordings with per-frame timestamps are in place
-  (`grab_basler.py`, 2026-10-28). More magnification would help most.
-- **Live:** why 31% live vs 83% recorded.
+Agents do not iterate on a detector until gates 1–4 pass. Each gate passes before the
+next starts. Current state and next steps: `tracking/HANDOFF.md`.
+
+| Gate | What | Pass when |
+|---|---|---|
+| 1. Centre | Rotation centre of each test video, estimated several ways and confirmed by Molly by eye; stored in `tracking/centre_gps<GPS>.json` and used for the whole video | Molly confirms on overlaid frames |
+| 2. Blob | The detector follows the white blob as it goes round, not the sail or a glint, in both the bright and the dim part of its orbit | Molly confirms on circled frames across the video; blob distance from the centre stays near-constant |
+| 3. Ground truth | Hand-label the blob angle on ~200 frames across the test videos, including hard ones (blob near the sail, dim, blurred); a second pass on 20 frames | Second pass agrees within a few degrees |
+| 4. Scorer | One script comparing any angle file with the labels: % within 5°, rms, wrong-feature rate (errors near 180° or 45°), % skipped | 100% on the labels themselves; **fails** a copy rotated by 180° |
+| 5. Detector | Agents iterate, scored by gate 4 on every change | ≥95% within 5°, <1% wrong-feature (to confirm) |
+| 6. Angle → frequency | Unwrap; frequency and direction; compare with LES on the same recording via the timestamps | Agrees with LES at ÷1 or ÷2, settling the divisor |
+| 7. Live | Same code on the live camera while recording | Live and recorded scores match (the 31% vs 83% gap) |
+
+Later: a centring cross on the live view, to check the camera has not moved.
+
+## Camera alignment (straight-on view)
+
+A tilted view makes the blob's circle an ellipse and shifts tall features (the sail)
+relative to flat ones (the blob). The angle error from tilt alone is small (about
+t²/4 rad, ~0.1° at 5° tilt), but the sail-vs-blob centre offset is not. Check: fit an
+ellipse to a circular board feature in a still frame (axis ratio = cos tilt), and check
+the 24 radial traces sit at even 15° spacing. Not done yet.
 
 ## History: the old rotor (July 2026)
 

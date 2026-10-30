@@ -1,0 +1,9 @@
+{
+  "video": "output_basler_gps1477419607.avi",
+  "video_location": "Dropbox Microspheres/TFINER/videos/ (shared link in camera_utils/tracking/HANDOFF.md)",
+  "frame_size_wh": [256, 292],
+  "centre_xy_px": [116.2, 180.2],
+  "method": "least-squares crossing of the sail line over 1180 frames (median miss 0.36 px); camera_utils/tracking/centre_estimate.py",
+  "confirmed_by": "Molly, by eye on 8 frames, 2026-10-30 ('mostly correct')",
+  "alternative_not_used": {"centre_xy_px": [111.8, 178.4], "method": "circle fit to a rough blob detector's centroids (radius 23.6 px, scatter 4.6 px); suspected biased by partial detection of the dim side of the blob"}
+}

@@ -8,7 +8,8 @@ The goal these serve is in `measurement_objective.md`.
 
 - **Angle tracking (white dot):** good detections 83% on the 2026-10-28 recording but
   31% live, unexplained (`apparatus_log.md` 2026-10-28). Working doc:
-  `camera_utils/TRACKING_NOTES.md`. Scope it as a multi-agent
+  `camera_utils/TRACKING_NOTES.md` (gate plan); current state in
+  `camera_utils/tracking/HANDOFF.md` (gate 1 passed 2026-10-30). Scope it as a multi-agent
   project (ground truth + scoring, detector, angle → frequency, capture on worker2,
   live loop) once the docs are clean.
 
