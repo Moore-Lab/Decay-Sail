@@ -11,33 +11,31 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
 2. **One fact, one home.** Current values and decisions live in `docs/DECISIONS.md`.
    Elsewhere, link to them; don't restate them. Before adding a line to this file, ask
    what would go wrong without it.
-3. **The repo is the source of truth.** Notion pages summarise; don't take values
-   from Notion.
-4. **Label claims** as measured, derived, or assumed. Never record your own
+3. **Label claims** as measured, derived, or assumed. Never record your own
    assumption as a decision. Decisions are made by a person and dated in DECISIONS.md.
    State which checks ran and which were skipped.
-5. **Report what you observe and how big it is,** with uncertainties. Don't jump to
+4. **Report what you observe and how big it is,** with uncertainties. Don't jump to
    causes. If something is unexplained, say so.
-6. **Ask first** before: hardware actuation (drive, laser, HV, any `--live`), any
+5. **Ask first** before: hardware actuation (drive, laser, HV, any `--live`), any
    `ssh cymac1` (even read-only), git commit or push, purchases, deleting files or
    scripts, or changing a recorded decision. Otherwise proceed.
    **Git:** doc edits go straight to `main`. Code that touches hardware (drive scripts,
    capture, anything worker2 runs) goes on a branch, is tested on worker2, then merged.
    With several agents, one branch each.
-7. **Ask about intent, decide implementation.** Ask when the answer changes what "done"
+6. **Ask about intent, decide implementation.** Ask when the answer changes what "done"
    means: physics interpretation, scope, or lab state you can't observe. Decide
    implementation yourself and say what you chose and why. Ask once, in one batch.
-8. **Don't re-ask settled decisions.** At checkpoints, show evidence (plots, output)
+7. **Don't re-ask settled decisions.** At checkpoints, show evidence (plots, output)
    with file paths.
-9. **Handback:** every question or completion says where we are (done and verified,
+8. **Handback:** every question or completion says where we are (done and verified,
    with paths), what you need from Molly and why, the exact steps for her, and what
    continues meanwhile. Recommended option first.
-10. **Log each session** in `apparatus_log.md`: one short entry (did / ran, with command
+9. **Log each session** in `apparatus_log.md`: one short entry (did / ran, with command
    and GPS start–stop / saw / link). Analysis goes in its own file.
-11. Never use `--leave-running` unless asked.
-12. Front-end (cymac1) GPS: read it live, do not use a stored offset.
-13. **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
-14. Git is the backup. Don't make copies of files.
+10. Never use `--leave-running` unless asked.
+11. Front-end (cymac1) GPS: read it live, do not use a stored offset.
+12. **Never restart GNOME Shell** without checking X11-vs-Wayland and asking first.
+13. Git is the backup. Don't make copies of files.
 
 ## Delegation (agents)
 
