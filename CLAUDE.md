@@ -86,7 +86,6 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 | `apparatus_log.md` | dated session log (pre-October 2026: `logs/2026-q3.md`) |
 | `analysis/calibration_history.md` | which constants applied to which datasets |
 | `stator_flex/` | stator design (`flex_spec.md`), generators, fab files |
-| `hv_amp_dc_investigation.md` | HV amplifier behaviour and the DC-pedestal question |
 | `y1rds_model_change_muxmatrix.md` | the 2026-09-08 front-end model change (DRVMTRX) |
 | `lab_utils/` | drive, tracking and monitoring scripts (`README.md`) |
 | `camera_utils/` | Basler / uEye capture and rotor-angle tracking |
@@ -158,8 +157,9 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 
 ## Hardware traps (read before driving)
 
-**HV amplifier** (homemade, HV265 op-amp; details in `hv_amp_dc_investigation.md`):
-- It is **bipolar** and maps *any* DC input to 0 V out.
+**HV amplifier** (homemade, HV265 op-amp):
+- It is **bipolar** and maps *any* DC input to 0 V out, so no DC reaches the electrode
+  and a static (DC) detent does not hold.
 - The input must be **positive, 0–2 V**. 12800 counts ↔ 2.1 V and `V{n}_LIMIT` = 12800,
   so **`dc >= amp` is mandatory** and `dc = amp = 6400` exactly fills the range.
 - ~0.0134 V/count, measured on the `_EXC` path only; `_OFFSET` is unverified.

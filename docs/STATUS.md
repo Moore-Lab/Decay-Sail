@@ -19,12 +19,17 @@ The goal these serve is in `measurement_objective.md`.
   `thermal_noise_spindown.py:37`, left alone on purpose).
 - **Drive-off baseline** now that the board is flat and grounded: does the rotor still
   move with drive and laser off (cf. 2026-08-22)?
-- **DC detent test:** one phase on → rotor should snap to one of 8 detents; step
-  A→B→C → 15° mech per step. Confirms m = 8 (now only derived) and calibrates τ_max
+- **Detent test:** one phase on → rotor should snap to one of 8 detents; step
+  A→B→C → 15° mech per step. The amp passes no DC, so a static detent fades; the method
+  needs working out. Confirms m = 8 (now only derived) and calibrates τ_max
   vs V². The white-dot camera tracking can measure the steps.
 - **Max ramp rate vs V** (expect ∝ V²): confirms the capacitance-motor mechanism.
-- **DC pedestal:** what the commanded `V_dc` does to the m = 8 torque channel is
-  unresolved (`hv_amp_dc_investigation.md`).
+- **Which rotor harmonic the drive couples to** (derivation to check, 2026-10-14). With
+  no DC at the electrode, torque ∝ V², and on 24 sectors V² couples the rotor's
+  **m = 16** pattern forward at f_elec/8 (intended) and its **m = 8** pattern
+  *backward* at f_elec/4. Forward m = 8 coupling needs a term linear in V, which only a
+  net rotor charge would give. Watch for a backward lock at f_elec/4 in spin-up
+  attempts; check whether stiffness changes with rotor charge.
 - **Levitation height** over the installed board, to confirm h ≈ 0.37 mm.
 - Confirm the magnet sits flush in the plate's Ø7 hole; cross-check the
   exp(−m·h/r) coupling model against 3-D BEM/COMSOL.

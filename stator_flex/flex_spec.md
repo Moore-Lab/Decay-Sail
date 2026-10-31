@@ -60,7 +60,7 @@ available coupling the electrode annulus actually sees (84.2% at h = 0.37, from
   side-post case; that 2 is the induced dipole's 2-fold symmetry.)
 - Max ramp rate = `0.5·τ_max/(2πI)` Hz mech/s (≤50% torque margin).
 - I and the drive ceiling: `docs/DECISIONS.md`. The voltage actually reached at the
-  ceiling depends on the HV amplifier (`hv_amp_dc_investigation.md`).
+  ceiling depends on the HV amplifier (`CLAUDE.md`, Hardware traps).
 
 ## Geometry (mm)
 

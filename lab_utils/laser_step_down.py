@@ -2,7 +2,7 @@
 """Laser power step-down with a programmatic settled-check AND a rotation->libration
 transition trigger.
 
-Per the 2026-09-14 plan (`laser_stepdown_next_run_plan.md`) and the transition analysis:
+Per the 2026-09-14 plan (`laser_stepdown_next_run_plan.md`, in git history) and the transition analysis:
 
   ROTATION regime -- at each commanded offset, wait ~1 tau then re-check settling
   every ~25 min up to a hard ceiling (~4 tau); stop waiting and FLAG rather than

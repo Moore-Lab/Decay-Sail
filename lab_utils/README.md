@@ -59,7 +59,7 @@ flipped which axis is strong; see `docs/DECISIONS.md`.
 touch hardware. EPICS only (`_OFFSET`, `_TRAMP`, `DRVON`), which avoids the AWG slot
 limit and the front-end clock frame. The cost is bandwidth: software-timed writes
 reach a few Hz electrical, and synthesising AC through `_OFFSET` fails somewhere
-between 0.16 and 4 Hz electrical (`hv_amp_dc_investigation.md`). Its `calibrate`
+between 0.16 and 4 Hz electrical (`logs/2026-q3.md`, 2026-08-28). Its `calibrate`
 subcommand (DC staircase on one electrode) is the way to measure `VOLTS_PER_COUNT`
 on the `_OFFSET` path. It refuses to print torque limits until `--volts-per-count`
 is passed.
