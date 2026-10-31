@@ -90,10 +90,36 @@ that is her call.
   cutting a new one, or the angle zero differs between recordings. `blob_track.py`
   currently cuts it from REF_FRAME of the video it runs on.
 
-**Next:** gate 3 on gps1477428272 (labelling tool, ~200 frames incl. hard ones,
-second pass on 20) → gate 4 (scorer). No detector iteration before gate 4 passes.
+**Gate 3, ground truth: PASSED by its criterion (2026-10-30).** Molly labelled all 200
+frames (none skipped; no zoom, a spot on the blob at -102.4 deg, r 25.1 px in the reference),
+then 20 again 5 h later. Pass 2 vs pass 1: mean -0.20 deg, **rms 1.12 deg, max 2.75 deg**
+(radial 0.66 px rms), so one label scatters ~0.8 deg (derived, /sqrt2, n=20). Labels vs
+blob_track (preview of gates 4-5, not the formal score): constant offset 0.25 deg, then
+**rms 0.96 deg, max 3.0 deg, 100% within 5 deg**, similar in every selection category
+(fast 0.84, reversal 0.93, low-margin 1.12). With ~0.8 deg of label scatter, the tracker's own
+error is roughly 0.5 deg rms (derived, rough).
 
-**Open questions for Molly:** the pass mark for gate 5; which video(s) gate 3 labels
-(recommend mainly the new-lighting one, plus some hard frames from the first); whether to add a synthetic video (rendered from the DXF) as an
-exact-truth test; whether `blob_gps*.csv` should be committed or gitignored (it
-regenerates in 9 s; recommend gitignore).
+Tool notes (kept from the build):
+Decided (Molly, 2026-10-30): gate 3 uses only gps1477428272 (the new lighting); the first
+video stays an unlabelled stress test. `label_frames.py` (headless-tested with simulated
+clicks: angles recorded exactly, resume/skip/back, repeat pass and compare all work).
+200 frames picked (`labels/selection_gps1477428272.csv`): 119 evenly in angle, 40
+fastest, 20 swing reversals, 20 lowest detector margin, 1 random; shown shuffled and
+without any detector angle. Molly runs, on the Mac:
+
+    cd ~/Desktop/VSCode/decay_sail/camera_utils/tracking
+    python label_frames.py point 1477428272    # once: click the rotor point to use
+    python label_frames.py label 1477428272    # pass 1, resumable (q quits, saves)
+    python label_frames.py repeat 1477428272   # pass 2 on 20 frames, later
+    python label_frames.py compare 1477428272  # gate 3 passes if within a few degrees
+
+(`select` was run as `label_frames.py select VIDEO centre_gps1477428272.json
+blob_gps1477428272.csv`; rerun only if the frames cache is lost.) The labels CSVs are
+ground truth: commit them.
+
+**Next: gate 4 (scorer):** one script comparing any angle file with the labels (% within
+5 deg, rms, wrong-feature rate near 180/45 deg, % skipped, after fitting the constant offset);
+passes when it scores 100% on the labels themselves and **fails** a copy rotated by 180 deg.
+
+**Open questions for Molly:** the pass mark for gate 5; whether to add a synthetic video
+(rendered from the DXF) as an exact-truth test.
