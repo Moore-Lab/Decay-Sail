@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-10-30 — Gate 6: video angle vs LES (analysis only)
+
+`camera_utils/tracking/les_compare.py` on gps1477428272. MEASURED: video and LES align at
+front-end − true GPS = 15073.56 ± 0.05 s (R² 0.87 for both PIT and YAW, 0.08 elsewhere).
+LES is mostly a 2× function of the rotor angle (R² 0.77 vs 0.09 for 1×), so ÷2 when
+rotating; LES circulation gives the direction (97% of frames above 0.3 rev/s). Swinging ±105° at 0.275 Hz: LES peaks at 3.0× with a comb at
+2–5×, reproduced by the angle model; no fixed divisor while swinging. Details:
+`camera_utils/tracking/HANDOFF.md`.
+
 ### 2026-10-30 — LES PIT/YAW fetched for video gps1477428272 (read-only, worker2 agent)
 
 Ran `lab_utils/fetch_les_for_video.py 1477428272` (cds conda env). MEASURED: front end

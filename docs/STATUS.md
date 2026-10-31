@@ -6,12 +6,12 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Open
 
-- **Angle tracking (white dot):** good detections 83% on the 2026-10-28 recording but
-  31% live, unexplained (`apparatus_log.md` 2026-10-28). Working doc:
-  `camera_utils/TRACKING_NOTES.md` (gate plan); current state in
-  `camera_utils/tracking/HANDOFF.md` (gate 1 passed 2026-10-30). Scope it as a multi-agent
-  project (ground truth + scoring, detector, angle → frequency, capture on worker2,
-  live loop) once the docs are clean.
+- **Angle tracking (white blob):** gates 1–4 passed and gate 6 done on recorded video
+  (2026-10-30, `blob_track.py`, new lighting): 100% of 200 hand labels within 5°, rms 1.0°.
+  LES vs video: ÷2 when rotating; while swinging LES shows a comb, no fixed divisor.
+  Open: gate 5 pass mark (Molly), CLAUDE.md LES-rule wording (Molly), gate 7 (live on
+  worker2). The old `rotor_angle_loop.py` 83% recorded / 31% live gap is unexplained but
+  belongs to the old detector. State: `camera_utils/tracking/HANDOFF.md`.
 
 - **`LES_YAW` → `LES_PIT`:** `settled_check.py`, `monitor_libration.py`,
   `track_spindown.py` and both `noise_budget_20260911*` notebooks still hardcode YAW.

@@ -11,7 +11,8 @@ From video, measure the rotor's **absolute angle** (full 360°), and from it the
    settle the LES divisor (LES often reads 2× the true frequency; CLAUDE.md, LES).
 2. Later, **feedback**: a live angle stream for a phase-locked drive.
 
-**Not achieved yet.** The white mark has never been used to get a frequency.
+**Done on recorded video (2026-10-30):** absolute angle from the blob (`tracking/blob_track.py`),
+compared with LES (gate 6). Not yet live. Results: `tracking/HANDOFF.md`.
 
 ## What the rotor looks like
 
@@ -40,7 +41,7 @@ compression and an exposure set by the bright board all wash it out. Lighting fr
 side made it more identifiable (Molly, 2026-10-29). The paint's effect on balance has not
 been measured.
 
-## Current detector: `rotor_angle_loop.py`
+## Old live detector: `rotor_angle_loop.py` (superseded on recorded video by `tracking/blob_track.py`)
 
 The weighted centroid of the brightest `N_BRIGHT` pixels in the rotor region, then
 atan2 about a rotation centre fitted over the first `--calib-s` seconds. Threshold-free

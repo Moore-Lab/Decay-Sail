@@ -42,38 +42,13 @@ de-rotated mean of the first video is at ~97° and the sail at 49°, so **~48°*
 (`plots/blob_sail_angle_gps1477419607.png`); a rough read of the microscope photo gives
 ~55°. TRACKING_NOTES' "about 60°" was approximate.
 
-**Gate 2 record (first video):** detector built and checked as below.
-
-Detector: `blob_track.py` (polar unwrap about the centre + normalised cross-correlation
-with a blob template cut from frame 1100 at 82°; searches all 360° and ±8 px in r;
-takes the better of a raw and a sail-blanked unwrap per frame). Run (9 s):
-
-    cd camera_utils/tracking
-    python blob_track.py ~/Library/CloudStorage/Dropbox/Microspheres/TFINER/videos/output_basler_gps1477419607.avi \
-        256 292 centre_gps1477419607.json 1100 82 blob_gps1477419607.csv
-
-Measured on the test video (all 1957 frames detected; none skipped):
-- **Continuity:** largest frame-to-frame step 6.9° (the fastest motion in the video,
-  ~5–7°/frame for ~20 frames). No jumps. (Before this, a brightness detector had
-  ~25–35% of frames on the sail ends or arm tips, and an earlier template version had
-  ~190 jumps >30°.)
-- **Loop closure (passes):** de-rotating each frame by its tracked angle and averaging
-  gives a sharp rotor: arms, sail and the blob's shape. The dim half of the orbit alone
-  (1355 frames) is as sharp as the bright half (602). A control with shuffled angles
-  blurs to rings. High-pass rms in the rotor: raw mean 5.4, de-rotated 12.7 (dim half
-  14.1, bright half 15.8), shuffled 2.6. `plots/gate2_loopclosure_gps1477419607.png`.
-- **Distance from (116.2, 180.2):** median 22.9 px, std 0.57 px, varying 22–24 px with
-  angle. A circle fit to the orbit is centred at (115.70, 180.69), **0.70 px** from the
-  chosen centre, radial scatter 0.30 px. The 4.6 px offset suspected in the last handoff
-  is **not reproduced**; it came from the rough detector. Whether the remaining 0.7 px
-  is tilt or centre error is open (not needed for the angle).
-- **Blob − sail angle:** 34.2° (MAD-std 1.8°, 700 frames where the sail finder is
-  continuous and the blob is on the dim half). TRACKING_NOTES says "about 60°";
-  not resolved. In bright frames the sail finder is pulled onto the blob, so the sail
-  angle is only used as a check, never by the detector's output.
-- **What the rotor did (observation):** back-and-forth swings of roughly ±70–100°, with
-  full turns around frames 950–1130 and 1680–1957; net −1.5 rev in 39 s; peak speed
-  ~7°/frame ≈ 0.95 rev/s (at 50 fps). `plots/gate2_series_gps1477419607.png`.
+**Gate 2 record (first video, gps1477419607):** `blob_track.py ... centre_gps1477419607.json
+1100 82 ...` (polar unwrap + NCC blob template; better of raw and sail-blanked unwrap per
+frame). All 1957 frames, max step 6.9 deg, no jumps (a brightness detector had 25-35% of
+frames on the sail or arm tips). Loop closure sharp on the dim half too
+(`plots/gate2_loopclosure_gps1477419607.png`). Orbit centred 0.70 px from the gate-1 centre,
+scatter 0.30 px: the old 4.6 px offset came from the rough detector. Motion: swings of
++-70-100 deg plus full turns, net -1.5 rev in 39 s (`plots/gate2_series_gps1477419607.png`).
 
 **Still open from gate 2:** for other videos, reuse one saved template (and its declared
 offset) rather than cutting a new one per video, or the angle zero differs between recordings.
@@ -126,13 +101,40 @@ reversal 1.09, low-margin 1.10 rms). 0 of 200 wrong-feature bounds the rate only
 label scatter (~0.8 deg per label, from gate 3). blob_track was built before the labels
 existed, so it was not tuned on them.
 
-**Next:** Molly sets the gate-5 pass mark (proposed: >= 95% within 5 deg, < 1% wrong-feature);
-if blob_track passes it, gate 5 needs no detector iteration. Then gate 6 (angle -> frequency,
-compare with LES on the same recording). Data in hand: Dropbox
-`Microspheres/TFINER/data/LES_video/Y1_RDS-LES_{PIT,YAW}_IN1_DQ_1477443068_1477443939.h5`
-(front-end GPS, 1024 Hz; offset 15096.4 s read 6.2 h after the video, so align the video
-to LES from the motion, within the 300 s padding) and the frame timestamps
-`videos/output_basler_gps1477428272.csv`.
+**Gate 5:** awaiting Molly's pass mark (proposed >= 95% within 5 deg, < 1% wrong-feature);
+blob_track meets it with no iteration.
+
+**Gate 6, angle vs LES (2026-10-30), measured on gps1477428272.** `les_compare.py` (command in
+its docstring; figures `plots/gate6_gps1477428272_{align,swing}.png`, gitignored).
+- Frames: 13071, none dropped, camera clock 50.000 fps, first frame true GPS 1477428272.28.
+- **Alignment:** LES regressed on cos/sin(k theta), k=1..4, of the video angle, over all shifts:
+  peak R^2 0.875 (PIT) / 0.868 (YAW) at the same **front-end - true GPS = 15073.56 +- ~0.05 s**
+  (0.02 s grid, min-latency host anchor); next best >2 s away 0.08, median 0.015. The live
+  read 6.2 h later gave 15096.4 s (22.8 s more, ~88 s/day; consistent with ~106 s/day from
+  two points).
+- **LES is mostly a 2x function of the rotor angle (the main evidence for /2):** R^2 by
+  harmonic 1..4 = 0.09, 0.77, 0.01, 0.00 (PIT). PIT = 160 counts (1x) + 788 (2x); YAW 2x =
+  1290 counts; 1x alone R^2 0.09, 1x+2x 0.86. So when it rotates, the LES line is 2x.
+- Consistent with it: LES spectral peak / video rate median 2.01 in 25 overlapping 2-s windows
+  of steady rotation (~6 s of data, ~3 independent windows; 0.5 Hz bins, so the IQR 1.87-2.10
+  is mostly bin quantisation). Corroborative only.
+- **Swinging: no fixed divisor.** Large swings put a comb of LES lines at multiples of the
+  swing frequency, strongest line set by the amplitude. 210-261 s (steady swing, ~+-105 deg,
+  0.275 Hz): LES peaks at 0.821 Hz = **3.0x**, with lines at 2x, 3x, 4x, 5x. 0-55 s (smaller
+  swings + drift): LES peak 1.19x. In both, the 1x+2x model built from the video angle alone
+  gives the same LES peak (0.821, 0.373 Hz) and comb (R^2 0.76, 0.79). The swing frequency is
+  the comb SPACING, not the LES peak / 2. Cause of the 2x response not investigated.
+- **Direction from LES:** the 2x terms of PIT and YAW are in phase (0.8 deg), so they trace a
+  line, not a circle; the 1x term adds a circulation. Band-passed (0.1-4 Hz) LES circulation
+  sign vs video direction: agrees (with one fixed sign flip) in 97% of frames above 0.3 rev/s
+  (84 s), 90% above 0.2, 77% above 0.1. Sign convention set by this one recording.
+- Scope: the 1x/2x split is a property of the LES beam geometry as it is now (beam moved
+  2026-10-09); re-check it if the beam moves before trusting /2.
+- Gate 6 as written ("agrees with LES at /1 or /2") is met for rotation (/2); for swinging the
+  answer is neither. CLAUDE.md's LES rule ("true rotor frequency is often half the LES line,
+  whether librating or rotating") is not changed yet: proposed wording awaits Molly.
+
+**Next:** gate 7 (same code live while recording; live and recorded scores match).
 
 **Open questions for Molly:** the gate-5 pass mark; whether to add a synthetic video
 (rendered from the DXF) as an exact-truth test.
