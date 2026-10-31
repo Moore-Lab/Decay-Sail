@@ -26,7 +26,6 @@ The 6–12 mm varifocal lens does not help.
 | `grab_basler.py` | Headless Basler capture: `/dev/shm` JPEG snapshot (default), MJPEG stream to a browser (`--mjpeg`), GPS-named recording (`--record`), live window (`--show`, needs a display). |
 | `rotor_angle_loop.py` | Rotor angle at frame rate from the white mark, in-process (pypylon → numpy). Measures only, commands nothing. Holds the camera exclusively, so it cannot run alongside `grab_basler.py`. |
 | `analyze_detent_video.py` | Scores a `--phase` sweep video by capture. |
-| `darkline_tracker.py` | Tracker for the **old** rotor's dark diametric line (see `TRACKING_NOTES.md`, history). |
 | `record_ueye_video.py` | uEye capture (`image` / `record` / `data`); `image`/`record` need an X display. |
 
 **Recording format (`grab_basler.py --record`, since 2026-10-28):**
@@ -65,3 +64,6 @@ python rotor_angle_loop.py --csv angles.csv
 
 Key flags: `--exposure` ms, `--gain` dB, `--fps`, `--roi x,y,w,h`, `--codec`,
 `--duration`. See `--help`. `--roi` only crops; it does not change magnification.
+
+Old-rotor code (`darkline_tracker.py`, `machine_vision/` sail-angle scripts) removed 2026-10-31;
+last present in commit `7f677a9` (`git show 7f677a9:camera_utils/darkline_tracker.py`).

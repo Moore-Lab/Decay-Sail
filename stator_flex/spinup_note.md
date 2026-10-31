@@ -76,7 +76,7 @@ phase, and pressure — exactly the observed "sometimes it works" behavior.
    f_max and lowers thermal noise simultaneously.
 
 **B. Closed-loop commutation (brushless-DC mode) — recommended endpoint.**
-Use the camera sail-angle readout (machine_vision already extracts it) to command the
+Use the camera angle readout (`camera_utils/tracking/blob_track.py`) to command the
 field angle: phi_E = theta_rotor + delta_lead, with delta_lead = +45 deg for the
 2-theta induced torque (-45 deg to reverse). This gives maximum torque at every speed,
 is **self-starting from any orientation**, never pulls out, and reverses direction at
