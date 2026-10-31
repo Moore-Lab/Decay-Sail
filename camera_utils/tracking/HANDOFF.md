@@ -101,10 +101,10 @@ reversal 1.09, low-margin 1.10 rms). 0 of 200 wrong-feature bounds the rate only
 label scatter (~0.8 deg per label, from gate 3). blob_track was built before the labels
 existed, so it was not tuned on them.
 
-**Gate 5:** awaiting Molly's pass mark (proposed >= 95% within 5 deg, < 1% wrong-feature);
-blob_track meets it with no iteration.
+**Gate 5: PASSED (Molly, 2026-10-31).** Pass mark >= 95% within 5 deg, < 1% wrong-feature
+(`docs/DECISIONS.md`); blob_track meets it with no iteration.
 
-**Gate 6, angle vs LES (2026-10-30), measured on gps1477428272.** `les_compare.py` (command in
+**Gate 6, angle vs LES: PASSED (Molly, 2026-10-31)**; measured 2026-10-30 on gps1477428272. `les_compare.py` (command in
 its docstring; figures `plots/gate6_gps1477428272_{align,swing}.png`, gitignored).
 - Frames: 13071, none dropped, camera clock 50.000 fps, first frame true GPS 1477428272.28.
 - **Alignment:** LES regressed on cos/sin(k theta), k=1..4, of the video angle, over all shifts:
@@ -131,10 +131,10 @@ its docstring; figures `plots/gate6_gps1477428272_{align,swing}.png`, gitignored
 - Scope: the 1x/2x split is a property of the LES beam geometry as it is now (beam moved
   2026-10-09); re-check it if the beam moves before trusting /2.
 - Gate 6 as written ("agrees with LES at /1 or /2") is met for rotation (/2); for swinging the
-  answer is neither. CLAUDE.md's LES rule ("true rotor frequency is often half the LES line,
-  whether librating or rotating") is not changed yet: proposed wording awaits Molly.
+  answer is neither. CLAUDE.md's LES rule rewritten accordingly (Molly, 2026-10-31).
 
-**Next:** gate 7 (same code live while recording; live and recorded scores match).
+**Next:** gate 7 (same code live while recording; live and recorded scores match), with
+Molly at the screen on worker2.
 
-**Open questions for Molly:** the gate-5 pass mark; whether to add a synthetic video
+**Open questions for Molly:** whether to add a synthetic video
 (rendered from the DXF) as an exact-truth test.

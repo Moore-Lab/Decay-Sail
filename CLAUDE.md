@@ -177,10 +177,12 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 **LES sensor:**
 - `LES_YAW` = **x position**, `LES_PIT` = **y position**, `LES_SUM` = total light.
   Neither is an angle; there is no channel that isolates tilt.
-- **LES is the frequency readout, but the true rotor frequency is often half the LES
-  line**, whether librating or rotating, and libration vs rotation is hard to tell
-  apart on LES. Say which divisor you used and why. (History: `logs/2026-q3.md`, 2026-09-09
-  and 2026-09-14.)
+- **LES is the frequency readout. Rotating: the LES line is 2× the rotor frequency.
+  Swinging: LES shows a comb at multiples of the swing frequency, strongest line set by
+  the amplitude, so the swing frequency is the comb spacing, not peak/2.** Telling the two
+  apart needs the video or the comb pattern; LES circulation gives the direction. Measured
+  2026-10-30 on one recording with the current beam; re-check if the beam moves
+  (`docs/DECISIONS.md` 2026-10-31). Say which divisor you used and why.
 - Isolate LES/MON at their own output switches (`SW2R 512`), leaving gains at 1.0.
 
 ## Conventions

@@ -6,11 +6,10 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Open
 
-- **Angle tracking (white blob):** gates 1–4 passed and gate 6 done on recorded video
+- **Angle tracking (white blob):** gates 1–6 passed on recorded video
   (2026-10-30, `blob_track.py`, new lighting): 100% of 200 hand labels within 5°, rms 1.0°.
   LES vs video: ÷2 when rotating; while swinging LES shows a comb, no fixed divisor.
-  Open: gate 5 pass mark (Molly), CLAUDE.md LES-rule wording (Molly), gate 7 (live on
-  worker2). The old `rotor_angle_loop.py` 83% recorded / 31% live gap is unexplained but
+  Open: gate 7 (live on worker2, with Molly at the screen). The old `rotor_angle_loop.py` 83% recorded / 31% live gap is unexplained but
   belongs to the old detector. State: `camera_utils/tracking/HANDOFF.md`.
 
 - **`LES_YAW` → `LES_PIT`:** `settled_check.py`, `monitor_libration.py`,
