@@ -24,7 +24,8 @@ Gate 2 passed (Molly, by eye). New-lighting video `output_basler_gps1477428272.a
 (261 s): image moved +16.6 px in x; centre (132.3, 180.6) pending her check; tracks with
 no jumps, NCC median 0.96 (was 0.77). Gate 3: Molly hand-labelled 200 frames
 (`label_frames.py`), 20 repeated 5 h later: rms 1.12°, max 2.75° (passes). Labels vs tracker
-0.96° rms, max 3.0°. Details: `camera_utils/tracking/HANDOFF.md`.
+0.96° rms, max 3.0°. Gate 4: `score_angles.py` passes its self-test (fails a 180° copy);
+blob_track scores 100% within 5°, 0% wrong-feature, rms 1.01°. Details: `camera_utils/tracking/HANDOFF.md`.
 
 ### 2026-10-28 — ACTUATOR IS FAST: matrix → DAC in under one 1024 Hz sample
 

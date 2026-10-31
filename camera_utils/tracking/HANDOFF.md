@@ -75,20 +75,9 @@ Measured on the test video (all 1957 frames detected; none skipped):
   full turns around frames 950–1130 and 1680–1957; net −1.5 rev in 39 s; peak speed
   ~7°/frame ≈ 0.95 rev/s (at 50 fps). `plots/gate2_series_gps1477419607.png`.
 
-**For Molly (gate 2 pass):** open `plots/gate2_frames_gps1477419607.png` (12 frames:
-bright and dim blob, near the sail, fast motion) and say yes/no per frame: is the red
-circle on the white blob? The circle marks the template's reference point (a fixed spot
-on the rotor, anchored to frame 1100), not the blob centroid, so it can sit off-centre
-in the big bright blob. Small bright spots next to the circle in frames 170, 315, 1310
-look like highlights on the blob's edge (they stay sharp in the de-rotated average), but
-that is her call.
-
-**Open items created by gate 2 (for gates 3–4):**
-- The angle zero is the frame-1100 template's reference point. Hand labels must use the
-  same point, or the label-vs-template offset is measured once and applied.
-- For other videos, reuse the same template (save it from this video) rather than
-  cutting a new one, or the angle zero differs between recordings. `blob_track.py`
-  currently cuts it from REF_FRAME of the video it runs on.
+**Still open from gate 2:** for other videos, reuse one saved template (and its declared
+offset) rather than cutting a new one per video, or the angle zero differs between recordings.
+`blob_track.py` currently cuts it from REF_FRAME of the video it runs on.
 
 **Gate 3, ground truth: PASSED by its criterion (2026-10-30).** Molly labelled all 200
 frames (none skipped; no zoom, a spot on the blob at -102.4 deg, r 25.1 px in the reference),
@@ -117,9 +106,30 @@ without any detector angle. Molly runs, on the Mac:
 blob_gps1477428272.csv`; rerun only if the frames cache is lost.) The labels CSVs are
 ground truth: commit them.
 
-**Next: gate 4 (scorer):** one script comparing any angle file with the labels (% within
-5 deg, rms, wrong-feature rate near 180/45 deg, % skipped, after fitting the constant offset);
-passes when it scores 100% on the labels themselves and **fails** a copy rotated by 180 deg.
+**Gate 4, scorer: PASSED (2026-10-30).** `score_angles.py ANGLES.csv GPS --offset DEG`;
+`score_angles.py selftest GPS` checks it: 100% on the labels themselves; FAILS the labels
+rotated 180 deg and 45 deg, 6% of frames flipped 180 (93.5% within 5 deg), and 6% missing;
+passes labels + 1 deg rms noise. The offset is DECLARED per detector from geometry, not
+fitted (a fitted offset would let a 180 deg copy pass). For blob_track with template frame 0
+at 257 deg: offset = point ref_angle 257.56 - 257 = **+0.56 deg** (fitted would be +0.25).
+Valid only with blob_track REF_FRAME = 0: the labelling reference image is frame 0's
+orientation. Another REF_FRAME needs a different offset (or `select` changed to match).
 
-**Open questions for Molly:** the pass mark for gate 5; whether to add a synthetic video
+**blob_track.py scored (gate-5 marks, provisional until Molly sets them):**
+
+    python score_angles.py blob_gps1477428272.csv 1477428272 --offset 0.56
+
+100% within 5 deg, 0% wrong-feature, 0% no answer, rms 1.01 deg, max 3.29 deg (fast 0.75,
+reversal 1.09, low-margin 1.10 rms). 0 of 200 wrong-feature bounds the rate only below ~1.5%
+(95%, rule of three), so "< 1%" rests also on the full video: 13071 frames with no step over
+7.2 deg (a 45/180 deg flip would show as a jump) and a sharp loop closure. Its 180 deg-rotated copy FAILS. Most of the 1 deg is
+label scatter (~0.8 deg per label, from gate 3). blob_track was built before the labels
+existed, so it was not tuned on them.
+
+**Next:** Molly sets the gate-5 pass mark (proposed: >= 95% within 5 deg, < 1% wrong-feature);
+if blob_track passes it, gate 5 needs no detector iteration. Then gate 6 (angle -> frequency,
+compare with LES on the same recording), which needs LES data for the video's GPS span
+(video filenames are true GPS; the front end's clock is not, read Y1:DAQ-DC0_GPS live).
+
+**Open questions for Molly:** the gate-5 pass mark; whether to add a synthetic video
 (rendered from the DXF) as an exact-truth test.
