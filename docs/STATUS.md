@@ -19,6 +19,14 @@ The goal these serve is in `measurement_objective.md`.
   `thermal_noise_spindown.py:37`, left alone on purpose).
 - **Drive-off baseline** now that the board is flat and grounded: does the rotor still
   move with drive and laser off (cf. 2026-08-22)?
+- **HV amp output coupling (lab check, Molly):** read the code on R1 (0805 chip resistor
+  near the output headers) and which pins the jumpers on J1/J5 connect. From the
+  schematic/board netlist (not confirmed on the board), each output looks
+  jumper-selectable: direct from `HVOUT`, or through 5 × 1 µF in series with R to GND,
+  a high-pass with τ = R × 5 µF. The 2026-08 DC step "returned to 0 over roughly 20 s"
+  (≈ 3–4 τ, so τ ≈ 5–7 s, R ≈ 1–1.5 MΩ: an estimate). Ceramic caps lose capacitance
+  at high DC bias, so R × 5 µF is an upper bound; timing a DC step to 37% on the scope
+  measures τ directly. If DC coupling is available, it bears on the two items below.
 - **Detent test:** one phase on → rotor should snap to one of 8 detents; step
   A→B→C → 15° mech per step. The amp passes no DC, so a static detent fades; the method
   needs working out. Confirms m = 8 (now only derived) and calibrates τ_max
