@@ -56,6 +56,10 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
   path, and turn budget (`docs/templates/worker-brief.md`). One writer per file.
 - **Agents never actuate hardware**, `ssh cymac1`, push or delete; they hand back the
   command. Check their results yourself before using them; judge from files, not summaries.
+- **Large tasks: gates first.** Before building, propose a plan of gates (checkpoints with
+  pass criteria written in advance) and wait for Molly to edit it. Each gate passes,
+  shown with evidence (plots, circled frames), before the next starts; agents iterate
+  only once there is a scorer. Example: `camera_utils/TRACKING_NOTES.md`, Plan.
 - **Longer than one sitting:** keep a `HANDOFF.md` in the task folder whose top section
   (≤150 lines) holds current state, verified results and the exact next commands. Prefer a
   fresh session from HANDOFF over a degraded long one.
