@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-10-30 — LES PIT/YAW fetched for video gps1477428272 (read-only, worker2 agent)
+
+Ran `lab_utils/fetch_les_for_video.py 1477428272` (cds conda env). MEASURED: front end
+ahead of true GPS by **15096.4 s** (read live at true GPS 1477450592.6, 6.2 h after the
+video). Fetched front-end GPS 1477443068–1477443939 (video true GPS 1477428272–1477428542
++ 300 s each side): `Y1:RDS-LES_PIT_IN1_DQ`, `LES_YAW_IN1_DQ`, 1024 Hz, full coverage, no
+NaNs. Dropbox `Microspheres/TFINER/data/LES_video/`; frame timestamps
+`videos/output_basler_gps1477428272.csv` (from worker2 `/home/controls/stator_detent/`).
+
 ### 2026-10-30 — Angle tracking gate 2: blob detector (analysis only, no hardware)
 
 Ran `camera_utils/tracking/blob_track.py` on `output_basler_gps1477419607.avi` (polar

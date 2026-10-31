@@ -128,8 +128,11 @@ existed, so it was not tuned on them.
 
 **Next:** Molly sets the gate-5 pass mark (proposed: >= 95% within 5 deg, < 1% wrong-feature);
 if blob_track passes it, gate 5 needs no detector iteration. Then gate 6 (angle -> frequency,
-compare with LES on the same recording), which needs LES data for the video's GPS span
-(video filenames are true GPS; the front end's clock is not, read Y1:DAQ-DC0_GPS live).
+compare with LES on the same recording). Data in hand: Dropbox
+`Microspheres/TFINER/data/LES_video/Y1_RDS-LES_{PIT,YAW}_IN1_DQ_1477443068_1477443939.h5`
+(front-end GPS, 1024 Hz; offset 15096.4 s read 6.2 h after the video, so align the video
+to LES from the motion, within the 300 s padding) and the frame timestamps
+`videos/output_basler_gps1477428272.csv`.
 
 **Open questions for Molly:** the gate-5 pass mark; whether to add a synthetic video
 (rendered from the DXF) as an exact-truth test.
