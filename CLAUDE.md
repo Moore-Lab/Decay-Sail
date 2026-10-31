@@ -20,7 +20,8 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
    `ssh cymac1` (even read-only), git commit or push, purchases, deleting files or
    scripts, or changing a recorded decision. Otherwise proceed.
    **Git:** doc edits go straight to `main`. Code that touches hardware (drive scripts,
-   capture, anything worker2 runs) goes on a branch, is tested on worker2, then merged.
+   capture, anything that commands an instrument) goes on a branch, is tested on worker2,
+   then merged. Read-only data fetches (NDS, caget) go to `main` (Molly, 2026-10-30).
    With several agents, one branch each.
 6. **Ask about intent, decide implementation.** Ask when the answer changes what "done"
    means: physics interpretation, scope, or lab state you can't observe. Decide
