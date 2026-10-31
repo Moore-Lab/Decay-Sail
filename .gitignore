@@ -36,3 +36,4 @@ analysis/rotor_centering/__pycache__/
 
 # blob tracker output (regenerable: camera_utils/tracking/blob_track.py)
 camera_utils/tracking/blob_gps*.csv
+!camera_utils/tracking/template_*.npz
