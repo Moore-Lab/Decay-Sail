@@ -50,6 +50,8 @@ passes, hardware and commits.
 2. **Gate 7 analysis script:** one command after the lab run: dropped frames, live vs
    offline `blob_track.py` angles (pass: >= 99.9% within 0.1 deg), median NCC, circled-frame
    sheet.
+   **Written 2026-11-01:** `camera_utils/tracking/gate7_check.py` on `live-blob-tracker`
+   (tests and a header-precision fix to `live_blob_track.py` in that branch's HANDOFF).
 3. **A->B->C direction vs the camera's angle sign:** from the `stator_flex/` sector layout
    and the camera orientation (UserSet1 = 180 deg rotation, top view); add "with / against
    the drive" to `drive_coupling.py`'s report.
@@ -109,6 +111,11 @@ never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch 
    GPS` lines it prints; on the Mac, confirm in `V2..V4_OUT_DQ` (records with outputs
    disabled: measured 2026-09-08, `y1rds_model_change_muxmatrix.md`) that the 0.1 Hz
    starts with no glide. Any failure: stop and call Molly.
+   Then tracker speed (gate L3, read-only, no camera):
+   `cd camera_utils/tracking && python3 live_blob_track.py --replay
+   /home/controls/stator_detent/output_basler_gps1477428272.avi --centre 132.3,180.6
+   --outdir /tmp/l3 --snapshot ""`. Pass: the `Stopped.` line shows p99 < 10 ms and
+   0 dropped. If p99 >= 10 ms: stop and call Molly (live tracking would drop frames).
 1. Start the live tracker in its own terminal (or in the background, logged):
    `cd camera_utils/tracking && python3 live_blob_track.py --outdir ~/stator_detent --show`
    Report the registered centre and board-shift response; after ~30 s, the median `ncc`
