@@ -22,7 +22,10 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
    **Git:** doc edits go straight to `main`. Code that touches hardware (drive scripts,
    capture, anything that commands an instrument) goes on a branch, is tested on worker2,
    then merged. Read-only data fetches (NDS, caget) go to `main` (Molly, 2026-10-30).
-   With several agents, one branch each.
+   With several agents, one branch each. With several sessions or agents in one folder,
+   stay on `main` there; do branch work in a separate git worktree (`git worktree add
+   <dir> <branch>`, push, `git worktree remove`). Never stash or commit another
+   session's uncommitted changes.
 6. **Ask about intent, decide implementation.** Ask when the answer changes what "done"
    means: physics interpretation, scope, or lab state you can't observe. Decide
    implementation yourself and say what you chose and why. Ask once, in one batch.
@@ -75,7 +78,7 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 | `worker2` = 192.168.1.13 | lab workstation, EPICS client, NTP-synced |
 | `cymac1` = 192.168.1.11 | rtcds front end, NDS2 server on :8088 |
 
-- Front-end model prefix is **`Y1:RDS`** (cf. Aaron Markowitz's microdiamond experiment
+- Front-end model prefix is **`Y1:RDS`** (cf. Alma's (GitHub aaronmarkowitz) microdiamond experiment
   on the same cymac1, which is `Y1:DMD` — *different model, do not assume they match*).
 
 ## Where things live
@@ -83,7 +86,7 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 | Path | What |
 |---|---|
 | `docs/DECISIONS.md`, `docs/STATUS.md` | current values; open items |
-| `docs/reference/` | background notes: WRG gauge, HV amp design files, DAQ-chain schematics, Aaron's labutils |
+| `docs/reference/` | background notes: WRG gauge, HV amp design files, DAQ-chain schematics, Alma's labutils |
 | `apparatus_log.md` | dated session log (pre-October 2026: `logs/2026-q3.md`) |
 | `analysis/calibration_history.md` | which constants applied to which datasets |
 | `stator_flex/` | stator design (`flex_spec.md`), generators, fab files |

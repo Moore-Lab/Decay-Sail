@@ -22,7 +22,9 @@ set against video; MEASURED re-count on gps1477428272: 25 s positive / 59 s nega
 0.3 rev/s); calibration constants now point to `analysis/calibration_history.md` with "ask
 before use". DECISIONS header changed from append-only to replace-and-remove (Molly).
 STATUS: LES channel choice, laser/PD re-calibration, `_OFFSET` volts-per-count reworded/added.
-Remaining STATUS rows await Molly.
+Remaining STATUS rows await Molly. Later: STATUS tracking/drive-lock updates and trap
+f₀ ~ 0.31 Hz (DECISIONS row) from the tracking/drive session; CLAUDE.md worktree rule;
+Alma (she/her) in `docs/reference/` and CLAUDE.md.
 
 ### 2026-10-30 — Gate 6: video angle vs LES (analysis only)
 

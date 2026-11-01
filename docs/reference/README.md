@@ -9,4 +9,4 @@ its content was established.
 | `wrg_gauge.md` | Edwards WRG-S gauge on the T-Station 85: the Pirani-floor trap, raw-voltage readout, error codes, cable |
 | `hv_amp_design_files.md` | The stator HV amp's Fusion 360 Electronics files: how to read them without the app, and what the netlist shows |
 | `daq_chain_dcc.md` | Public LIGO DCC schematics for the DAQ chain that feeds the HV amp |
-| `markowitz_labutils.md` | Aaron Markowitz's `labutils` repo: the CDS template for driving the Y1 front end |
+| `markowitz_labutils.md` | Alma's `labutils` repo (GitHub `aaronmarkowitz`): the CDS template for driving the Y1 front end |

@@ -1,8 +1,8 @@
-# Aaron Markowitz's `labutils`
+# Alma's `labutils` (github.com/aaronmarkowitz/labutils)
 
-**github.com/aaronmarkowitz/labutils** (Python; last checked 2026-08-26). Aaron (ex-LIGO
-postdoc) set up the lab's CDS/rtcds DAQ, so his repo is the house template for code that
-talks to the front end. His experiment is the levitated microdiamond, model `Y1:DMD`;
+**github.com/aaronmarkowitz/labutils** (Python; last checked 2026-08-26). Alma (GitHub `aaronmarkowitz`; ex-LIGO
+postdoc) set up the lab's CDS/rtcds DAQ, so her repo is the house template for code that
+talks to the front end. Her experiment is the levitated microdiamond, model `Y1:DMD`;
 decay sail is `Y1:RDS` on the same cymac1. **Different models: don't assume they match.**
 
 ## Most relevant files
@@ -20,22 +20,22 @@ decay sail is `Y1:RDS` on the same cymac1. **Different models: don't assume they
 - Also: `fetch_nds2_data.py`, `epics/` (softIOC, BURT, Leybold turbo), `cameras/`,
   `ndscope/*.yaml`, `moku/`.
 
-## Infrastructure facts (from his repo, 2026-08)
+## Infrastructure facts (from her repo, 2026-08)
 
 - NDS2 `192.168.1.11:8088` (cymac1); EDC status page http://192.168.1.11:9000/;
   `edc.ini` dcuid 52, 16 Hz.
 - Model source `/opt/rtcds/userapps/<user>/<model>.mdl`; MEDM `/opt/rtcds/yqg/y1/medm/`.
 - The softIOC runs on **worker1** (`sudo systemctl restart auxioc`); the front end is cymac1.
 - Filter-module switch states: read `_SWSTR` for a readable string.
-- **GPS convention differs:** his scripts use `GPS = Unix − 315964818`; the correct
+- **GPS convention differs:** her scripts use `GPS = Unix − 315964818`; the correct
   offset (and this repo's) is `Unix − 315964782` (GPS epoch 315964800 minus 18 leap
-  seconds). His is 36 s off; don't copy it.
+  seconds). Hers is 36 s off; don't copy it.
 
 ## Practices worth copying
 
-- He never uses a Python `awg` module (checked 2026-08-26 by grepping the repo); all
+- She never uses a Python `awg` module (checked 2026-08-26 by grepping the repo); all
   excitation goes through `diag -l -f <cmdfile>`. The AWG slot limit is 9 excitation
-  channels per DCU; his code checks it before any EPICS write.
+  channels per DCU; her code checks it before any EPICS write.
 - Abort cleanup: zero GAIN at once (TRAMP 0), poll NDS until every EXC channel's RMS is
   below 1 count, only then restore GAIN.
 - Conventions: branch first, merge only when working and approved, never push without
