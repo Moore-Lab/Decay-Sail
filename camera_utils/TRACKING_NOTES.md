@@ -103,12 +103,3 @@ spaced (they jog; 10–19° apart on the left), so trace spacing is not a tilt t
 
 If the sail-vs-blob centre offset (gate 2) turns out real, measure tilt physically: a
 flat mirror on the board; the camera sees its own lens centred when straight on.
-
-## History: the old rotor (July 2026)
-
-The earlier rotor had ~12 teeth and a thin dark diametric line. `darkline_tracker.py`
-tracked that line (inner radial band 0.12–0.45 R, continuity gating) on the uEye clip
-`output_roi_gps1468161639.avi`: −4.3 rev during spin-up, agreeing with an independent
-m = 12 teeth method (−4.1 rev). The bright bar in that clip was a fixed glint. That code
-does not apply to the current rotor, which has no dark line. Removed 2026-10-31 with the old
-sail-angle scripts (`machine_vision/`); last present in commit `7f677a9`.

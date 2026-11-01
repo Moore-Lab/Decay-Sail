@@ -33,7 +33,7 @@ Nothing drives hardware without --live. Default is a dry run that prints every
 EPICS write. The drive reaches 200 V and all four mounting screws are live at
 that potential.
 
-References: stator_flex/flex_spec.md, stator_flex/spinup_note.md, and the
+References: stator_flex/flex_spec.md, stator_flex/spinup_note.md (side-post era; deleted 2026-11-01, in git history), and the
 "Stator for underneath drive" page in the moorelab Notion.
 """
 
@@ -172,7 +172,7 @@ def phase_gains(reverse=False):
     using cos(t - d) = cos(d)cos(t) + sin(d)sin(t). The three sum to zero, so
     the drive is balanced and puts no net monopole on the rotor -- which matters:
     a monopole gives a rotating FORCE, which heats the orbit, rather than a
-    torque (spinup_note.md, mechanism 4).
+    torque (spinup_note.md, mechanism 4; deleted 2026-11-01, in git history).
 
     Reversing swaps B and C, as "reverse by swapping any two phases" prescribes.
     Which handedness is "forward" in camera coordinates depends on how the ring
