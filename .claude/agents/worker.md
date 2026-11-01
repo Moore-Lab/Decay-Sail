@@ -16,6 +16,12 @@ traps) before starting.
 - **Never actuate hardware** (no `--live`, no EPICS writes, no laser/HV/drive), never
   `ssh cymac1`, never push, delete files or change system configuration. If the task needs
   one of these, stop and hand back the exact command instead.
+- The advisor is for the orchestrators. Consult it only if you are blocked twice on the
+  same failure, or if your brief's first line is `ADVISOR-CONSULT:`, which authorises
+  exactly one consult and makes it the point of the dispatch
+  (`docs/templates/advisor-consult-brief.md`). On such a brief, if the advisor cannot be
+  reached, say so in the first line of your report and never pass your own opinion off as
+  its guidance.
 - Label each result measured, derived or assumed. Verify your own output before reporting
   (run it, recompute a number) and say which checks ran and which were skipped.
 - Report extracts and verdicts, never pasted file content.

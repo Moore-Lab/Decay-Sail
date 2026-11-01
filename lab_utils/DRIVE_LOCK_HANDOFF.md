@@ -31,6 +31,35 @@ at the recording: 15073.56 s (from the video–LES alignment, gate 6).
   19 steps (`--min-seg 4`). The swing-frequency / stiffness column (`kd/kt`) is noise on
   4–6 s steps; it needs the 2-min holds below.
 
+## Before lab day (Mac work for the supervisor; Molly agreed 2026-11-01)
+
+In this order; gates first for anything large; ask Molly only for physics calls, gate
+passes, hardware and commits.
+1. **Clean drive start** in `stator_osc_drive.py` `bring_up()`: jump DRV_FREQ at zero gain
+   (DRV_TRAMP 0, guard that the gains read 0, restore DRV_TRAMP before the gains ramp).
+   Optional slow pedestal ramp via `V{n}_TRAMP` (~60 s) behind a flag, default off.
+   Branch (hardware code); outputs-off test on worker2 on lab day, before the holds.
+   **Written 2026-11-01** on branch `drive-clean-start` (from `live-blob-tracker`):
+   refuses to start if the oscillator gains are nonzero (before touching anything);
+   jumps DRV_FREQ at DRV_TRAMP 0, restores DRV_TRAMP in a `finally`; AC waits out the
+   live `V{n}_TRAMP` pedestal ramp; `ramp_down()` waits it out again before any SW2
+   write. Flag `--pedestal-ramp S` (default 0), restores pre-run `V{n}_TRAMP`.
+   Checked on the Mac only, with a stub `epics` that records every caput (38/38
+   checks pass: ordering for hold and sweep at ramp 0 and 60 s, plus Ctrl-C during a
+   hold and mid-jump). Hold now prints its front-end GPS start/end. Not run on hardware.
+2. **Gate 7 analysis script:** one command after the lab run: dropped frames, live vs
+   offline `blob_track.py` angles (pass: >= 99.9% within 0.1 deg), median NCC, circled-frame
+   sheet.
+3. **A->B->C direction vs the camera's angle sign:** from the `stator_flex/` sector layout
+   and the camera orientation (UserSet1 = 180 deg rotation, top view); add "with / against
+   the drive" to `drive_coupling.py`'s report.
+4. **Spindown analysis ready** for the next free spindown (camera absolute angle + LES).
+5. **Delegate to a worker:** `lab_utils` stale-script candidates, each with what references
+   it and when last used, for Molly to decide (flag, never delete).
+   **Done 2026-11-01:** `STALE_SCRIPT_CANDIDATES.md` (text-match evidence only; shell-only
+   use on worker2 not checked).
+6. Optional: re-examine the 09-08 LES file for the trap frequency (Molly undecided).
+
 ## C2 hold schedule (DRAFT, for Molly to approve)
 
 Fixed-frequency holds, not sweeps, so the rotor has time to settle. Rotor 0.0125–0.05
@@ -58,8 +87,8 @@ rev/s at f/8 = the stage 1 carry range.
 ## Lab-day runbook (C3 + tracking gate 7 / L4), for a Claude session on worker2
 
 Approved by Molly 2026-11-01. Start in the repo on worker2:
-`git fetch && git checkout live-blob-tracker && git pull && claude` (the branch includes
-main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
+`git fetch && git checkout drive-clean-start && git pull && claude` (= `live-blob-tracker`
+plus the clean-start fix; includes main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
 
 Rules: **one approval from Molly for the whole C2 schedule** (she approved the schedule
 2026-11-01; confirm once at the start of the session), then run all six holds without
@@ -69,6 +98,17 @@ or returns non-zero, or anything unexpected. Still ask before any commit/push/de
 never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch the code
 (it is fixed on the branch from the Mac).
 
+0. **Outputs-off test of the clean start** (nothing reaches the chamber):
+   `cd lab_utils && python3 stator_osc_drive.py status`, then
+   `python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`
+   (no `--enable-outputs`). Pass: the echoed writes show `DRV_TRAMP <- 0`,
+   `DRV_FREQ <- 0.1`, `DRV_TRAMP <- 5`, all before `DRV_SINGAIN <- 6400`; ramp-down ends
+   with offsets 0 and outputs off; `status` afterwards shows gains 0, DRVON 0. Also
+   re-check the D1 settings in `status`: matrix V2 (0, 1), V3 (−0.866, −0.5),
+   V4 (+0.866, −0.5), V1 (0, 0) = A→B→C 120° apart. Note the `hold start/end, front-end
+   GPS` lines it prints; on the Mac, confirm in `V2..V4_OUT_DQ` (records with outputs
+   disabled: measured 2026-09-08, `y1rds_model_change_muxmatrix.md`) that the 0.1 Hz
+   starts with no glide. Any failure: stop and call Molly.
 1. Start the live tracker in its own terminal (or in the background, logged):
    `cd camera_utils/tracking && python3 live_blob_track.py --outdir ~/stator_detent --show`
    Report the registered centre and board-shift response; after ~30 s, the median `ncc`
