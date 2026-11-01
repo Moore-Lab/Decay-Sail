@@ -65,6 +65,18 @@ no jumps, NCC median 0.96 (was 0.77). Gate 3: Molly hand-labelled 200 frames
 0.96° rms, max 3.0°. Gate 4: `score_angles.py` passes its self-test (fails a 180° copy);
 blob_track scores 100% within 5°, 0% wrong-feature, rms 1.01°. Details: `camera_utils/tracking/HANDOFF.md`.
 
+### 2026-10-29 — stator drive: pump chirp, then forward sweep; rotor went round with slips
+
+*Recovered 2026-11-01 from worker2's agent memory; not logged at the time.*
+Ran `lab_utils/stator_osc_drive.py`, amp 6400, with the white-dot tracker
+(`rotor_angle_loop.py`) alongside. Times are worker2 (true) GPS; front-end GPS not logged.
+
+1. `sweep --felec 0.40 --to-felec 0.14`. Tracker 1477307610 + 300 s: 0% good frames,
+   no usable angle (`cam_chirp.log`, session scratchpad; not kept).
+2. `sweep --felec 0.20 --to-felec 2.4 --step 0.04 --dwell 4`. Tracker 1477311410–1477311826
+   (420 s, 46% good). Molly saw the rotor go round with slips, then swing back
+   (observed by eye; no tracked angle survives in the repo).
+
 ### 2026-10-28 — ACTUATOR IS FAST: matrix → DAC in under one 1024 Hz sample
 
 > **Provenance.** MEASURED: everything below. The one INFERENCE is flagged in place.
