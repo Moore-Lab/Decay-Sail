@@ -66,11 +66,12 @@ except ImportError:      # no pyepics off the control machines -- dry run still 
 # A continuity check at the chamber opening confirmed V1 IS THE CENTRE
 # ELECTRODE; the sector phases are V2/V3/V4. It was derived by reading
 # flex_spec.md's terminal azimuths (15/105/195/285) and assigning V1..V4 in
-# order, which was never a wiring record. See stator_epics_drive.py for the
-# full note, including why the rotation DIRECTION is still unestablished.
+# order, which was never a wiring record. (The full note was in
+# stator_epics_drive.py, deleted 2026-11-01; see git history. Direction vs camera:
+# drive_coupling.py docstring.)
 #
 # WARNING: this file is NOT RUNNABLE. The SINGAIN/COSGAIN PVs below are
-# placeholders that do not exist on y1rds. Use lab_utils/stator_epics_drive.py.
+# placeholders that do not exist on y1rds. Use lab_utils/stator_osc_drive.py.
 # The map is corrected here only so this file cannot mislead a reader.
 PHASE_GAIN_PVS = {
     'A': ('Y1:RDS-OUTS_V2_SINGAIN', 'Y1:RDS-OUTS_V2_COSGAIN'),   # PLACEHOLDER PV
