@@ -74,7 +74,6 @@ field), bottom copper kept clear of the grounded magnet except the contact ring.
 | `coupling_vs_radius.py` | how much of the available torque a given electrode annulus captures |
 | `emit_fusion_scr.py` | optional: Fusion Electronics build script |
 | `flex_spec.md` | full design spec, operating protocol, first-article tests |
-| `spinup_note.md` | why the side posts were unreliable; mechanism analysis |
 | `fab/` | Gerbers, one plated drill file (64 holes), PCBWay design rules, fab notes — ready to order |
 | `inputs/` | rotor and mounting-plate DXFs the design is derived from |
 
