@@ -14,6 +14,14 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-01 — Drive clean start written; lab_utils stale-script list (Mac, no hardware)
+
+`stator_osc_drive.py` on branch `drive-clean-start`: DRV_FREQ jumped at zero gain (no
+start-up glide), refuses if gains are nonzero, optional `--pedestal-ramp`. Checked only
+against a stub `epics` (38/38 ordering and Ctrl-C checks); not run on hardware; outputs-off test added
+as runbook step 0 in `lab_utils/DRIVE_LOCK_HANDOFF.md`. Worker audit:
+`lab_utils/STALE_SCRIPT_CANDIDATES.md` (flags only; nothing deleted).
+
 ### 2026-11-01 — Docs audit: DECISIONS and STATUS (no hardware)
 
 Audited `docs/DECISIONS.md` row by row with Molly. Removed stale rows (09-14 comb/2, 2026-09
