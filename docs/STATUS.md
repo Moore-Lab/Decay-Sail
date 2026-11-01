@@ -17,8 +17,6 @@ The goal these serve is in `measurement_objective.md`.
 - **Re-run §2 of `noise_budget_20260911_clean.ipynb`** with F0 = 0.81 fN.
 - **`I = 1.88e-11` still in** `analysis/laser_dark_vs_on.py:117` (and Dave's
   `thermal_noise_spindown.py:37`, left alone on purpose).
-- **Drive-off baseline** now that the board is flat and grounded: does the rotor still
-  move with drive and laser off (cf. 2026-08-22)?
 - **HV amp output coupling (lab check, Molly):** read the code on R1 (0805 chip resistor
   near the output headers) and which pins the jumpers on J1/J5 connect. From the
   schematic/board netlist (not confirmed on the board), each output looks

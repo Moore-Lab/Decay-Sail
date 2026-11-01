@@ -83,6 +83,7 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 | Path | What |
 |---|---|
 | `docs/DECISIONS.md`, `docs/STATUS.md` | current values; open items |
+| `docs/reference/` | background notes: WRG gauge, HV amp design files, DAQ-chain schematics, Aaron's labutils |
 | `apparatus_log.md` | dated session log (pre-October 2026: `logs/2026-q3.md`) |
 | `analysis/calibration_history.md` | which constants applied to which datasets |
 | `stator_flex/` | stator design (`flex_spec.md`), generators, fab files |
@@ -94,8 +95,9 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 ## The stator (rev G under-rotor drive)
 
 Electrodes under the rotor make a variable-capacitance synchronous motor,
-τ = ½ (dC/dθ) V²: charge-independent, ~300× the torque of the old side posts.
-Design, rationale and performance: `stator_flex/flex_spec.md`.
+τ = ½ (dC/dθ) V²: charge-independent, ~300× the torque of the old side posts (design
+figures, `stator_flex/flex_spec.md`; not measured). Which rotor harmonic the drive
+actually couples to is open (`docs/STATUS.md`).
 
 > **Rotor speed = f_electrical / 8. Reverse by swapping any two phases.**
 
@@ -120,7 +122,8 @@ Electrode-to-channel map (V1 = CTR; A, B, C = V2, V4, V3): `docs/DECISIONS.md`.
 
 ### ⚠ Assembly / safety
 
-- **The plated barrels make all four screws live, up to 200 V.** They thread into tapped
+- **The plated barrels make all four screws live, up to 200 V** (full-range drive measured
+  ±85 V). They thread into tapped
   PEEK so they are isolated from the plate — use stainless or silver-plated hardware and
   check screw length so no tip protrudes toward ground.
 - **Max screw head / washer OD is 9.5 mm** before it reaches another net.
@@ -133,12 +136,8 @@ Electrode-to-channel map (V1 = CTR; A, B, C = V2, V4, V3): `docs/DECISIONS.md`.
 
 ### Operating protocol
 
-1. Neutralise rotor charge; ground A/B/C when not driving.
-2. Spin-up: 3-phase ramp f_elec 0 → 8·f_target at ≤50% torque margin. Fixed-frequency
-   starts below ~0.4 Hz mech capture directly.
-3. Reverse: swap two phases, ramp through zero.
-4. Science runs: A/B/C to GND — the board becomes a clean ground plane, no drive
-   systematic. CTR optionally on DC bias.
+Design operating protocol (charge neutralisation, ramp rates, science-run grounding):
+`stator_flex/flex_spec.md`. Not yet demonstrated; spin-up is the current directive.
 
 ## Drive scripts
 
@@ -158,16 +157,20 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 ## Hardware traps (read before driving)
 
 **HV amplifier** (homemade, HV265 op-amp):
-- It is **bipolar** and maps *any* DC input to 0 V out, so no DC reaches the electrode
-  and a static (DC) detent does not hold.
+- The output is **AC-coupled**: a DC step (e.g. the pedestal at drive start/stop) reaches
+  the electrode and decays over ~20 s (τ ≈ 5–7 s estimated; schematic suggests a jumper-
+  selectable series-C/R-to-GND output, lab check pending in STATUS). So the drive is
+  bipolar about 0 V and a static detent fades; Molly sees a kick at each drive start/stop.
 - The input must be **positive, 0–2 V**. 12800 counts ↔ 2.1 V and `V{n}_LIMIT` = 12800,
   so **`dc >= amp` is mandatory** and `dc = amp = 6400` exactly fills the range.
 - ~0.0134 V/count, measured on the `_EXC` path only; `_OFFSET` is unverified.
 - DC-couple the scope and do a GND zero-line check before trusting any absolute voltage.
 
 **Front-end channels:**
-- Anything writing `_OFFSET` must zero `V{n}_TRAMP` first; a nonzero TRAMP low-passes the
-  waveform while the commanded values still look perfect.
+- `V{n}_TRAMP` (found at 1.0 s; resets between runs) ramps every change to `V{n}_OFFSET`
+  and `_GAIN` over that time, so it could ramp the pedestal smoothly (untested). It would distort
+  a waveform made by writing `_OFFSET` repeatedly (the old `stator_epics_drive.py`
+  method, no longer used).
 - `V{n}_OUT` is not an EPICS record. Use `_OUTMON` (output) and `_INMON` (input).
 - **Never write a whole `SW2` word.** It also carries the LIMIT and DECIMATION bits.
   Clear the output with `sw2 & ~1024`. Resting `V1..V4` = 768, 1792 while driving.
@@ -187,6 +190,7 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 
 ## Conventions
 
-- Generated figures are gitignored (`plots/`, `analysis/*.png`); notebooks and notes are tracked.
+- Generated figures are gitignored (`plots/` and named figure patterns in `analysis/`; see
+  `.gitignore`); notebooks and notes are tracked.
 - `analysis/ringdown_analysis_executed.ipynb` is misnamed — it is a *variant* with the
   window shifted 3 min earlier, not a re-execution.
