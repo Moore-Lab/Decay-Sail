@@ -139,7 +139,11 @@ never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch 
    Report the registered centre and board-shift response; after ~30 s, the median `ncc`
    in `blob_live_gps*.csv` (want ≥ 0.9) and dropped frames (want 0). Molly checks the
    window: the red circle stays on the blob. If not, stop before any hold.
-2. Run the six C2 holds in order, ≥ 60 s drive-off between, checking the tracker (ncc,
+2. Before hold 1: Molly confirms the rotor is quiet (no swing; quiet it first if it is
+   swinging); note the swing amplitude the tracker shows. Later holds start after the
+   60 s gap whatever the rotor is doing (the gap lets the DC kick fade; it does not
+   settle a swing).
+   Run the six C2 holds in order, ≥ 60 s drive-off between, checking the tracker (ncc,
    dropped frames) before each hold; log each hold's start and stop time. On any failed
    check: stop (no further holds) and report.
 3. Stop the tracker (Ctrl-C). `python3 lab_utils/fetch_les_for_video.py <video GPS>
