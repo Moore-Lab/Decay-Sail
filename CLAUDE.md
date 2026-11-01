@@ -183,9 +183,9 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 - **LES is the frequency readout. Rotating: the LES line is 2× the rotor frequency.
   Swinging: LES shows a comb at multiples of the swing frequency, strongest line set by
   the amplitude, so the swing frequency is the comb spacing, not peak/2.** Telling the two
-  apart needs the video or the comb pattern; LES circulation gives the direction. Measured
+  apart needs the video or the comb pattern; LES circulation gives the direction once its sign is set against video. Measured
   2026-10-30 on one recording with the current beam; re-check if the beam moves
-  (`docs/DECISIONS.md` 2026-10-31). Say which divisor you used and why.
+  (`docs/DECISIONS.md` 2026-11-01). Say which divisor you used and why.
 - Isolate LES/MON at their own output switches (`SW2R 512`), leaving gains at 1.0.
 
 ## Conventions

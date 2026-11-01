@@ -32,9 +32,9 @@ Because pressure was steady, it is **not** the explanation for the elevated damp
 
 | constant | value | valid for | note |
 |---|---|---|---|
-| commanded→power | 11.87 µW/count above 735 | ≤ 2026-10-08 | **superseded: 11.10 µW/count above a 764-count threshold, measured 2026-10-09** (−6%, consistent) |
-| PD counts/mW | 283 | 07-28 → 07-31 only | 203 on 08-03 (−28%). **Both superseded: the pickoff was replaced and reads ~411 counts/mW, measured 2026-10-09** — see the 2026-10-09 entry |
-| lever arm | r_c = 2.625 mm | ≤ 2026-10-08 | **superseded: `R_EFF = 1.38 mm`** (wing centroid), with `R_TIP = 1.88 mm` for geometry comparison — `noise_budget_20260911_clean.ipynb` |
+| commanded→power | 11.87 µW/count above 735 | ≤ 2026-10-08 | **superseded: 11.10 µW/count above a 764-count threshold, measured 2026-10-09** (−6%, consistent). Setup changed after 10-09 (Molly, 2026-11-01): ask before use; re-measure open in `docs/STATUS.md` |
+| PD counts/mW | 283 | 07-28 → 07-31 only | 203 on 08-03 (−28%). **Both superseded: the pickoff was replaced and reads ~411 counts/mW, measured 2026-10-09** — see the 2026-10-09 entry. Setup changed after 10-09 (Molly, 2026-11-01): ask before use; re-measure open in `docs/STATUS.md` |
+| lever arm | r_c = 2.625 mm | ≤ 2026-10-08 | **superseded: `R_EFF = 1.38 mm`** (wing centroid; still current, rotor design unchanged: Molly, 2026-11-01), with `R_TIP = 1.88 mm` for geometry comparison — `noise_budget_20260911_clean.ipynb` |
 | `TAU_FREE_S` | 67.65 min | ≤ 07-27 only | tilt stage present |
 | `REQ_UW` | 0.735 µW/√Hz | ≤ 07-27 only | derived from the above; **1.86 µW/√Hz** post-tilt |
 | `I_KGM2` | ~~1.88e-11~~ → **1.1e-11** | **superseded 2026-09-30** | 1.88e-11 was a calc with an older 2×2 mm sail and a heavier disk model; SolidWorks 1.7e-11 is also too heavy (11.05 mg CAD). Now from the **weighed 7 mg** assembly + model shape, ±10%. See the 2026-09-30 log entry and `docs/DECISIONS.md`. Dated notebooks still using 1.88e-11 have torques/forces ×0.585 too high. |
