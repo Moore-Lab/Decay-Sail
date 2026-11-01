@@ -107,10 +107,7 @@ In the STEP model **z = 0 is the board's bottom face** (against the PEEK plate);
 the electrode surface sits at z = +0.043 mm, so the rotor gap is
 `h = levitation_height - 0.043 mm`.
 
-## Open items before ordering
+## Open items
 
-- Measure the V1.3 rotor's levitation height over the installed board to confirm
-  the gap h.
-- Confirm the magnet sits flush in the plate's 7 mm hole.
-- Cross-check the coupling model with a 3-D BEM/COMSOL run (the analysis uses a
-  quasi-planar `exp(-m h / r)` approximation).
+Open hardware checks (levitation height over the board, magnet seating, a 3-D check of the
+coupling model) are tracked in `docs/STATUS.md`.

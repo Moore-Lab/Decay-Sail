@@ -30,6 +30,13 @@ channel map). `lab_utils/DRIVE_LOCK_HANDOFF.md` items 2–3.
 Later: `lab_utils/stator_detent.py` written (branch `detent-test`; torque per phase from
 the tracked angle; ~1° expected, derived from trap f₀ and design torque); old
 `stator_epics_drive.py` deleted (Molly). Not run on hardware.
+Later: stale-doc cleanup from a worker audit of all 33 `.md` files (Molly decided): deleted
+`stator_flex/spinup_note.md` + `spinup_estimates.py` (side-post era) and
+`lab_utils/detection_notes.md` (old-rotor sail detection); root `README.md` now points to
+the current docs; trimmed the muxmatrix proposal body, the AWG section of
+`lab_utils/README.md`, uEye/old-rotor lines in `camera_utils/`, and stator_flex's
+pre-order open items (now in STATUS). Kept: `bill_of_goods.md`, laser-stepdown notes,
+the 09-11 dataset note, `laser-cutting/`, `momentum-simulation/`.
 
 ### 2026-11-01 — Docs audit: DECISIONS and STATUS (no hardware)
 

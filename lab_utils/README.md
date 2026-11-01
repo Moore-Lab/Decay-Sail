@@ -64,20 +64,6 @@ subcommand (DC staircase on one electrode) is the way to measure `VOLTS_PER_COUN
 on the `_OFFSET` path. It refuses to print torque limits until `--volts-per-count`
 is passed.
 
-## AWG route (superseded by DRVMTRX, kept for reference)
-
-- The API is a bare `import awg` (not `cdsutils.awg`): `Sine(chan, ampl, freq, phase,
-  offset, start, duration, restart)`, phase in radians, start in GPS seconds.
-- Three Sines on `V{n}_EXC` sharing one explicit `start` are a coherent three-phase
-  drive. `start` must come from `Y1:DAQ-DC0_GPS`; `awgbase.GPSnow()` is true GPS and
-  lands in the front end's past, so the excitation silently never plays.
-- `MAX_NUM_AWG = 9` channels. Slots leak unless stopped with `wait=True`
-  (`stator_awg_drive.py reclaim_slots`).
-- To drive `_EXC`: `GAIN = 1`, module input OFF (`SW1` 4), output ON (`SW2` 1024).
-- `diag` SineResponse is the other route; template in
-  github.com/aaronmarkowitz/labutils (`scripts/dipole/measure_actuator_gain.py`).
-  y1rds is not y1dmd.
-
 ## Model history
 
 The original `y1rds` fan-out was a hardwired (sin, cos, −sin, −cos), which could not
