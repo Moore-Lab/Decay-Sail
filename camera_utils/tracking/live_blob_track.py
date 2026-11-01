@@ -139,7 +139,7 @@ def start_tracker():
         how = 'registered: board shift (%+.2f, %+.2f) px, response %.2f' % (dx, dy, resp)
     trk = blob_core.Tracker(cx, cy, W, H, T, ref_angle)
     print('centre (%.2f, %.2f) %s' % (cx, cy, how))
-    out.write('# live_blob_track.py gps%d centre=(%.2f,%.2f) %s template=%s exposure=%.1fms%s\n' % (
+    out.write('# live_blob_track.py gps%d centre=(%.6f,%.6f) %s template=%s exposure=%.1fms%s\n' % (
         gps, cx, cy, how, os.path.basename(args.template), args.exposure, ' replay=' + args.replay if args.replay else ''))
     out.write('frame,host_time,angle_deg,r_px,ncc,ncc_elsewhere,source,proc_ms\n')
 

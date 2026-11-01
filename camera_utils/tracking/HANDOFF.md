@@ -134,7 +134,22 @@ offset +0.56) and that video's median frame.
 | L1 replay | live path = blob_track.py on 13071 frames (< 0.01 deg) | **PASSED**: 0.0000 deg max diff; 2.9 ms median, 3.9 ms p99 per frame (Mac) |
 | L2 centre by board registration | gps1477419607 centre within 1 px of (116.2, 180.2) | **PASSED**: 0.83-0.89 px from 4 windows; = that video's blob-orbit centre (115.70, 180.69) to ~0.2 px; own video 0.04 px |
 | L3 speed on worker2 | p99 < 10 ms from file | pending (Molly/agent runs one command, read-only) |
-| L4 live = gate 7 | no drops; live = offline on >= 99.9% of frames within 0.1 deg; NCC median >= 0.9 | lab, with Molly |
+| L4 live = gate 7 | no drops; live = offline on >= 99.9% of frames within 0.1 deg; NCC median >= 0.9 | lab, with Molly; score with `gate7_check.py` (below) |
+
+**Gate 7 scorer, `gate7_check.py` (2026-11-01, Mac).** One command after the lab run:
+`python gate7_check.py DIR/blob_live_gps<GPS>.csv` (video and timestamps found next to it;
+`--video` to point elsewhere). Re-runs `blob_track.py` with the live run's centre and
+template, checks dropped frames (BlockID gaps, late camera timestamps, frame counts),
+live vs offline, NCC; writes the circled-frame sheet to `plots/gate7_gps<GPS>_frames.png`.
+Exit 0 = pass. Tested on a `--replay` of gps1477428272: PASS (13071 frames, max diff
+0.0000 deg, NCC median 0.957). Fails, on the right check, a missing row, angles shifted by one
+frame, a BlockID gap of 3, and NCC 0.85.
+**Measured while testing:** the live CSV header wrote the registered centre to 0.01 px;
+re-running offline with that rounded centre (0.001-0.004 px off) put 0.22% of frames more
+than 0.1 deg off (max 0.48 deg), which fails gate 7. Header now writes 6 decimals
+(`live_blob_track.py`), after which live = offline exactly. So the per-frame angle of a
+small fraction of frames flips by up to ~0.5 deg for a ~0.004 px centre change (cause not
+investigated; within the ~1 deg rms of gate 5).
 
 L3 command on worker2 (after `git fetch && git checkout live-blob-tracker`):
 
