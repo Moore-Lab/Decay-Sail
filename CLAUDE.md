@@ -45,6 +45,13 @@ femtonewton-scale alpha-recoil force from a Pb-212 source.
 
 Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 
+- **One supervisor per project** (Molly, 2026-11-01). Molly talks to one main session per
+  project; it delegates bounded work (cleanup, fetches, analysis, reviews) to
+  `worker`/`scout`/`reviewer` subagents, each in its own git worktree, and only the
+  supervisor commits to `main`. Separate sessions only where a different machine requires
+  it (worker2). On Molly's Mac, user-level hooks back this up (`~/.claude/hooks/`:
+  orchestration, advisor and handback guards, from Alma's claude-config); worker2 has none.
+
 - **Delegate the reading, never the deciding.** Send a `scout` for long reading where you
   only need an extract (a long log, a notebook, a web page, a file over ~8 KB). Do short
   lookups yourself. Many similar lookups become one script, not many agents.
