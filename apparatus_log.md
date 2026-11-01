@@ -14,6 +14,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-01 — Docs audit: DECISIONS and STATUS (no hardware)
+
+Audited `docs/DECISIONS.md` row by row with Molly. Removed stale rows (09-14 comb/2, 2026-09
+GPS, 10-09 laser calibration, 10-09 use-PIT); qualified the LES direction rule (sign must be
+set against video; MEASURED re-count on gps1477428272: 25 s positive / 59 s negative above
+0.3 rev/s); calibration constants now point to `analysis/calibration_history.md` with "ask
+before use". DECISIONS header changed from append-only to replace-and-remove (Molly).
+STATUS: LES channel choice, laser/PD re-calibration, `_OFFSET` volts-per-count reworded/added.
+Remaining STATUS rows await Molly.
+
 ### 2026-10-30 — Gate 6: video angle vs LES (analysis only)
 
 `camera_utils/tracking/les_compare.py` on gps1477428272. MEASURED: video and LES align at

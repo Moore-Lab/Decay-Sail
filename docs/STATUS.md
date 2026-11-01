@@ -12,8 +12,11 @@ The goal these serve is in `measurement_objective.md`.
   Open: gate 7 (live on worker2, with Molly at the screen). The old `rotor_angle_loop.py` 83% recorded / 31% live gap is unexplained but
   belongs to the old detector. State: `camera_utils/tracking/HANDOFF.md`.
 
-- **`LES_YAW` → `LES_PIT`:** `settled_check.py`, `monitor_libration.py`,
-  `track_spindown.py` and both `noise_budget_20260911*` notebooks still hardcode YAW.
+- **LES channel choice:** look at both `LES_PIT` and `LES_YAW` and use the better one
+  (Molly, 2026-11-01). `track_spindown.py:30` and both `noise_budget_20260911*` notebooks
+  still hardcode YAW (`monitor_libration.py` already reads both).
+- **Re-measure the laser and PD calibration** (power per count, PD counts/mW): the setup
+  changed after the 2026-10-09 values (Molly, 2026-11-01). Values: `analysis/calibration_history.md`.
 - **Re-run §2 of `noise_budget_20260911_clean.ipynb`** with F0 = 0.81 fN.
 - **`I = 1.88e-11` still in** `analysis/laser_dark_vs_on.py:117` (and Dave's
   `thermal_noise_spindown.py:37`, left alone on purpose).
@@ -53,8 +56,9 @@ The goal these serve is in `measurement_objective.md`.
 - **Rotation direction:** which way A→B→C turns the rotor has not been observed.
 - **PD check** across the 09-11 laser-only segment (from GPS 1473204806) for drift or
   mode hops.
-- **`VOLTS_PER_COUNT`:** measure (`stator_epics_drive.py calibrate` + meter on the amp
-  output).
+- **`VOLTS_PER_COUNT` on `_OFFSET`:** ~0.0134 V/count is measured on the `_EXC` path only;
+  `stator_osc_drive.py` sets the pedestal with `_OFFSET`, which is unverified. Measure
+  with a meter on the amp output.
 - **Capture bracket:** detent runs at 4000 / 4800 / 5600 counts, recording the
   pre-drive rms each time.
 - **Measure `I` directly** from the high-frequency asymptote of χ(f).

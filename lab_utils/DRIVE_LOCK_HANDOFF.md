@@ -61,17 +61,22 @@ Approved by Molly 2026-11-01. Start in the repo on worker2:
 `git fetch && git checkout live-blob-tracker && git pull && claude` (the branch includes
 main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
 
-Rules: ask Molly before EVERY drive command (anything with `--live`) and before any
-commit/push/delete; never `--leave-running`; if `live_blob_track.py` errors, report the
-error, don't patch the code (it is fixed on the branch from the Mac).
+Rules: **one approval from Molly for the whole C2 schedule** (she approved the schedule
+2026-11-01; confirm once at the start of the session), then run all six holds without
+further asks. **Stop the schedule and call Molly on any failed check:** tracker error or
+exit, median `ncc` < 0.9 over the last 30 s, any dropped frame, a hold command that errors
+or returns non-zero, or anything unexpected. Still ask before any commit/push/delete;
+never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch the code
+(it is fixed on the branch from the Mac).
 
 1. Start the live tracker in its own terminal (or in the background, logged):
    `cd camera_utils/tracking && python3 live_blob_track.py --outdir ~/stator_detent --show`
    Report the registered centre and board-shift response; after ~30 s, the median `ncc`
    in `blob_live_gps*.csv` (want ≥ 0.9) and dropped frames (want 0). Molly checks the
    window: the red circle stays on the blob. If not, stop before any hold.
-2. Run the six C2 holds, one at a time, asking Molly before each; ≥ 60 s drive-off
-   between; log each hold's start and stop time.
+2. Run the six C2 holds in order, ≥ 60 s drive-off between, checking the tracker (ncc,
+   dropped frames) before each hold; log each hold's start and stop time. On any failed
+   check: stop (no further holds) and report.
 3. Stop the tracker (Ctrl-C). `python3 lab_utils/fetch_les_for_video.py <video GPS>
    --duration <recording length, s>`; note the offset it prints. Fetch
    `Y1:RDS-OUTS_V1..V4_OUT_DQ` for the same front-end window with `batch_fetch.py`'s
