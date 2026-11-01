@@ -22,6 +22,15 @@ of at least --min-seg seconds. For each, and each candidate k in (8, 4), sign s 
   LOCKED       speed within 5% AND lag drift < 1 step  (a rotor that slips or swings
                through the pattern fails the second test even if its mean speed matches)
 Also per segment: the swing frequency (spectral peak of the detrended angle, 0.05-2 Hz).
+WOBBLE (holds, added 2026-11-01): the angle is regressed on cos/sin(k*phi), k = 1, 2, 3, plus a
+quadratic baseline. k = 1 is the response to a torque linear in V (rotor charge), k = 2 to the
+V^2 torque (an unlocked rotor feels both travelling V^2 terms at 2f), k = 3 is a reference
+(no predicted torque; its size is the noise floor). Torque from a wobble, steady state of an
+undamped oscillator: tau_k = I * A_k * |w0^2 - (2 pi k f)^2|, with w0 from the drive-off
+swing; not given within 25% of resonance (there the wobble grows instead: see the swing
+amplitude at the start and end of the hold, which is what a resonant hold at f = f0/2 tests).
+kd/kt in an UNLOCKED hold is the time-averaged stiffness (the steady part of V^2 acting on
+the rotor's m = 24 pattern), not the stiffness of a lock; the wobble is the torque measurement.
 With the drive on, a shift from the drive-off value measures the drive's stiffness
 against the trap's: k_drive / k_trap = (f_on / f_off)^2 - 1 (if the drive acts as a
 spring at all; reported, not assumed).
@@ -85,6 +94,21 @@ def swing_freq(theta, dt):
     return F[b][np.argmax(P[b])] if b.any() else np.nan
 
 
+def wobble(t, theta, phi, edge_s=20.0):
+    """Amplitudes (deg) of the angle at 1, 2, 3 x the drive phase; swing amplitude at the start
+    and end of the segment (sqrt2 * rms of the detrended angle over edge_s)."""
+    tt = t - t.mean()
+    X = np.c_[[f(k * phi) for k in (1, 2, 3) for f in (np.cos, np.sin)]].T
+    X = np.c_[X, np.ones_like(tt), tt, tt ** 2]
+    c, *_ = np.linalg.lstsq(X, theta, rcond=None)
+    out = {'wob%d_deg' % k: float(np.degrees(np.hypot(c[2 * k - 2], c[2 * k - 1]))) for k in (1, 2, 3)}
+    base = theta - X[:, 6:] @ c[6:]
+    for key, sel in (('swing_start_deg', t <= t[0] + edge_s), ('swing_end_deg', t >= t[-1] - edge_s)):
+        y = base[sel]
+        out[key] = float(np.degrees(np.sqrt(2) * (y - y.mean()).std())) if sel.sum() > 10 else np.nan
+    return out
+
+
 def score(t, theta, phi, f, amp, min_seg=6.0):
     dt = t[1] - t[0]
     fr = smooth_rate(theta, dt) / (2 * np.pi)
@@ -112,6 +136,9 @@ def score(t, theta, phi, f, amp, min_seg=6.0):
                 else:
                     row[key + '_speed_ratio'] = np.nan; row[key + '_lag_drift_steps'] = np.nan
         row['locked_to'] = ' '.join(locked) if locked else ('-' if kind == 'off' else 'none')
+        row.update(wobble(t[m], theta[m], phi[m]) if kind == 'hold' else
+                   dict(wob1_deg=np.nan, wob2_deg=np.nan, wob3_deg=np.nan,
+                        swing_start_deg=np.nan, swing_end_deg=np.nan))
         fm = f[m].mean()
         row['net_vs_field'] = ('' if kind != 'hold' or abs(fm) < 1e-3 or abs(net) < 0.5 else
                                'with' if np.sign(net) * np.sign(fm) == WITH_FIELD_SIGN else 'against')
@@ -142,7 +169,7 @@ def load(args):
     return t, theta, phi, f, amp
 
 
-def report(rows, out):
+def report(rows, out, I=1.1e-11):
     keys = list(rows[0].keys())
     with open(out + '_segments.csv', 'w') as fh:
         w = csv.DictWriter(fh, keys); w.writeheader(); w.writerows(rows)
@@ -157,6 +184,23 @@ def report(rows, out):
             r['t0'], r['t1'], r['kind'], r['f_elec'], r['rotor_rev_s'], r['net_rev'], r['net_vs_field'],
             r['swing_hz'], kk, r['locked_to']))
     print('drive-off swing frequency (median) %.3f Hz' % f_off)
+    w0 = 2 * np.pi * f_off
+    print('\nwobble per hold (deg at 1x/2x/3x the drive; 3x = noise reference); torque = I A |w0^2 - wk^2|,'
+          ' I = %.2e (assumed), w0 from the drive-off swing' % I)
+    print('%7s %7s %7s %7s %7s %11s %11s %8s %8s' % ('t0', 'f_elec', 'A1', 'A2', 'A3', 'tau1 (Nm)', 'tau2 (Nm)', 'sw_start', 'sw_end'))
+    for r in rows:
+        if r['kind'] != 'hold':
+            continue
+        taus = []
+        for k in (1, 2):
+            wk = 2 * np.pi * k * abs(r['f_elec'])
+            if not np.isfinite(w0) or abs(wk / w0 - 1) < 0.25:
+                taus.append('  resonant')
+            else:
+                taus.append('%+11.2e' % (I * np.radians(r['wob%d_deg' % k]) * abs(w0 ** 2 - wk ** 2)))
+        print('%7.1f %7.3f %7.3f %7.3f %7.3f %11s %11s %8.1f %8.1f' % (
+            r['t0'], r['f_elec'], r['wob1_deg'], r['wob2_deg'], r['wob3_deg'], taus[0], taus[1],
+            r['swing_start_deg'], r['swing_end_deg']))
 
 
 def plot(t, theta, fr, f, amp, rows, out):
@@ -200,6 +244,17 @@ def selftest():
         if r['kind'] != 'hold': continue
         fe = round(r['f_elec'], 1); good = r['locked_to'] == want.get(fe); ok &= good
         print('  hold f=%.1f: got %s, expected %s -> %s' % (fe, r['locked_to'], want.get(fe), 'ok' if good else 'FAIL'))
+    # Wobble: an unlocked rotor at rest, driven at 0.2 Hz, wobbling 1.5 deg at 2f and 0.4 deg at
+    # 1f, with 1 deg of free swing at 0.31 Hz and 0.7 deg tracker noise. Expect A2 1.5, A1 0.4.
+    rng = np.random.default_rng(3)
+    ff = np.where((t >= 10) & (t < 110), 0.2, 0.0); ph = 2 * np.pi * np.cumsum(ff) * dt
+    th = (np.radians(1.5) * np.cos(2 * ph + 0.4) + np.radians(0.4) * np.sin(ph) +
+          np.radians(1.0) * np.sin(2 * np.pi * 0.31 * t) + np.radians(0.7) * rng.normal(size=len(t)))
+    rr = [r for r in score(t, th, ph, ff, (ff != 0).astype(float), 6.0)[0] if r['kind'] == 'hold'][0]
+    good = abs(rr['wob2_deg'] - 1.5) < 0.15 and abs(rr['wob1_deg'] - 0.4) < 0.15 and rr['wob3_deg'] < 0.15
+    ok &= good
+    print('  wobble: A1 %.2f A2 %.2f A3 %.2f deg, expected 0.40 1.50 ~0 -> %s' % (
+        rr['wob1_deg'], rr['wob2_deg'], rr['wob3_deg'], 'ok' if good else 'FAIL'))
     # Sign controls: forward (f > 0) and reverse (f < 0) holds, rotor exactly at
     # -phi/8 (with, f/8), +phi/4 (against, f/4), +phi/8 (against, f/8).
     for fs in (0.4, -0.4):
@@ -222,7 +277,8 @@ if __name__ == '__main__':
     p.add_argument('--tau', type=float, required=True)
     p.add_argument('--min-seg', type=float, default=6.0)
     p.add_argument('--out', default='drive_coupling')
+    p.add_argument('--I', type=float, default=1.1e-11, help='moment of inertia, kg m^2 (DECISIONS)')
     args = p.parse_args()
     t, theta, phi, f, amp = load(args)
     rows, fr = score(t, theta, phi, f, amp, args.min_seg)
-    report(rows, args.out); plot(t, theta, fr, f, amp, rows, args.out)
+    report(rows, args.out, args.I); plot(t, theta, fr, f, amp, rows, args.out)
