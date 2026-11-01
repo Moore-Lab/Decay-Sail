@@ -31,6 +31,25 @@ at the recording: 15073.56 s (from the video–LES alignment, gate 6).
   19 steps (`--min-seg 4`). The swing-frequency / stiffness column (`kd/kt`) is noise on
   4–6 s steps; it needs the 2-min holds below.
 
+## Before lab day (Mac work for the supervisor; Molly agreed 2026-11-01)
+
+In this order; gates first for anything large; ask Molly only for physics calls, gate
+passes, hardware and commits.
+1. **Clean drive start** in `stator_osc_drive.py` `bring_up()`: jump DRV_FREQ at zero gain
+   (DRV_TRAMP 0, guard that the gains read 0, restore DRV_TRAMP before the gains ramp).
+   Optional slow pedestal ramp via `V{n}_TRAMP` (~60 s) behind a flag, default off.
+   Branch (hardware code); outputs-off test on worker2 on lab day, before the holds.
+2. **Gate 7 analysis script:** one command after the lab run: dropped frames, live vs
+   offline `blob_track.py` angles (pass: >= 99.9% within 0.1 deg), median NCC, circled-frame
+   sheet.
+3. **A->B->C direction vs the camera's angle sign:** from the `stator_flex/` sector layout
+   and the camera orientation (UserSet1 = 180 deg rotation, top view); add "with / against
+   the drive" to `drive_coupling.py`'s report.
+4. **Spindown analysis ready** for the next free spindown (camera absolute angle + LES).
+5. **Delegate to a worker:** `lab_utils` stale-script candidates, each with what references
+   it and when last used, for Molly to decide (flag, never delete).
+6. Optional: re-examine the 09-08 LES file for the trap frequency (Molly undecided).
+
 ## C2 hold schedule (DRAFT, for Molly to approve)
 
 Fixed-frequency holds, not sweeps, so the rotor has time to settle. Rotor 0.0125–0.05
