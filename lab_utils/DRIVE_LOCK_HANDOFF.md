@@ -64,12 +64,15 @@ passes, hardware and commits.
    its selftest has forward and reverse sign controls. **Only unverified link:** the
    channel map A, B, C = V2, V4, V3 is from the 2026-08-24 continuity check, before rev G;
    if two terminals are wired differently now, every with/against label flips.
-4. **Spindown analysis ready** for the next free spindown (camera absolute angle + LES).
+4. **DEFERRED (Molly, 2026-11-01):** not needed for the spin-up directive; build it when
+   stage 3 gives a free spindown from 1 Hz (tilt stage in). Was: **Spindown analysis ready** for the next free spindown (camera absolute angle + LES).
 5. **Delegate to a worker:** `lab_utils` stale-script candidates, each with what references
    it and when last used, for Molly to decide (flag, never delete).
    **Done 2026-11-01:** `STALE_SCRIPT_CANDIDATES.md` (text-match evidence only; shell-only
    use on worker2 not checked).
-6. Optional: re-examine the 09-08 LES file for the trap frequency (Molly undecided).
+6. ~~Re-examine the 09-08 LES file for the trap frequency~~ **Dropped (Molly, 2026-11-01):**
+   pre-changes data; f₀ is measured on the current setup (DECISIONS) and the C2 drive-off
+   stretches re-measure it.
 
 ## C2 hold schedule (approved by Molly 2026-11-01)
 
