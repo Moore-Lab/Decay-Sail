@@ -11,6 +11,9 @@
 - **Lab day runs from branch `drive-clean-start`** (= this branch + the clean drive start).
 - **Direction vs the board** (measured 2026-11-01, reviewer AGREE): + image angle = C→B→A
   sector direction; `lab_utils/drive_coupling.py` docstring. Wiring since 08-24 unverified.
+- **Lighting:** the "new lighting" of gps1477428272 is the two-light setup (Molly,
+  2026-11-01); tracking under it is good enough, no further lighting comparison needed.
+  Run tracking-dependent tests (detent, gate 7) with both lights on.
 - **Next:** lab day (L4 + the C2 holds), then merge this branch to `main`.
 
 ## Gate record (2026-10-30 onward)
