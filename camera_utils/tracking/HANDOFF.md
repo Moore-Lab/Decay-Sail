@@ -117,6 +117,9 @@ its docstring; figures `plots/gate6_gps1477428272_{align,swing}.png`, gitignored
   (84 s), 90% above 0.2, 77% above 0.1. Sign convention set by this one recording.
 - Scope: the 1x/2x split is a property of the LES beam geometry as it is now (beam moved
   2026-10-09); re-check it if the beam moves before trusting /2.
+- **Video swing frequency, drive off** (`les_compare.py` prints it): 0-55 s **0.311 Hz**
+  (amplitude ~+-55-62 deg, with slow drift); 210-261 s **0.275 Hz** (+-105 deg). Molly
+  2026-11-01: small-amplitude f0 ~ 0.31 Hz (agrees with the 09-09 stopwatch 0.310 Hz).
 - Gate 6 as written ("agrees with LES at /1 or /2") is met for rotation (/2); for swinging the
   answer is neither. CLAUDE.md's LES rule rewritten accordingly (Molly, 2026-10-31).
 
