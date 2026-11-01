@@ -60,7 +60,7 @@ passes, hardware and commits.
    use on worker2 not checked).
 6. Optional: re-examine the 09-08 LES file for the trap frequency (Molly undecided).
 
-## C2 hold schedule (DRAFT, for Molly to approve)
+## C2 hold schedule (approved by Molly 2026-11-01)
 
 Fixed-frequency holds, not sweeps, so the rotor has time to settle. Rotor 0.0125–0.05
 rev/s at f/8 = the stage 1 carry range.
