@@ -22,3 +22,5 @@ how to improve its prose.
 - End with `Verdict: AGREE | DISAGREE | UNDERDETERMINED` and the single strongest reason.
 - Write only to the path the brief names (or `scratch/`). Never edit the work under review.
   Never touch hardware.
+- Do not consult the advisor: you are already the Fable seat, and a consult would re-read
+  your transcript at Fable rates for no second opinion.
