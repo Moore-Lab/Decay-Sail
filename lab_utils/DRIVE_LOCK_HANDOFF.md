@@ -22,7 +22,7 @@ at the recording: 15073.56 s (from the video–LES alignment, gate 6).
   only 2.5–11% of drive-on frames; it keeps swinging at ~0.3 Hz throughout, with bursts of
   net rotation mostly in the − image direction (−4 rev at 60–100 s, −10 at 140–180 s,
   −8 at 180–206 s) at speeds below f/8, and no net rotation at 26–60 and 100–140 s.
-  Not established: which board direction "−" is. Cause of no lock: not investigated.
+  "−" image = with the A→B→C field sequence (item 3 below; assumes the 08-24 channel map). Cause of no lock: not investigated.
   Figure `../plots/d2_drive_vs_rotor_gps1477428272.png` (gitignored).
 - **C1 lock scorer (passed on the data; awaiting Molly's look at the plot):**
   `drive_coupling.py` (usage in its docstring). LOCKED = mean speed within 5% of s·f/k
@@ -55,6 +55,15 @@ passes, hardware and commits.
 3. **A->B->C direction vs the camera's angle sign:** from the `stator_flex/` sector layout
    and the camera orientation (UserSet1 = 180 deg rotation, top view); add "with / against
    the drive" to `drive_coupling.py`'s report.
+   **Done 2026-11-01 (measured; reviewer AGREE):** the sector tabs end at three via radii,
+   one per phase; in increasing image angle they read A, C, B (ratios 1 : 1.17 : 1.32 vs
+   design 1 : 1.16 : 1.33; CTR trace between A and B as designed). So + image angle
+   (clockwise on screen) = C→B→A on the board, and a rotor turning with the field
+   sequence is `−f8` (m=16 V², or charge on m=8) / against at f/4 is `+f4` (m=8 V²).
+   `drive_coupling.py` now prints `net_vs_field` (with/against; blank under 0.5 rev) and
+   its selftest has forward and reverse sign controls. **Only unverified link:** the
+   channel map A, B, C = V2, V4, V3 is from the 2026-08-24 continuity check, before rev G;
+   if two terminals are wired differently now, every with/against label flips.
 4. **Spindown analysis ready** for the next free spindown (camera absolute angle + LES).
 5. **Delegate to a worker:** `lab_utils` stale-script candidates, each with what references
    it and when last used, for Molly to decide (flag, never delete).

@@ -26,8 +26,22 @@ With the drive on, a shift from the drive-off value measures the drive's stiffne
 against the trap's: k_drive / k_trap = (f_on / f_off)^2 - 1 (if the drive acts as a
 spring at all; reported, not assumed).
 
-Rotor sign: + = increasing image angle (x right, y down). How that maps to +/- A->B->C
-on the board is not established; both signs are scored.
+Rotor sign: + = increasing image angle (x right, y down). On the board (2026-11-01,
+measured on the median frame of gps1477428272): the sector tabs end at three via radii,
+one per phase (A 4.27 < B 4.96 < C 5.66 mm, generate_flex_revG.py); in increasing image
+angle they run short, long, mid = A, C, B, ratios 1 : 1.17 : 1.32 vs 1 : 1.16 : 1.33.
+So increasing image angle = the C->B->A sector direction, and with phi positive for an
+A->B->C field, a rotor turning WITH the field sequence has s = -1 (WITH_FIELD_SIGN).
+  -f8  with the sequence at f/8: the m = 16 V^2 term, or the term linear in V (net
+       rotor charge) on the m = 8 pattern
+  +f4  against it at f/4: the m = 8 V^2 term (docs/STATUS.md, "which harmonic")
+  +f8, -f4  not predicted by that derivation; scored anyway.
+  Not scored: the linear term on m = 16 runs against at f/16; V^2 also has a static
+  m = 24 part (a detent, no direction). Derivation and image reading re-checked
+  independently by a reviewer, 2026-11-01 (AGREE).
+Assumes the channel map A, B, C = V2, V4, V3 (docs/DECISIONS.md, continuity check
+2026-08-24) still holds for the rev G wiring. The board shows in every video, so re-check
+per recording if the camera moves (polar unwrap of the median frame).
 Writes PREFIX_segments.csv and PREFIX.png.
 """
 import argparse, csv, sys
@@ -35,6 +49,7 @@ import numpy as np
 
 GPS_UNIX_OFF = 315964800 - 18
 KS = (8, 4)
+WITH_FIELD_SIGN = -1      # s of a rotor turning with the A->B->C field sequence (see docstring)
 
 
 def drive_phase(a, b, c):
@@ -97,6 +112,9 @@ def score(t, theta, phi, f, amp, min_seg=6.0):
                 else:
                     row[key + '_speed_ratio'] = np.nan; row[key + '_lag_drift_steps'] = np.nan
         row['locked_to'] = ' '.join(locked) if locked else ('-' if kind == 'off' else 'none')
+        fm = f[m].mean()
+        row['net_vs_field'] = ('' if kind != 'hold' or abs(fm) < 1e-3 or abs(net) < 0.5 else
+                               'with' if np.sign(net) * np.sign(fm) == WITH_FIELD_SIGN else 'against')
         rows.append(row)
     return rows, fr
 
@@ -130,11 +148,14 @@ def report(rows, out):
         w = csv.DictWriter(fh, keys); w.writeheader(); w.writerows(rows)
     off = [r['swing_hz'] for r in rows if r['kind'] == 'off' and not np.isnan(r['swing_hz'])]
     f_off = np.median(off) if off else np.nan
-    print('%7s %7s %5s %7s %8s %7s %7s %9s  %s' % ('t0', 't1', 'kind', 'f_elec', 'rotor', 'net', 'swing', 'kd/kt', 'locked_to'))
+    print('rotor/net: + = increasing image angle; net_vs_field: net rotation with or against the'
+          ' field sequence; -f8 = with at f/8, +f4 = against at f/4 (docstring)')
+    print('%7s %7s %5s %7s %8s %7s %8s %7s %9s  %s' % ('t0', 't1', 'kind', 'f_elec', 'rotor', 'net', 'vs_field', 'swing', 'kd/kt', 'locked_to'))
     for r in rows:
         kk = (r['swing_hz'] / f_off)**2 - 1 if r['kind'] == 'hold' else np.nan
-        print('%7.1f %7.1f %5s %7.3f %+8.3f %+7.2f %7.3f %9.2f  %s' % (
-            r['t0'], r['t1'], r['kind'], r['f_elec'], r['rotor_rev_s'], r['net_rev'], r['swing_hz'], kk, r['locked_to']))
+        print('%7.1f %7.1f %5s %7.3f %+8.3f %+7.2f %8s %7.3f %9.2f  %s' % (
+            r['t0'], r['t1'], r['kind'], r['f_elec'], r['rotor_rev_s'], r['net_rev'], r['net_vs_field'],
+            r['swing_hz'], kk, r['locked_to']))
     print('drive-off swing frequency (median) %.3f Hz' % f_off)
 
 
@@ -179,6 +200,16 @@ def selftest():
         if r['kind'] != 'hold': continue
         fe = round(r['f_elec'], 1); good = r['locked_to'] == want.get(fe); ok &= good
         print('  hold f=%.1f: got %s, expected %s -> %s' % (fe, r['locked_to'], want.get(fe), 'ok' if good else 'FAIL'))
+    # Sign controls: forward (f > 0) and reverse (f < 0) holds, rotor exactly at
+    # -phi/8 (with, f/8), +phi/4 (against, f/4), +phi/8 (against, f/8).
+    for fs in (0.4, -0.4):
+        for k, sgn, lab, rel in ((8, -1, '-f8', 'with'), (4, 1, '+f4', 'against'), (8, 1, '+f8', 'against')):
+            ff = np.where((t >= 10) & (t < 110), fs, 0.0); ph = 2 * np.pi * np.cumsum(ff) * dt
+            th = np.where(ff != 0, sgn * ph / k, 0.0)
+            rr = [r for r in score(t, th, ph, ff, (ff != 0).astype(float), 6.0)[0] if r['kind'] == 'hold'][0]
+            good = rr['locked_to'] == lab and rr['net_vs_field'] == rel; ok &= good
+            print('  sign control f=%+.1f theta=%+d*phi/%d: got %s %s, expected %s %s -> %s' % (
+                fs, sgn, k, rr['locked_to'], rr['net_vs_field'], lab, rel, 'ok' if good else 'FAIL'))
     print('SELFTEST %s' % ('PASSED' if ok else 'FAILED'))
     return ok
 
