@@ -109,6 +109,12 @@ or returns non-zero, or anything unexpected. Still ask before any commit/push/de
 never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch the code
 (it is fixed on the branch from the Mac).
 
+0a. **Molly, by hand, HV amp off: channel-to-terminal continuity.** Wiring was redone
+   after the 2026-08-24 check (Molly, 2026-11-01: "tried to keep it the same"). Meter each
+   amp output channel to each rev G terminal screw; expected V2→15° (A), V4→105° (B),
+   V3→195° (C), V1→285° (CTR). Record the result in `apparatus_log.md`. The holds don't
+   depend on it (both signs are scored), but every with/against label does: a swap of any
+   two phases flips them. If it differs, update `PHASE_ELECTRODES` / DECISIONS (Molly).
 0. **Outputs-off test of the clean start** (nothing reaches the chamber):
    `cd lab_utils && python3 stator_osc_drive.py status`, then
    `python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`
