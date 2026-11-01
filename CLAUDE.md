@@ -83,6 +83,7 @@ Agents are in `.claude/agents/`; brief templates in `docs/templates/`.
 | Path | What |
 |---|---|
 | `docs/DECISIONS.md`, `docs/STATUS.md` | current values; open items |
+| `docs/reference/` | background notes: WRG gauge, HV amp design files, DAQ-chain schematics, Aaron's labutils |
 | `apparatus_log.md` | dated session log (pre-October 2026: `logs/2026-q3.md`) |
 | `analysis/calibration_history.md` | which constants applied to which datasets |
 | `stator_flex/` | stator design (`flex_spec.md`), generators, fab files |
