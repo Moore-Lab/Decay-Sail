@@ -21,6 +21,12 @@ start-up glide), refuses if gains are nonzero, optional `--pedestal-ramp`. Check
 against a stub `epics` (38/38 ordering and Ctrl-C checks); not run on hardware; outputs-off test added
 as runbook step 0 in `lab_utils/DRIVE_LOCK_HANDOFF.md`. Worker audit:
 `lab_utils/STALE_SCRIPT_CANDIDATES.md` (flags only; nothing deleted).
+Later: gate 7 scorer `camera_utils/tracking/gate7_check.py` (branch `live-blob-tracker`;
+PASS on a replay of gps1477428272, fails four broken inputs; found and fixed the live CSV
+rounding its centre to 0.01 px, which alone failed the gate). Drive direction vs camera
+MEASURED from the board's via-radius pattern in the gps1477428272 median frame: + image
+angle = C→B→A, so `−f8` = with the field sequence (reviewer AGREE; assumes the 08-24
+channel map). `lab_utils/DRIVE_LOCK_HANDOFF.md` items 2–3.
 
 ### 2026-11-01 — Docs audit: DECISIONS and STATUS (no hardware)
 
