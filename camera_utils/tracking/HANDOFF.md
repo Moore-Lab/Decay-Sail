@@ -1,6 +1,19 @@
 # Angle tracking: handoff
 
-## 0. Current state (2026-10-30, end of gate-2 session)
+## 0. Current state (2026-11-01)
+
+- **Gates 1–6 passed** (centre, blob, ground truth, scorer, pass mark, angle vs LES); details below.
+- **Gate 7 (live tracking):** L1 replay and L2 centre registration passed; L3 (worker2
+  speed, p99 < 10 ms) is step 0 of the lab-day runbook (`lab_utils/DRIVE_LOCK_HANDOFF.md`);
+  L4 = the lab-day recording, scored on the Mac with `gate7_check.py` (written and tested
+  2026-11-01, section "Gate 7 scorer" below). The live CSV header now writes the centre to
+  6 decimals (rounding to 0.01 px alone failed the gate).
+- **Lab day runs from branch `drive-clean-start`** (= this branch + the clean drive start).
+- **Direction vs the board** (measured 2026-11-01, reviewer AGREE): + image angle = C→B→A
+  sector direction; `lab_utils/drive_coupling.py` docstring. Wiring since 08-24 unverified.
+- **Next:** lab day (L4 + the C2 holds), then merge this branch to `main`.
+
+## Gate record (2026-10-30 onward)
 
 **Read first:** `../TRACKING_NOTES.md` (what the rotor looks like, the gate plan, lessons)
 and `../../CLAUDE.md`.
