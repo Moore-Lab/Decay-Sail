@@ -30,7 +30,9 @@ at the recording: 15073.56 s (from the video–LES alignment, gate 6).
   AND drift of θ − s·φ/k under one pattern step (360/k deg). `selftest` passes (clean
   lock → −f8, swinging → none, lock with a slip → none). On gps1477428272: none on all
   19 steps (`--min-seg 4`). The swing-frequency / stiffness column (`kd/kt`) is noise on
-  4–6 s steps; it needs the 2-min holds below.
+  4–6 s steps. In an unlocked hold it measures the time-averaged stiffness (steady part of
+  V² on the rotor's m=24 pattern), not a lock's stiffness; the drive TORQUE comes from the
+  wobble columns (A1/A2 at 1×/2× the drive, added 2026-11-01; see the docstring).
 
 ## Before lab day (Mac work for the supervisor; Molly agreed 2026-11-01)
 
@@ -114,11 +116,12 @@ rev/s at f/8 = the stage 1 carry range.
 | 2 | same, `--felec 0.2` | 0.2 | 0.025 |
 | 3 | same, `--felec 0.4` | 0.4 | 0.05 |
 | 4–6 | 1–3 again with `--reverse` | 0.1, 0.2, 0.4 | reversed |
+| 7 | same, `--felec 0.155` (added by Molly 2026-11-01) | 0.155 | resonance test: 2f = 0.31 Hz ≈ f₀, so a V² push repeats in time with the swing; watch the swing grow (sw_start vs sw_end) |
 
 - Drive OFF (script exits) for **≥ 60 s between holds**, so the DC kick decays (~20 s) and
   the swing settles; the scorer uses each hold after its first 30 s.
 - **Before:** fix the light; start `camera_utils/tracking/live_blob_track.py --outdir <dir>`
-  (branch `live-blob-tracker`) and leave it recording through all six holds (~25 min).
+  (branch `live-blob-tracker`) and leave it recording through all seven holds (~29 min).
   Note the start time of each hold.
 - **After:** stop the tracker; fetch LES with `fetch_les_for_video.py <video GPS>
   --duration <s>` (reads the offset live) and V1–V4 for the same front-end window
@@ -134,7 +137,7 @@ Approved by Molly 2026-11-01. Start in the repo on worker2:
 plus the clean-start fix; includes main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
 
 Rules: **one approval from Molly for the whole C2 schedule** (she approved the schedule
-2026-11-01; confirm once at the start of the session), then run all six holds without
+2026-11-01; confirm once at the start of the session), then run all seven holds without
 further asks. **Stop the schedule and call Molly on any failed check:** tracker error or
 exit, median `ncc` < 0.9 over the last 30 s, any dropped frame, a hold command that errors
 or returns non-zero, or anything unexpected. Still ask before any commit/push/delete;
@@ -173,7 +176,7 @@ never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch 
    swinging); note the swing amplitude the tracker shows. Later holds start after the
    60 s gap whatever the rotor is doing (the gap lets the DC kick fade; it does not
    settle a swing).
-   Run the six C2 holds in order, ≥ 60 s drive-off between, checking the tracker (ncc,
+   Run the seven C2 holds in order (hold 7 last), ≥ 60 s drive-off between, checking the tracker (ncc,
    dropped frames) before each hold; log each hold's start and stop time. On any failed
    check: stop (no further holds) and report.
 3. Stop the tracker (Ctrl-C). `python3 lab_utils/fetch_les_for_video.py <video GPS>
