@@ -75,6 +75,34 @@ passes, hardware and commits.
    pre-changes data; f₀ is measured on the current setup (DECISIONS) and the C2 drive-off
    stretches re-measure it.
 
+## Detent test (written 2026-11-01, branch `detent-test`; Molly approved writing it)
+
+`lab_utils/stator_detent.py`: one phase stepped on (TRAMP 0), ramped off over 60 s, A, B,
+C in turn; `analyze` fits the tracked angle for each step's torque. **Measures torque per
+phase and whether each phase is connected. Cannot tell the wiring order** (small motion:
+any three per-phase torques fit either order). **Expected ~1° (derived), nothing visible
+by eye.** Replaces `stator_epics_drive.py` (deleted, Molly). Mac checks: selftest 25/25
+(stub EPICS ordering incl. two Ctrl-C cases; synthetic torque recovered within 1%).
+Not run on hardware. **Later, not lab day, and only with both lights on** (Molly,
+2026-11-01: the second light is off; a ~1° effect needs the good tracking). Lab day does
+not depend on it. Kept on its own branch; before running, merge `detent-test` into the
+branch that has the live tracker. Worker2 sequence (Molly runs the `--live` steps):
+1. Stop `grab_basler.py`. Check out the merged branch and pull.
+2. `cd lab_utils && python3 stator_detent.py selftest`, then dry `run --cycles 1`.
+3. Outputs-off: `python3 stator_detent.py run --cycles 1 --live` (no `--enable-outputs`).
+   On the Mac, fetch `V2,V4,V3_OUT_DQ` for the `fe_gps` span in the events CSV. **Pass:** a
+   step at each `on`, a ~60 s linear ramp at each `release` (OFFSET ramping via TRAMP is
+   otherwise untested). Fail: stop.
+4. Rotor quiet, lighting as for gps1477428272: `cd camera_utils/tracking && python3
+   live_blob_track.py --outdir ~/stator_detent --show --snapshot-every 0.05`.
+5. `cd lab_utils && python3 stator_detent.py run --live --enable-outputs` (4 cycles,
+   ~17 min; events to `~/stator_detent`). Then stop the tracker.
+6. rclone the `.avi`, timestamps `.csv`, `blob_live_gps*.csv`, `detent_events_*.csv` to
+   `dropbox:Microspheres/TFINER/videos/`. On the Mac: `stator_detent.py analyze EVENTS
+   ANGLES`, and `gate7_check.py` on the same recording (first live tracker run).
+For Molly's STATUS edit: the detent item still expects "15° mech per step"; with the trap
+as stiff as f₀ = 0.31 Hz implies, the estimate is ~1°.
+
 ## C2 hold schedule (approved by Molly 2026-11-01)
 
 Fixed-frequency holds, not sweeps, so the rotor has time to settle. Rotor 0.0125–0.05

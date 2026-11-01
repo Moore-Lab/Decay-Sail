@@ -27,6 +27,9 @@ rounding its centre to 0.01 px, which alone failed the gate). Drive direction vs
 MEASURED from the board's via-radius pattern in the gps1477428272 median frame: + image
 angle = C→B→A, so `−f8` = with the field sequence (reviewer AGREE; assumes the 08-24
 channel map). `lab_utils/DRIVE_LOCK_HANDOFF.md` items 2–3.
+Later: `lab_utils/stator_detent.py` written (branch `detent-test`; torque per phase from
+the tracked angle; ~1° expected, derived from trap f₀ and design torque); old
+`stator_epics_drive.py` deleted (Molly). Not run on hardware.
 
 ### 2026-11-01 — Docs audit: DECISIONS and STATUS (no hardware)
 
