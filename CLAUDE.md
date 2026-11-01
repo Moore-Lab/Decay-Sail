@@ -156,7 +156,7 @@ Design operating protocol (charge neutralisation, ramp rates, science-run ground
 | **`lab_utils/stator_osc_drive.py`** | **THE drive** (since 2026-09-08): front-end oscillator + `DRVMTRX` |
 | `lab_utils/track_drive.py` | LES frequency tracking during a drive |
 | `camera_utils/rotor_angle_loop.py` | rotor angle from the white dot (Basler) |
-| `lab_utils/stator_epics_drive.py` | Older EPICS `_OFFSET` drive; software-timed, a few Hz electrical at most |
+| `lab_utils/stator_detent.py` | Single-phase detent steps through the AC-coupled amp; torque per phase from the tracked angle (~1° expected, not by eye). Replaced `stator_epics_drive.py` (deleted 2026-11-01) |
 | `lab_utils/stator_awg_drive.py` | AWG route; superseded by DRVMTRX |
 | `lab_utils/stator_drive.py` | Physics reference only (torque/capture/ramp formulas); its backend cannot run |
 | `lab_utils/three_phase_drive.py` | Superseded; never zeroes `TRAMP` |

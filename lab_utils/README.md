@@ -29,8 +29,8 @@ until 2026-09-09.
 
 - `V{n}_TRAMP` was found at 1.0 s on all four electrodes, and it resets between runs.
   `_OFFSET` writes ramp over TRAMP, so a nonzero value low-passes a software sinusoid
-  into a smaller, lagged, distorted waveform. `stator_epics_drive.py` zeroes it for a
-  run and restores it after; `three_phase_drive.py` never did.
+  into a smaller, lagged, distorted waveform. The deleted `stator_epics_drive.py` zeroed it
+  for a run and restored it after; `three_phase_drive.py` never did.
 - `V{n}_OUT` is a fast test point (NDS only). Use `_OUTMON` / `_INMON` over EPICS.
 - `_GAIN` reads 1.0, `SW1R` 12. `SW2R` was seen at 768 and later 1792 — check the
   output bit (1024) before concluding the drive is dead.
@@ -53,16 +53,16 @@ rotor's own broadband motion. Balanced x and y would give the 2-D trajectory dir
 (line = libration, ellipse = whirl, circle = orbiting centre). The 2026-10-09 beam move
 flipped which axis is strong; see `docs/DECISIONS.md`.
 
-## `stator_epics_drive.py` (older EPICS `_OFFSET` drive)
+## `stator_detent.py` (single-phase detent test, 2026-11-01)
 
-`status / calibrate / detent / hold / spinup / stop`. Dry-run by default, `--live` to
-touch hardware. EPICS only (`_OFFSET`, `_TRAMP`, `DRVON`), which avoids the AWG slot
-limit and the front-end clock frame. The cost is bandwidth: software-timed writes
-reach a few Hz electrical, and synthesising AC through `_OFFSET` fails somewhere
-between 0.16 and 4 Hz electrical (`logs/2026-q3.md`, 2026-08-28). Its `calibrate`
-subcommand (DC staircase on one electrode) is the way to measure `VOLTS_PER_COUNT`
-on the `_OFFSET` path. It refuses to print torque limits until `--volts-per-count`
-is passed.
+`run / analyze / selftest`; usage, expectations and assumptions in its docstring. Steps
+one phase's `_OFFSET` on (TRAMP 0), ramps it off slowly (TRAMP 60 s) so the AC-coupled amp
+puts no reverse pulse on the electrode, A, B, C in turn; `analyze` fits the tracked angle
+for the torque of each step. Measures torque per phase and whether each phase is
+connected; cannot tell the wiring order (small-motion regime). A DC-coupled scope on the
+amp output during a step would also measure `VOLTS_PER_COUNT` on the `_OFFSET` path.
+Replaces `stator_epics_drive.py` (deleted 2026-11-01, Molly; in git history): its
+`detent`/`calibrate` never set the output switches, so nothing reached the electrodes.
 
 ## AWG route (superseded by DRVMTRX, kept for reference)
 
