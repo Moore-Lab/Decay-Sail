@@ -22,7 +22,8 @@ at the recording: 15073.56 s (from the video–LES alignment, gate 6).
   only 2.5–11% of drive-on frames; it keeps swinging at ~0.3 Hz throughout, with bursts of
   net rotation mostly in the − image direction (−4 rev at 60–100 s, −10 at 140–180 s,
   −8 at 180–206 s) at speeds below f/8, and no net rotation at 26–60 and 100–140 s.
-  "−" image = with the A→B→C field sequence (item 3 below; assumes the 08-24 channel map). Cause of no lock: not investigated.
+  "−" image = with the A→B→C field sequence (item 3 below), IF the 08-24 channel map
+  still holds; the wiring was redone since and is unverified. Cause of no lock: not investigated.
   Figure `../plots/d2_drive_vs_rotor_gps1477428272.png` (gitignored).
 - **C1 lock scorer (passed on the data; awaiting Molly's look at the plot):**
   `drive_coupling.py` (usage in its docstring). LOCKED = mean speed within 5% of s·f/k
@@ -112,12 +113,13 @@ or returns non-zero, or anything unexpected. Still ask before any commit/push/de
 never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch the code
 (it is fixed on the branch from the Mac).
 
-0a. **Molly, by hand, HV amp off: channel-to-terminal continuity.** Wiring was redone
-   after the 2026-08-24 check (Molly, 2026-11-01: "tried to keep it the same"). Meter each
-   amp output channel to each rev G terminal screw; expected V2→15° (A), V4→105° (B),
-   V3→195° (C), V1→285° (CTR). Record the result in `apparatus_log.md`. The holds don't
-   depend on it (both signs are scored), but every with/against label does: a swap of any
-   two phases flips them. If it differs, update `PHASE_ELECTRODES` / DECISIONS (Molly).
+0a. **Wiring (no lab step).** The channel-to-terminal wiring was redone after the
+   2026-08-24 continuity check, and the terminals are inside the pumped-down chamber, so
+   it is not metered. The holds don't need it: lock SPEED (f/8 vs f/4) does not depend on
+   the wiring, and both signs are scored. Only the with/against label does. If a hold
+   locks, its speed plus the predicted direction for that speed (f/8 with, f/4 against)
+   tells the wiring, at the cost of no longer testing that prediction; the detent test
+   (STATUS) would check the wiring independently.
 0. **Outputs-off test of the clean start** (nothing reaches the chamber):
    `cd lab_utils && python3 stator_osc_drive.py status`, then
    `python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`
