@@ -55,6 +55,34 @@ rev/s at f/8 = the stage 1 carry range.
 - Each command still has the start-up glide (DRV_FREQ from the previous value) until the
   `bring_up()` fix is made; between these holds the jump is small (≤ 0.3 Hz).
 
+## Lab-day runbook (C3 + tracking gate 7 / L4), for a Claude session on worker2
+
+Approved by Molly 2026-11-01. Start in the repo on worker2:
+`git fetch && git checkout live-blob-tracker && git pull && claude` (the branch includes
+main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
+
+Rules: ask Molly before EVERY drive command (anything with `--live`) and before any
+commit/push/delete; never `--leave-running`; if `live_blob_track.py` errors, report the
+error, don't patch the code (it is fixed on the branch from the Mac).
+
+1. Start the live tracker in its own terminal (or in the background, logged):
+   `cd camera_utils/tracking && python3 live_blob_track.py --outdir ~/stator_detent --show`
+   Report the registered centre and board-shift response; after ~30 s, the median `ncc`
+   in `blob_live_gps*.csv` (want ≥ 0.9) and dropped frames (want 0). Molly checks the
+   window: the red circle stays on the blob. If not, stop before any hold.
+2. Run the six C2 holds, one at a time, asking Molly before each; ≥ 60 s drive-off
+   between; log each hold's start and stop time.
+3. Stop the tracker (Ctrl-C). `python3 lab_utils/fetch_les_for_video.py <video GPS>
+   --duration <recording length, s>`; note the offset it prints. Fetch
+   `Y1:RDS-OUTS_V1..V4_OUT_DQ` for the same front-end window with `batch_fetch.py`'s
+   `fetch_channel`/`upload` (dest `Microspheres/TFINER/data/Electrodes`).
+4. `rclone copyto` the `.avi`, its timestamps `.csv` and `blob_live_gps*.csv` to
+   `dropbox:Microspheres/TFINER/videos/`. Report paths, hold times, anything odd.
+5. `git checkout main` when done.
+
+Then on the Mac: `drive_coupling.py` on the recording (one row per hold) and the gate 7
+check (live angles vs `blob_track.py` on the saved video).
+
 ## C3 / C4
 
 - C3 (lab): run C2 → `drive_coupling.py` on the recording, one row per hold.
