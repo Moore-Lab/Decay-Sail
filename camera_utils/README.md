@@ -1,15 +1,14 @@
-# camera_utils — Basler / uEye capture and rotor-angle tracking
+# camera_utils — Basler capture and rotor-angle tracking
 
 Camera setup and the capture scripts. The tracking problem (what the rotor looks like,
 what has been tried, what is open) is in `TRACKING_NOTES.md`. Why tracking matters: the
 spin-up directive in `../measurement_objective.md`.
 
-## Cameras (both monochrome, both run from the `ueye` conda env on worker2)
+## Camera (monochrome; runs from the `ueye` conda env on worker2, name kept from the old camera)
 
 | Camera | Role | Shutter / speed | Driver |
 |---|---|---|---|
 | Basler **acA1440-220um** | **the one in use** | global, up to ~220 fps, Mono8, 3.45 µm pixels, 1440×1080 | `pypylon` |
-| Thorlabs DCC1545M (uEye) | legacy | rolling, ~25–46 fps | `pyueye` |
 
 **Basler optics (2026-10-29):** Navitar 16 mm F1.4, C-mount. At the current working
 distance the magnification is **~0.09×**, so the rotor (Ø ~3.4 mm) is **~95 px** across
@@ -26,7 +25,7 @@ The 6–12 mm varifocal lens does not help.
 | `grab_basler.py` | Headless Basler capture: `/dev/shm` JPEG snapshot (default), MJPEG stream to a browser (`--mjpeg`), GPS-named recording (`--record`), live window (`--show`, needs a display). |
 | `rotor_angle_loop.py` | Rotor angle at frame rate from the white mark, in-process (pypylon → numpy). Measures only, commands nothing. Holds the camera exclusively, so it cannot run alongside `grab_basler.py`. |
 | `analyze_detent_video.py` | Scores a `--phase` sweep video by capture. |
-| `record_ueye_video.py` | uEye capture (`image` / `record` / `data`); `image`/`record` need an X display. |
+| `record_ueye_video.py` | Capture for the old Thorlabs uEye camera, no longer used (script left for Molly to prune). |
 
 **Recording format (`grab_basler.py --record`, since 2026-10-28):**
 `output_basler_gps<true GPS>.avi`, **FFV1 lossless Mono8** by default (falls back to

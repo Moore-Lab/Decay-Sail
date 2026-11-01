@@ -74,7 +74,6 @@ field), bottom copper kept clear of the grounded magnet except the contact ring.
 | `coupling_vs_radius.py` | how much of the available torque a given electrode annulus captures |
 | `emit_fusion_scr.py` | optional: Fusion Electronics build script |
 | `flex_spec.md` | full design spec, operating protocol, first-article tests |
-| `spinup_note.md` | why the side posts were unreliable; mechanism analysis |
 | `fab/` | Gerbers, one plated drill file (64 holes), PCBWay design rules, fab notes — ready to order |
 | `inputs/` | rotor and mounting-plate DXFs the design is derived from |
 
@@ -108,10 +107,7 @@ In the STEP model **z = 0 is the board's bottom face** (against the PEEK plate);
 the electrode surface sits at z = +0.043 mm, so the rotor gap is
 `h = levitation_height - 0.043 mm`.
 
-## Open items before ordering
+## Open items
 
-- Measure the V1.3 rotor's levitation height over the installed board to confirm
-  the gap h.
-- Confirm the magnet sits flush in the plate's 7 mm hole.
-- Cross-check the coupling model with a 3-D BEM/COMSOL run (the analysis uses a
-  quasi-planar `exp(-m h / r)` approximation).
+Open hardware checks (levitation height over the board, magnet seating, a 3-D check of the
+coupling model) are tracked in `docs/STATUS.md`.
