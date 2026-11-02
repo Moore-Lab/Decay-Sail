@@ -48,7 +48,7 @@ A field *direction* is sent each frame; the waveform is not streamed.
 |---|---|---|---|
 | F0 | Mac | design + code + selftests | done (above) |
 | F1 | worker2, **outputs off** | loop on a replayed video; `OUT_DQ` vs the commanded field | `feedback_f1_check.py`: field direction within 5° on ≥ 99% of samples; ≥ 99% of updates seen; field size within 1%; worker2 loop p99 ≤ 15 ms |
-| F2 | outputs on, rotor swinging ±10–30° | lead scan `--scan default` (45, −45, 90, −90, 135, −135, 0, 180; 10 s each) | one lead grows the swing and its opposite shrinks it, in two scans |
+| F2 | outputs on, rotor swinging ±10–30°; both lights on and median ncc ≥ 0.9 over 30 s before starting (the watchdog trips at 0.8; the ring-down recording's lighting gave a median of 0.84) | lead scan `--scan default` (45, −45, 90, −90, 135, −135, 0, 180; 10 s each) | one lead grows the swing and its opposite shrinks it, in two scans. If no lead moves the swing, repeat with `--sign 1` before concluding anything (`sign` assumes the 08-24 channel map) |
 | F3 | outputs on | pump at the best lead | ≥ 10 consecutive full turns one way |
 | F4 | outputs on | raise the speed | Molly's target |
 
@@ -59,14 +59,20 @@ without it the rotor never gets over the top (derived, `selftest`).
 
 ## F1 runbook (worker2; nothing reaches the chamber)
 
-1. `cd ~/rds-code/Decay-Sail && git fetch && git checkout feedback-drive && git pull`
+1. `cd ~/rds-code/Decay-Sail && git fetch && git checkout feedback-drive && git pull`. This branch
+   includes `drive-gps-second`, the 1.1 s clean-start wait.
 2. `python3 lab_utils/feedback_drive.py selftest` → `SELFTEST PASSED`.
+   Then test the clean start, outputs off, as in `DRIVE_LOCK_HANDOFF.md` step 0:
+   `cd lab_utils && python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`.
+   Check that the echoed order is DRV_TRAMP←0, DRV_FREQ←0.1, a 1.1 s wait, DRV_TRAMP←5, then the gains.
+   Note its front-end GPS lines; the OUT_DQ fetch in step 6 should cover it too.
 3. Terminal 1 replays a recorded video in real time (no camera; the rotor is not involved):
    ```
    cd camera_utils/tracking && python3 live_blob_track.py --replay /home/controls/stator_detent/output_basler_gps1477428272.avi --replay-realtime --centre 132.3,180.6 --outdir /tmp/f1 --snapshot "" --publish 127.0.0.1:5005
    ```
 4. Terminal 2, within ~1 min, with **no** `--enable-outputs`:
    `cd lab_utils && python3 feedback_drive.py run --lead 45 --duration 60 --live`
+   (run `feedback_drive.py` and `stator_osc_drive.py` from `lab_utils/`)
    - It prints `tracker heard`, then `loop start, front-end GPS …`, then `end of run`.
    - Teardown should end with offsets 0.
    - Note both front-end GPS lines and the log path (`~/stator_detent/feedback_<gps>.csv`).
@@ -76,4 +82,7 @@ without it the rotor never gets over the top (derived, `selftest`).
    (`batch_fetch.fetch_channel`), then rclone them and the log to `Dropbox:Microspheres/TFINER/data/feedback/`.
 7. `git checkout main`.
 
-Then, on the Mac: `python3 lab_utils/feedback_f1_check.py LOG V2.h5 V3.h5 V4.h5`.
+Then, on the Mac: `python3 lab_utils/feedback_f1_check.py LOG V2.h5 V3.h5 V4.h5`, plus the
+no-glide check on the clean-start hold (`../analysis/c2_20261102/c2_checks.py` part 4 method).
+If check 2 sees only ~1 step for many commanded changes, the LOAD_MATRIX record probably acts
+only on a 0 → 1 edge: rerun step 4 with `--load-toggle`.

@@ -306,6 +306,7 @@ def run(args):
                 pkt = sock.recv(256)
             except socket.timeout:
                 continue
+            now = time.time()                       # after the (up to 50 ms) blocking recv
             k, ht, ang, ncc = pkt.decode().split(',')
             k, ht, ang, ncc = int(k), float(ht), float(ang), float(ncc)
             if now - ht > 0.1:                      # backlog / stale frame: skip
@@ -318,6 +319,8 @@ def run(args):
             col = field_column(psi)
             for n in phases:
                 put(f'{MTRX}_SETTING_{n}_2', col[n], wait=False, echo=False)
+            if args.load_toggle:                    # in case LOAD_MATRIX acts only on a 0 -> 1 edge
+                put(f'{MTRX}_LOAD_MATRIX', 0, wait=False, echo=False)
             put(f'{MTRX}_LOAD_MATRIX', 1, wait=False, echo=False)
             log.write('%.6f,%d,%.6f,%.3f,%.3f,%.2f,%d,%g,%.3f\n' % (time.time(), k, ht, ang, ncc, ctrl.w, ctrl.dir, ctrl.lead, psi))
     except KeyboardInterrupt:
@@ -370,6 +373,8 @@ def main():
     p.add_argument('--stale', type=float, default=0.25)
     p.add_argument('--ncc-min', type=float, default=0.8)
     p.add_argument('--port', type=int, default=5005)
+    p.add_argument('--load-toggle', action='store_true', help='write LOAD_MATRIX 0 then 1 each frame '
+                   '(use if F1 sees only ~1 step: the record may act only on a 0 -> 1 edge)')
     p.add_argument('--log', default=os.path.expanduser('~/stator_detent/feedback_%d.csv' % int(time.time() - GPS_UNIX_OFF)))
     p.add_argument('--live', action='store_true')
     p.add_argument('--enable-outputs', action='store_true')
