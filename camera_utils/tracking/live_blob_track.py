@@ -50,6 +50,9 @@ p.add_argument('--snapshot', default='/dev/shm/blob_live.jpg', help='overlay JPE
 p.add_argument('--snapshot-every', type=float, default=0.5)
 p.add_argument('--show', action='store_true', help='live window with the tracked point')
 p.add_argument('--replay', default='', help='read frames from this video instead of the camera')
+p.add_argument('--replay-realtime', action='store_true', help='pace --replay at its frame rate (for loop tests)')
+p.add_argument('--publish', default='', help='HOST:PORT: send each angle as a UDP datagram '
+               '"frame,host_time,angle_deg,ncc" (for lab_utils/feedback_drive.py); off by default')
 args = p.parse_args()
 
 T, ref_angle, ref_centre, ref_median = blob_core.load_template(args.template)
@@ -62,11 +65,15 @@ if args.replay:
     proc = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', args.replay, '-f', 'rawvideo',
                              '-pix_fmt', 'gray', '-'], stdout=subprocess.PIPE)
     fps = 50.0
+    t_rep0 = time.time()
     def frames():
         k = 0
         while True:
             buf = proc.stdout.read(W * H)
             if len(buf) < W * H: return
+            if args.replay_realtime:
+                lag = t_rep0 + k / fps - time.time()
+                if lag > 0: time.sleep(lag)
             yield np.frombuffer(buf, np.uint8).reshape(H, W), k, int(k * 1e9 / fps)
             k += 1
     close_source = proc.kill
@@ -122,6 +129,13 @@ ang_name = os.path.join(args.outdir, 'blob_live_gps%d.csv' % gps)
 out = open(ang_name, 'w', buffering=1)
 print('recording -> %s (%s)\nangles    -> %s' % (stem + '.avi' if writer else '(none, replay)', datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), ang_name))
 
+pub = None
+if args.publish:
+    import socket
+    ph, pp = args.publish.rsplit(':', 1)
+    pub = (socket.socket(socket.AF_INET, socket.SOCK_DGRAM), (ph, int(pp)))
+    print('publishing angles to udp %s' % args.publish)
+
 running = {'go': True}
 signal.signal(signal.SIGINT, lambda *a: running.update(go=False))
 signal.signal(signal.SIGTERM, lambda *a: running.update(go=False))
@@ -147,6 +161,11 @@ def track(f, k, host):
     t1 = time.perf_counter(); a, r, c1, c2, src = trk.process(f); dt = 1e3 * (time.perf_counter() - t1)
     proc_ms.append(dt)
     out.write('%d,%.6f,%.2f,%.2f,%.3f,%.3f,%s,%.2f\n' % (k, host, a, r, c1, c2, src, dt))
+    if pub:
+        try:
+            pub[0].sendto(b'%d,%.6f,%.4f,%.3f' % (k, host, a, c1), pub[1])
+        except OSError:
+            pass
     return a, r
 
 def overlay(f, a, r):
