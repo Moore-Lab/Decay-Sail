@@ -41,6 +41,13 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   change) if the angle reaches the front end by EPICS. The possible check is an F1 rerun at a low,
   paced update rate (e.g. 10 Hz, waiting on each write), to see whether the delay drops to ~0.1 s.
   That is Molly's call.
+- **F1b (Molly OK 2026-11-02): rerun at a paced rate.** `--rate 10` (the new default) sends at most
+  10 updates per second and waits for each write to complete. Same runbook as F1, but run step 4
+  as `python3 feedback_drive.py run --lead 45 --duration 60 --rate 10 --live`. Pass: the field follows
+  the commands with a delay ≲ 0.15 s (measured by the scorer's lag fit; the clock pair is good only
+  to ~1 s, so a clear drop from ~2.6 s is the result that matters), and one output step per update.
+  The out-of-range transients may get worse with paced updates, because each step is larger.
+  Watch for them in OUT_DQ.
 
 ## How it points the field (no model change)
 

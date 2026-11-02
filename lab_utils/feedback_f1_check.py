@@ -20,7 +20,8 @@ Pass marks (proposed, Molly to agree):
      5 ms after each commanded step;
   2. >= 99% of commanded updates appear as a distinct step in OUT_DQ;
   3. field size within 1% of COSGAIN while the loop runs;
-  4. worker2 loop time (frame host time -> writes issued) p99 <= 15 ms.
+  4. worker2 loop time (frame host time -> writes done) p99 <= 15 ms at every-frame updates;
+     with --rate pacing and waited writes, p99 <= 1/rate (reported with the write time).
 Exit 0 = pass, 1 = fail.
 """
 import sys

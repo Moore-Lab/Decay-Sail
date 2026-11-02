@@ -237,7 +237,7 @@ def run(args):
     os.makedirs(os.path.dirname(os.path.abspath(args.log)), exist_ok=True)
     log = open(args.log, 'w', buffering=1)
     log.write('# feedback_drive.py %s\n' % ' '.join(sys.argv[1:]))
-    log.write('host_time,frame,frame_host_time,angle_deg,ncc,w_dps,dir,lead,psi_deg\n')
+    log.write('host_time,frame,frame_host_time,angle_deg,ncc,w_dps,dir,lead,psi_deg,write_ms\n')
     ctrl = Controller(lead=args.lead, sign=args.sign, m=args.m, latency=args.latency, vmin=args.vmin)
     leads = (SCAN_DEFAULT if args.scan == 'default' else [float(v) for v in args.scan.split(',')]) if args.scan else [args.lead]
     brought_up = False
@@ -293,7 +293,7 @@ def run(args):
             print('  [dry] would now update SETTING_{2,3,4}_2 + LOAD_MATRIX once per received angle')
             return
         # ---- loop
-        t_start = time.time(); last_fresh = time.time(); low = 0; k_lead = 0; t_lead = t_start
+        t_start = time.time(); last_fresh = time.time(); low = 0; k_lead = 0; t_lead = t_start; last_write = 0.0
         ctrl.lead = leads[0]; print(f'    lead {ctrl.lead:g}')
         while True:
             now = time.time()
@@ -317,14 +317,20 @@ def run(args):
             low = low + 1 if ncc < args.ncc_min else 0
             if low >= 5:
                 print(f'! watchdog: ncc < {args.ncc_min} for 5 frames'); break
-            psi = ctrl.update(ht, ang)
+            psi = ctrl.update(ht, ang)              # every frame: keeps the velocity fit current
+            if args.rate > 0 and now - last_write < 1.0 / args.rate:
+                continue                            # paced: write at most --rate times per second
+            last_write = now
             col = field_column(psi)
+            w = not args.no_wait                    # wait for each write to complete (back-pressure)
+            t_w0 = time.time()
             for n in phases:
-                put(f'{MTRX}_SETTING_{n}_2', col[n], wait=False, echo=False)
+                put(f'{MTRX}_SETTING_{n}_2', col[n], wait=w, echo=False)
             if args.load_toggle:                    # in case LOAD_MATRIX acts only on a 0 -> 1 edge
-                put(f'{MTRX}_LOAD_MATRIX', 0, wait=False, echo=False)
-            put(f'{MTRX}_LOAD_MATRIX', 1, wait=False, echo=False)
-            log.write('%.6f,%d,%.6f,%.3f,%.3f,%.2f,%d,%g,%.3f\n' % (time.time(), k, ht, ang, ncc, ctrl.w, ctrl.dir, ctrl.lead, psi))
+                put(f'{MTRX}_LOAD_MATRIX', 0, wait=w, echo=False)
+            put(f'{MTRX}_LOAD_MATRIX', 1, wait=w, echo=False)
+            log.write('%.6f,%d,%.6f,%.3f,%.3f,%.2f,%d,%g,%.3f,%.2f\n' % (time.time(), k, ht, ang, ncc, ctrl.w, ctrl.dir, ctrl.lead, psi,
+                                                                       1e3 * (time.time() - t_w0)))
     except KeyboardInterrupt:
         print('\n  Ctrl-C')
     except RuntimeError as e:
@@ -375,6 +381,9 @@ def main():
     p.add_argument('--stale', type=float, default=0.25)
     p.add_argument('--ncc-min', type=float, default=0.8)
     p.add_argument('--port', type=int, default=5005)
+    p.add_argument('--rate', type=float, default=10.0, help='max field updates per second (0 = every frame). '
+                   'F1 2026-11-02 at every frame (~50/s, no wait) measured a ~1.5-2.6 s delay')
+    p.add_argument('--no-wait', action='store_true', help='send writes without waiting for completion (the F1 2026-11-02 mode)')
     p.add_argument('--load-toggle', action='store_true', help='write LOAD_MATRIX 0 then 1 each frame '
                    '(use if F1 sees only ~1 step: the record may act only on a 0 -> 1 edge)')
     p.add_argument('--log', default=os.path.expanduser('~/stator_detent/feedback_%d.csv' % int(time.time() - GPS_UNIX_OFF)))
