@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-02 — Free-swing recording after C2 (no drive; Molly, worker2 agent)
+
+`live_blob_track.py` (camera only), video `output_basler_gps1477678308` (true GPS), 39.0 min,
+0 dropped, NCC median 0.836. LES PIT/YAW fetched FE 1477685294–1477696028. FE − true GPS 15380.9 s, read
+live; this morning's read was 15368.7 s, so the offset drifts ~3.9 s/h.
+Saw (measured):
+- Swing ±27° → ±24° over the 39 min: τ_A ≈ 15000 s, Q ~ 1.6 × 10⁴. From ±105° at the end of C2,
+  the average τ_A is ≈ 6200 s.
+- Swing frequency 0.354 → 0.319 Hz over the same 39 min, at nearly fixed amplitude. Cause not
+  investigated.
+Analysis: `analysis/ringdown_20261102/README.md`.
+
 ### 2026-11-02 — C2 drive holds: seven holds, no lock on the quick look (worker2 agent, Molly in lab)
 
 Branch `drive-clean-start` (e466653), runbook in `lab_utils/DRIVE_LOCK_HANDOFF.md`. Both

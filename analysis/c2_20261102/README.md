@@ -30,7 +30,7 @@ python3 lab_utils/drive_coupling.py blob_live_gps1477668186.csv output_basler_gp
 ```
 
 - **No lock in any hold (measured).** The mean rotor speed was ≤ 0.002 rev/s in every hold. The slowest candidate lock, f/8 at 0.1 Hz, would be 0.0125 rev/s. The net rotation per hold was < 0.25 rev.
-- **The swing frequency falls as the swing grows (measured).** Drive-off segments:
+- **The swing frequency was lower when the swing was larger (measured). This is CONFOUNDED with time:** the later free-swing recording showed the frequency drifting 10% in 39 min at a nearly fixed amplitude (`../ringdown_20261102/README.md`). Drive-off segments:
 
   | swing amplitude | frequency |
   |---|---|
@@ -41,9 +41,9 @@ python3 lab_utils/drive_coupling.py blob_live_gps1477668186.csv output_basler_gp
   | 100° | 0.276 Hz |
   | 105° | 0.272 Hz |
 
-  That is a 20% drop from 46° to 105°, so the trap is not harmonic at these amplitudes. The script's single "0.306 Hz" is a median over this trend. The small-amplitude f₀ was not measured today: the one quiet segment, at 4°, gives a false peak at 0.696 Hz. Two consequences:
-  - The `kd/kt` column is meaningless here, because amplitude softening shifts the frequency more than any drive stiffness.
-  - A fixed f₀/2 drive (hold 7) detunes itself as the swing grows.
+  That is a 20% drop from 46° to 105°, but amplitude and elapsed time grew together, so this does not show that the trap is anharmonic. The script's single "0.306 Hz" is a median over this trend. The small-amplitude f₀ was not measured today: the one quiet segment, at 4°, gives a false peak at 0.696 Hz. Two consequences:
+  - The `kd/kt` column is meaningless here: the frequency drifts by more than any drive stiffness would shift it.
+  - A fixed f₀/2 drive (hold 7) cannot follow a drifting frequency.
 - **The wobble columns (A1, A2, tau1, tau2) are NOT measurements of drive torque.** `c2_checks.py` part 1 shows why:
   - The 1× and 2× amplitudes are 4–25° in the thirds of a hold.
   - Their phase relative to the drive wanders by more than 90° between thirds in almost every hold.
@@ -69,7 +69,7 @@ Amplitude is √2 × rms of the detrended angle, in degrees. Start and end are t
 - **Between holds the amplitude holds steady:** it changes by ≤ 4° across each ~80 s drive-off gap. The changes inside holds, by contrast, are 10–50°, and the hold 3 switch-off dropped the swing from 26° to 4°. So the swing changes while the drive is on or switching, and not while it is off (measured). What does it is not established: the drive torque at f or 2f, the amplifier's DC step at switch-on and switch-off (AC-coupled, τ ≈ 5–7 s estimated), or both.
 - **Switch-on growth.** In holds 1 and 4, starting near rest, the swing reached 28° (7°) by 15 s and 42° (41°) by 30 s. A sustained drive torque would build it over that time, and so would the pedestal's DC step, which decays over ~20 s. So the timing does not tell the two apart.
 - **Unexplained:** a 40° swing from rest, against the ~1° static detent estimated from the design torque and trap stiffness (`lab_utils/DRIVE_LOCK_HANDOFF.md`, Detent test).
-- **Hold 7 (resonance test) is not a clean test.** It started at a ~93° swing, where the swing frequency is ~0.28–0.29 Hz rather than 0.31, so 2f = 0.31 Hz was off resonance.
+- **Hold 7 (resonance test) is not a clean test.** It started at a ~93° swing, where the free-swing frequency nearby in time was ~0.28 Hz rather than 0.31, so 2f = 0.31 Hz was off resonance.
 
 ## Not done / open
 

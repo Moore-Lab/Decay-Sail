@@ -13,7 +13,8 @@ All seven C2 holds ran (`apparatus_log.md` 2026-11-02). Analysis: `../analysis/c
 - **C3: no lock in any hold (measured).** Mean speed ≤ 0.002 rev/s.
 - **The wobble torques are not measurements:** they sit at the floor set by a 40–100° free swing.
 - **The swing changes only while the drive is on or switching (measured).** It changed by 10–50° per hold and by ≤ 4° across drive-off gaps. Hold 1 went from rest to 42°. The cause (drive torque vs the DC step) is not separated.
-- **The swing frequency falls with amplitude:** 0.34 Hz at 46°, 0.27 Hz at 105°.
+- **The swing frequency drifts:** 0.34 Hz at 46° down to 0.27 Hz at 105° during C2, but this is confounded with time. Later the free swing drifted 0.354 → 0.319 Hz in 39 min at ~25°.
+- **Damping is small:** τ_A ≈ 6000–15000 s, Q ~ 10⁴ (`../analysis/ringdown_20261102/README.md`).
 
 So C4 is next.
 
