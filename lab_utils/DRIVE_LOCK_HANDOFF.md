@@ -143,8 +143,8 @@ rev/s at f/8 = the stage 1 carry range.
 ## Lab-day runbook (C3 + tracking gate 7 / L4), for a Claude session on worker2
 
 Approved by Molly 2026-11-01. Start in the repo on worker2:
-`git fetch && git checkout drive-clean-start && git pull && claude` (= `live-blob-tracker`
-plus the clean-start fix; includes main up to this file). Stop `grab_basler.py` first: the camera is held exclusively.
+`git fetch && git checkout main && git pull && claude` (the live tracker and the clean
+drive start are on `main` since 2026-11-02). Stop `grab_basler.py` first: the camera is held exclusively.
 
 Rules: **one approval from Molly for the whole C2 schedule** (she approved the schedule
 2026-11-01; confirm once at the start of the session), then run all seven holds without

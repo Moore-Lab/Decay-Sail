@@ -8,7 +8,7 @@
   L4 = the lab-day recording, scored on the Mac with `gate7_check.py` (written and tested
   2026-11-01, section "Gate 7 scorer" below). The live CSV header now writes the centre to
   6 decimals (rounding to 0.01 px alone failed the gate).
-- **Lab day runs from branch `drive-clean-start`** (= this branch + the clean drive start).
+- **Lab day runs from `main`** (`live-blob-tracker` and `drive-clean-start` merged 2026-11-02, Molly's OK).
 - **Direction vs the board** (measured 2026-11-01, reviewer AGREE): + image angle = C→B→A
   sector direction; `lab_utils/drive_coupling.py` docstring. Wiring since 08-24 unverified.
 - **Lighting:** the "new lighting" of gps1477428272 is the two-light setup (Molly,
@@ -19,7 +19,7 @@
   - L4: 0 dropped; live = offline on 99.966% of frames within 0.1° (max 0.47°, at the 0/360° wrap); NCC median 0.964.
   - `blob_track.py` and `gate7_check.py` now stream frames (6.6 GB of frames vs 8 GB on the Mac).
   - Analysis: `analysis/c2_20261102/README.md` on `main`.
-- **Next:** merge this branch to `main` (Molly's OK).
+- **Merged to `main` 2026-11-02.**
 
 ## Gate record (2026-10-30 onward)
 
