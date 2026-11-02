@@ -70,11 +70,32 @@ amplitude to 0. A stalled worker2 then cannot leave the field pointing somewhere
    - the electrode command stays within 0–12800.
 3. Then F2 (lead scan, outputs on) through the new path.
 
+## What Alma's y1dmd model already does (read from `y1dmd.mdl`, 2026-11-02; wiring read by Claude, part semantics not verified)
+
+Copies are on Dropbox `Microspheres/TFINER/data/models/`: `y1dmd.mdl`, `y1rds.mdl`, and the RCG library `CDS_PARTS.mdl`.
+- **`PARTICLE/PLL`, a phase-locked loop running in the model.** A sensor input is multiplied by
+  the output of a VCO, filtered (`FILT`), integrated (`INT`) and fed back through a unit delay into the
+  VCO's input. The VCO is **`cdsOscSetPhase`**, an oscillator whose phase or frequency input is a
+  *model signal* updated every cycle. That is the part a commutation block needs: sin/cos of a
+  computed angle at model rate, without custom C.
+- **`PARTICLE` phase detection.** An input ("charge in") is demodulated against a digital LO (`DIGLO`
+  cos/sin) into I and Q. **`cdsAtan2`** gives the phase (`PHI`) and `cdsSqrt` the amplitude (`CHARGE`).
+  That is the template for extracting an angle from a periodic sensor (e.g. LES) in real time.
+- **`PARTICLE/SPIN`, a separate oscillator with sin/cos outputs** (`spinS`, `spinC`), which looks like
+  her rotating-field drive.
+- Other parts in the library that may help: `cdsUnwrapPhase`, `cdsDemodRotate`, `cdsEpicsIn`,
+  `cdsProduct`, `cdsFunctionCall` (user C).
+
+Consequence for this proposal (interpretation, not approved): the commutation block can probably
+be built from `cdsEpicsIn` (THETA, OMEGA) → arithmetic → `cdsOscSetPhase` (phase input) → DRVMTRX.
+Alma's PLL is also a template for a camera-free option: lock a VCO to a sensor signal that turns
+with the rotor.
+
 ## Questions for Molly and Alma
 
 - Is a model change and restart acceptable now? Who builds it?
 - Are there free ADC channels on the cymac1 I/O chassis, for a possible analog angle path?
-- Does the RCG part library have a clean way to do per-cycle sin/cos of a computed phase (cdsPhase
-  takes a fixed angle)? Otherwise a small C function block (cdsFunctionCall) may be needed.
+- Alma: what exactly are `cdsOscSetPhase`'s inputs (phase, frequency, or both), and what does your
+  `PARTICLE/PLL` lock to? Could the same structure commutate our stator?
 - Can a 2048 Hz test point of `OUTS_V{n}_OUT` be read over NDS on worker2? That would settle whether the
   post-step ringing in `OUT_DQ` is only the DAQ's decimation filter.
