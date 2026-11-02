@@ -74,8 +74,28 @@ Amplitude is √2 × rms of the detrended angle, in degrees. Start and end are t
 - **Unexplained (interpretation, not approved):** a 40° swing from rest, against the ~1° static detent estimated from the design torque and trap stiffness (`lab_utils/DRIVE_LOCK_HANDOFF.md`, Detent test).
 - **Hold 7 (resonance test) is not a clean test (interpretation, not approved).** It started at a ~93° swing, where the free-swing frequency nearby in time was ~0.28 Hz rather than 0.31, so 2f = 0.31 Hz was off resonance.
 
+## Drive starts: pedestal stagger and AC rise (measured, `c2_checks.py` parts 5–6)
+
+These were measured from `OUT_DQ` at each of the 8 drive starts (start 0 is the step-0 outputs-off test):
+- **Pedestal stagger.** At starts 1, 2, 3 and 6, one phase's pedestal reached half height 125 ms
+  before or after the other two. That made a differential (rotating-field) signal of up to
+  728 counts, 11% of full amplitude, while the pedestal ramped. At starts 0, 4, 5 and 7 the three
+  phases crossed within 1 ms, with no differential signal.
+- **AC rise.** The AC rose from 10% to 90% in 3.0 s at 7 of 8 starts, which is the DRV_TRAMP 5 s
+  spline. At start 1 (hold 1) it rose in one step. Cause not investigated.
+- **Rotor at hold 1 (from rest).** The angle stayed within 227.75–227.92° until 103.75 s. It moved
+  to 232.5° by 104.5 s, about 0.5 s after the staggered pedestal (half at 103.32 s, differential
+  peak during the ramp), and before any AC. The AC then stepped on at 105.5 s.
+- **Rotor at hold 4 (±3.8° swing).** No visible change when the pedestals ramped together; the
+  swing grew once the AC ramped in.
+- (Interpretation, not approved.) A common-mode pedestal step does nothing visible; a staggered
+  one kicks, through its differential part. There is one clean example of each. If it holds,
+  writing the three offsets so they ramp together, or ramping more slowly (`--pedestal-ramp`),
+  would remove the kick.
+
 ## Not done / open
 
-- Telling drive torque from the DC kick. One option is a hold with the pedestal ramped slowly (`--pedestal-ramp`), compared with an abrupt one, starting from rest.
+- Telling drive torque from the DC kick. One option is a hold with the pedestal ramped slowly (`--pedestal-ramp`), compared with an abrupt one, starting from rest. See "Drive starts" above: the visible kick at hold 1 coincided with a staggered pedestal and an AC step, not with a clean common-mode step.
+- Why the AC stepped on at hold 1 instead of ramping.
 
 `c2_checks.py DATA_DIR` reproduces parts 1–4, the no-glide check included.
