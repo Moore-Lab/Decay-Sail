@@ -21,7 +21,26 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
       output bit is cleared only after the pedestal ramp.
   - `../camera_utils/tracking/live_blob_track.py` gets two new flags: `--publish HOST:PORT`
     (UDP, one datagram per frame) and `--replay-realtime`.
-- **Next:** F1 on worker2 (outputs off), below. Needs Molly's OK at the time.
+- **F1 ran 2026-11-02 (worker2 agent; outputs off; report in Dropbox `data/feedback/`): FAIL.**
+  Measured from `OUT_DQ` FE 1477701634–781 against log `feedback_1477686313.csv`:
+  - **Field size and shape:** a clean three-phase pattern, size 6400 (5–95% range 6346–6457).
+    The three pedestals now ramp together, with no differential field during the ramp.
+  - **Timing:** the measured field follows the commanded sequence with coherence 0.9 (first half)
+    and 0.8 (second half), but **~2.6 s late**. That is relative to the loop-start clock pair, which
+    is good to ~1 s, so the real delay is ~1.5–2.6 s. Feedback needs ~0.04 s.
+  - **Update steps:** 7984 field steps for 3006 commanded updates, so updates are not landing as
+    single atomic steps.
+  - **Out of range:** after each step the outputs ring for several samples, and transients
+    reached V2 −1458 and V4 14567, outside the amplifier input range 0–12800. Outputs were off,
+    so nothing reached the chamber. **Do not run F2 like this.**
+  - The worker2 loop itself was fast: p99 13 ms.
+  - **Clean-start fix:** the echoed order is right. The no-glide check is not yet scored.
+- **Cause: not established.** One candidate (assumed, not checked): the front end takes in EPICS
+  setpoints at a fixed slow rate, so 200 non-blocking writes/s queue up. If so, *any*
+  camera→EPICS→front-end loop is limited to that rate. That includes option 2 (the model
+  change) if the angle reaches the front end by EPICS. The possible check is an F1 rerun at a low,
+  paced update rate (e.g. 10 Hz, waiting on each write), to see whether the delay drops to ~0.1 s.
+  That is Molly's call.
 
 ## How it points the field (no model change)
 

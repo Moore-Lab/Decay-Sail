@@ -11,7 +11,7 @@ front-end time) fetched over the run. The field angle in OUT_DQ is arg(sum_n V_n
 Clocks: the log is in worker2 host time; OUT_DQ in front-end time, which drifts ~1 ms/s against
 true time (FE - true GPS went 15368.7 -> 15380.9 s over 3.1 h on 2026-11-02) and is read over
 EPICS only to 1 s. So the scorer FITS the mapping t_fe = t_host + c + r (t_host - t0): c within
-+-1.5 s of the logged loop-start pair, r within +-3e-3. The fitted c mixes clock offset and the
+-1.5..+4 s of the logged loop-start pair, r within +-3e-3. The fitted c mixes clock offset and the
 write-to-DAC latency, so absolute latency is NOT measured here (it is set by --latency and
 tuned in F2).
 
@@ -55,7 +55,7 @@ def score(t_host, psi_cmd, fe_start, fs, V, loop_start, frame_host, amp_expected
         return d[since > 0.005], ok
     # objective: fraction of samples within 2 deg (the median is degenerate: 0 for many fits)
     best = (-1.0, 0, 0)
-    for c in np.arange(-1.5, 1.5, 0.002):
+    for c in np.arange(-1.5, 4.0, 0.002):        # +4 s: F1 2026-11-02 measured ~2.6 s
         d, _ = resid(c, 0.0)
         if len(d) and np.mean(d <= 2) > best[0]:
             best = (np.mean(d <= 2), c, 0.0)
@@ -126,6 +126,8 @@ def selftest():
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == 'selftest':
         sys.exit(selftest())
+    if len(sys.argv) != 5:
+        sys.exit(__doc__)
     import h5py
     logf, files = sys.argv[1], sys.argv[2:5]
     loop_start = None
@@ -135,7 +137,9 @@ def main():
                 w = line.split(); loop_start = (float(w[3]), float(w[5]))
     if loop_start is None:
         sys.exit('! no loop_start line in the log')
-    d = np.genfromtxt(logf, delimiter=',', comments='#', names=True)
+    import csv
+    rows = list(csv.DictReader(l for l in open(logf) if not l.startswith('#')))
+    d = {k: np.array([float(r[k]) for r in rows]) for k in ('host_time', 'psi_deg', 'frame_host_time')}
     V = {}
     for f in files:
         with h5py.File(f) as h:
