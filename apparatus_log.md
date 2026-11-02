@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-02 — Feedback drive F1 and F1b, outputs off (worker2 agent; Molly approved the --live runs)
+
+Branch `feedback-drive`; replay tracker (video gps1477428272) publishing angles; nothing reached the chamber.
+- Clean-start hold `stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`, FE 1477701639–662:
+  0.1000 Hz from the first second, AC 10→90% in 3.0 s. The 1.1 s fix was then merged to `main` (Molly OK).
+- F1 `feedback_drive.py run --lead 45 --duration 60 --live` (every frame, unpaced): loop FE 1477701705–767.
+- F1b same with `--rate 10` (paced, writes waited): loop FE 1477702657–720.
+- Saw: the field follows the commanded steps, and every output step lands on a 1/16 s grid. The pedestals
+  now ramp together. The outputs ring after each step. The latency is not measured.
+  Analysis and verdict: `lab_utils/FEEDBACK_HANDOFF.md` (branch `feedback-drive`).
+- Data: Dropbox `Microspheres/TFINER/data/feedback/` (F1) and `.../feedback/f1b/`, with the agent's raw reports.
+
 ### 2026-11-02 — Feedback drive F0 and clean-start fix (Mac, no hardware)
 
 Did: `feedback-drive` branch: `lab_utils/feedback_drive.py` (it freezes the oscillator at FREQ 0
