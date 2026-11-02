@@ -5,6 +5,18 @@ directive (`../measurement_objective.md`). Gates agreed with Molly 2026-11-01. O
 tracking/drive session (this file and `drive_coupling.py`); docs/STATUS/DECISIONS edits
 go through Molly or the cleanup session.
 
+## Done (2026-11-02): C2/C3, recording gps1477668186
+
+All seven C2 holds ran (`apparatus_log.md` 2026-11-02). Analysis: `../analysis/c2_20261102/README.md`.
+- **Gate 7 (L3 + L4): PASS.** L3 p99 4.72 ms. L4: 0 dropped; live = offline on 99.966% of frames within 0.1°; NCC median 0.964.
+- **Step 0 clean start: PASS.** The 0.1 Hz started without a glide.
+- **C3: no lock in any hold (measured).** Mean speed ≤ 0.002 rev/s.
+- **The wobble torques are not measurements:** they sit at the floor set by a 40–100° free swing.
+- **The swing changes only while the drive is on or switching (measured).** It changed by 10–50° per hold and by ≤ 4° across drive-off gaps. Hold 1 went from rest to 42°. The cause (drive torque vs the DC step) is not separated.
+- **The swing frequency falls with amplitude:** 0.34 Hz at 46°, 0.27 Hz at 105°.
+
+So C4 is next.
+
 ## Done (2026-11-01, recording gps1477428272)
 
 Data: video `output_basler_gps1477428272.avi` + `camera_utils/tracking/blob_gps1477428272.csv`
@@ -165,7 +177,7 @@ never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch 
    Then tracker speed (gate L3, read-only, no camera):
    `cd camera_utils/tracking && python3 live_blob_track.py --replay
    /home/controls/stator_detent/output_basler_gps1477428272.avi --centre 132.3,180.6
-   --outdir /tmp/l3 --snapshot ""`. Pass: the `Stopped.` line shows p99 < 10 ms and
+   --outdir /tmp/l3 --snapshot ""` (run it with the same `ueye` python as step 1; on 2026-11-02 L3 ran in the cds python3, cv2 5.0, and the live tracker in `ueye`, cv2 4.12). Pass: the `Stopped.` line shows p99 < 10 ms and
    0 dropped. If p99 >= 10 ms: stop and call Molly (live tracking would drop frames).
 1. Start the live tracker in its own terminal (or in the background, logged):
    `cd camera_utils/tracking && /home/controls/.conda/envs/ueye/bin/python live_blob_track.py --outdir ~/stator_detent --show`
@@ -193,6 +205,6 @@ check (live angles vs `blob_track.py` on the saved video).
 
 ## C3 / C4
 
-- C3 (lab): run C2 → `drive_coupling.py` on the recording, one row per hold.
-- C4 (only if nothing locks): choose one variable with Molly: DC coupling via J1/J5
+- C3: DONE 2026-11-02, no lock (above).
+- C4 (nothing locked, so this is next): choose one variable with Molly: DC coupling via J1/J5
   (David), slow pedestal ramp, rotor-charge neutralisation, or CTR bias.

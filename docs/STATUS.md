@@ -36,8 +36,10 @@ The goal these serve is in `measurement_objective.md`.
   vs V². The blob tracker can measure the steps.
 - **Drive lock:** at amplitude 6400, a 0.4 → 4 Hz electrical sweep (gps1477428272) did not
   lock the rotor at ±f/8 or ±f/4; it kept swinging (~0.3 Hz) with bursts of net rotation
-  one way. Next: fixed-frequency holds at 0.1/0.2/0.4 Hz, both directions, plus 0.155 Hz (2f at the trap frequency; added by Molly 2026-11-01) (C2, approved),
-  scored by `lab_utils/drive_coupling.py`. If none lock: change one variable (DC coupling
+  one way. C2 holds (2026-11-02, 0.1/0.2/0.4 Hz both ways + 0.155 Hz): no lock either
+  (measured); the swing grew or shrank by 10–50° per hold only while the drive was on, cause
+  not separated (drive torque vs DC step); swing frequency falls with amplitude
+  (`analysis/c2_20261102/README.md`). Next (C4): change one variable (DC coupling
   via J1/J5, slow pedestal ramp, rotor charge, CTR bias). `lab_utils/DRIVE_LOCK_HANDOFF.md`.
 - **Drive start/stop transients:** `bring_up()` glides DRV_FREQ from the previous run's
   value while the gains ramp in, and the pedestal step reaches the electrodes as a DC
