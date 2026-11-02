@@ -175,7 +175,13 @@ def check_inputs():
     return True
 
 
-def ramp_down(drvtramp, sw2_before=None, clear_outputs=False):
+def pedestal_tramp():
+    """Live V{n}_TRAMP for the four electrodes (ramp time of OFFSET/GAIN)."""
+    return {n: float(caget(f'{PREFIX}_V{n}_TRAMP') or 0.0) for n in (1, 2, 3, 4)}
+
+
+def ramp_down(drvtramp, sw2_before=None, clear_outputs=False,
+              vtramp_before=None):
     """Stop the drive in the ONLY safe order.
 
     THE PEDESTAL MUST OUTLIVE THE AC. The HV amp input has to stay positive, and
@@ -203,9 +209,21 @@ def ramp_down(drvtramp, sw2_before=None, clear_outputs=False):
     caput(f'{PREFIX}_DRVON', 0, wait=True, timeout=3.0)
     time.sleep(1.0)
 
-    print('    AC down; dropping the pedestal.')
+    # The OFFSET change is ramped over V{n}_TRAMP. Wait it out BEFORE touching
+    # the output switches: an output switch acts in one sample, so cutting a
+    # half-ramped pedestal is the very step a slow pedestal ramp is there to
+    # avoid. Uses the LIVE value, so `stop` cleans up correctly after any run.
+    ped_wait = max(pedestal_tramp().values()) + 1.0
+    print(f'    AC down; dropping the pedestal (V{{n}}_TRAMP ramp, waiting '
+          f'{ped_wait:.0f} s before any output switch).')
     for n in (1, 2, 3, 4):
         caput(f'{PREFIX}_V{n}_OFFSET', 0, wait=True, timeout=3.0)
+    time.sleep(ped_wait)
+
+    if vtramp_before:
+        print('    restoring V{n}_TRAMP to its pre-run values.')
+        for n, t in sorted(vtramp_before.items()):
+            caput(f'{PREFIX}_V{n}_TRAMP', t, wait=True, timeout=3.0)
 
     if sw2_before:
         print('    restoring output switches to their pre-run state.')
@@ -326,6 +344,13 @@ def main():
                         'frequency change PHASE-CONTINUOUS -- this is what makes '
                         'sweeps safe. Must be <= --dwell, or the glide is still '
                         'running when the next step is commanded. Default 5.')
+    p.add_argument('--pedestal-ramp', type=float, default=0.0,
+                   help='seconds over which to ramp the DC pedestal up at the '
+                        'start and down at the end, via V{n}_TRAMP (the HV amp '
+                        'is AC-coupled, so a pedestal STEP reaches the '
+                        'electrode as a kick). The AC waits for the ramp to '
+                        'finish. 0 (default) leaves V{n}_TRAMP as found. '
+                        'UNTESTED on hardware (2026-11-01).')
     p.add_argument('--enable-outputs', action='store_true',
                    help='set SW2 output bit so the drive actually reaches the '
                         'chamber. WITHOUT THIS NOTHING IS DRIVEN -- useful for '
@@ -464,6 +489,19 @@ def main():
 
     if not check_inputs() or not check_isolation():
         return 1
+    if args.pedestal_ramp < 0:
+        print(f'! --pedestal-ramp must be >= 0, got {args.pedestal_ramp:g}.')
+        return 1
+    # CLEAN START needs the oscillator silent: bring_up() jumps DRV_FREQ with
+    # DRV_TRAMP 0, which is only harmless at zero gain. Nonzero gains here mean
+    # another drive is live (e.g. --leave-running); a jump would be a phase
+    # step on the electrodes. Checked BEFORE the matrix or anything else moves.
+    g0 = [caget(f'{PREFIX}_DRV_SINGAIN'), caget(f'{PREFIX}_DRV_COSGAIN')]
+    if any(abs(v or 0) > 1e-6 for v in g0):
+        print(f'! oscillator gains read {g0[0]} / {g0[1]}, not 0: a drive is '
+              f'already running.\n  Stop it first: python3 stator_osc_drive.py '
+              f'stop --live')
+        return 1
     if not load_matrix(args.reverse, dry, args.mtramp):
         return 1
 
@@ -479,6 +517,10 @@ def main():
         sw2_before = {n: int(caget(f'{PREFIX}_V{n}_SW2R') or 0)
                       for n in (1, 2, 3, 4)}
 
+    vtramp_before = {}
+    if args.pedestal_ramp > 0 and not dry:
+        vtramp_before = pedestal_tramp()
+
     def bring_up():
         """Pedestal, output switches, then oscillator. Order is load-bearing.
 
@@ -486,9 +528,19 @@ def main():
         before there is any AC that could take it negative. Pedestal only where
         there is AC to keep positive: V1's matrix row is zero so it needs none,
         and the amp blocks DC anyway, so a pedestal there would reach the
-        electrode as 0 V regardless.
+        electrode as 0 V regardless. The pedestal is ramped over V{n}_TRAMP, so
+        the AC waits for that ramp (the live value) to finish.
+
+        CLEAN FREQUENCY START (2026-11-01): DRV_FREQ is JUMPED to the target
+        with DRV_TRAMP 0 while the gains are 0, then DRV_TRAMP is restored
+        before the gains ramp in. Before this, DRV_FREQ glided from the previous
+        run's value while the gains ramped in (seen in gps1477428272: 12-16 s
+        of glide from 4.0 Hz at the start of a 0.4 Hz sweep).
         """
         print('\n  bringing up the drive:')
+        if args.pedestal_ramp > 0:
+            for n in PHASE_ELECTRODES:
+                put(f'{PREFIX}_V{n}_TRAMP', args.pedestal_ramp, dry)
         for n in (1, 2, 3, 4):
             ped = args.amp if n in PHASE_ELECTRODES else 0
             put(f'{PREFIX}_V{n}_OFFSET', ped, dry)
@@ -496,8 +548,37 @@ def main():
                 sw2 = int(caget(f'{PREFIX}_V{n}_SW2R') or 0) if not dry else 0
                 if not sw2 & SW2_OUTPUT_ON:
                     put(f'{PREFIX}_V{n}_SW2S', sw2 | SW2_OUTPUT_ON, dry)
-        for pv, val in (('DRV_TRAMP', args.drvtramp), ('DRV_FREQ', f_elec),
-                        ('DRV_SINGAIN', args.amp), ('DRV_COSGAIN', args.amp),
+        if dry:
+            print('    [dry] would wait out the pedestal ramp (live '
+                  'max V{n}_TRAMP + 1 s) before any AC')
+        else:
+            vt = pedestal_tramp()
+            ped_wait = max(vt[n] for n in PHASE_ELECTRODES) + 1.0
+            print(f'    pedestal ramping (V{{n}}_TRAMP '
+                  f'{", ".join(f"V{n} {vt[n]:g}" for n in (1, 2, 3, 4))} s); '
+                  f'waiting {ped_wait:.0f} s before any AC')
+            time.sleep(ped_wait)
+
+        # Frequency jump, at zero gain only.
+        if not dry:
+            g = [caget(f'{PREFIX}_DRV_SINGAIN'), caget(f'{PREFIX}_DRV_COSGAIN')]
+            if any(abs(v or 0) > 1e-6 for v in g):
+                raise RuntimeError(f'oscillator gains read {g} at bring-up, '
+                                   f'not 0 -- refusing to jump DRV_FREQ')
+        try:
+            put(f'{PREFIX}_DRV_TRAMP', 0, dry)
+            put(f'{PREFIX}_DRV_FREQ', f_elec, dry)
+            if not dry:
+                time.sleep(0.5)
+                f_rb = caget(f'{PREFIX}_DRV_FREQ')
+                print(f'    DRV_FREQ readback {f_rb:g} Hz (target {f_elec:g}) '
+                      f'-- setpoint only; the glide-free start is checked in '
+                      f'V{{n}}_OUT_DQ')
+        finally:
+            # Restored even on Ctrl-C between the two writes, so the next run
+            # (and every sweep step) still glides phase-continuously.
+            put(f'{PREFIX}_DRV_TRAMP', args.drvtramp, dry)
+        for pv, val in (('DRV_SINGAIN', args.amp), ('DRV_COSGAIN', args.amp),
                         ('DRVON', 1)):
             put(f'{PREFIX}_{pv}', val, dry)
 
@@ -571,8 +652,10 @@ def main():
         else:
             print(f'\n  holding {args.duration:.0f} s...')
             gps_a = int(caget('Y1:DAQ-DC0_GPS'))
+            print(f'    hold start, front-end GPS {gps_a}')
             time.sleep(args.duration)
             gps_b = int(caget('Y1:DAQ-DC0_GPS'))
+            print(f'    hold end,   front-end GPS {gps_b}')
     except KeyboardInterrupt:
         # Ctrl-C means STOP, and overrides --leave-running. An abort should
         # never be the thing that leaves the chamber driven unattended.
@@ -600,7 +683,8 @@ def main():
             print('    check with:   python3 stator_osc_drive.py status')
             print('=' * 70)
         else:
-            ramp_down(args.drvtramp, sw2_before)
+            ramp_down(args.drvtramp, sw2_before,
+                      vtramp_before=vtramp_before)
 
     if args.verify:
         if gps_a is None or gps_b is None:
