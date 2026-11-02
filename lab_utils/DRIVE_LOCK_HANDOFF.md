@@ -168,14 +168,15 @@ never `--leave-running`; if `live_blob_track.py` errors, report it, don't patch 
    --outdir /tmp/l3 --snapshot ""`. Pass: the `Stopped.` line shows p99 < 10 ms and
    0 dropped. If p99 >= 10 ms: stop and call Molly (live tracking would drop frames).
 1. Start the live tracker in its own terminal (or in the background, logged):
-   `cd camera_utils/tracking && python3 live_blob_track.py --outdir ~/stator_detent --show`
+   `cd camera_utils/tracking && /home/controls/.conda/envs/ueye/bin/python live_blob_track.py --outdir ~/stator_detent --show`
+   (the `ueye` env has pypylon; the cds `python3` does not. Found 2026-11-02.)
    Report the registered centre and board-shift response; after ~30 s, the median `ncc`
    in `blob_live_gps*.csv` (want ≥ 0.9) and dropped frames (want 0). Molly checks the
    window: the red circle stays on the blob. If not, stop before any hold.
 2. Before hold 1: Molly confirms the rotor is quiet (no swing; quiet it first if it is
    swinging); note the swing amplitude the tracker shows. Later holds start after the
    60 s gap whatever the rotor is doing (the gap lets the DC kick fade; it does not
-   settle a swing).
+   settle a swing). On 2026-11-02 the swing was still ±90° at the start of holds 5–7.
    Run the seven C2 holds in order (hold 7 last), ≥ 60 s drive-off between, checking the tracker (ncc,
    dropped frames) before each hold; log each hold's start and stop time. On any failed
    check: stop (no further holds) and report.

@@ -14,6 +14,34 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-02 — C2 drive holds: seven holds, no lock on the quick look (worker2 agent, Molly in lab)
+
+Branch `drive-clean-start` (e466653), runbook in `lab_utils/DRIVE_LOCK_HANDOFF.md`. Both
+lights on; rotor still at the start (tracker: 0.3° span over 40 s).
+- Step 0, outputs off: `hold --felec 0.1 --amp 6400 --duration 20 --live`, FE 1477683385–407.
+  Writes in order DRV_TRAMP←0, DRV_FREQ←0.1 (from 4), DRV_TRAMP←5, then gains: PASS.
+  D1 matrix as recorded. L3 replay: p99 4.72 ms, 0 dropped: PASS.
+- Live tracker: video `output_basler_gps1477668186` (true GPS), 88173 frames over 1763.5 s,
+  0 BlockID gaps, p99 8.41 ms; centre (132.06, 180.33); NCC median 0.967 at the start.
+  Run in the `ueye` conda env, which has pypylon.
+- Holds, all `--amp 6400 --duration 150 --enable-outputs --live`, exit 0, outputs confirmed off
+  after each; drive-off ≥ 65 s + ~12 s ramp-down between holds. FE start–end:
+  1 0.1 fwd 1477683665–817 · 2 0.2 fwd 1477683911–4061 · 3 0.4 fwd 1477684155–305 ·
+  4 0.1 rev 1477684399–549 · 5 0.2 rev 1477684643–793 · 6 0.4 rev 1477684887–5037 ·
+  7 0.155 fwd 1477685131–282.
+- Saw (live angles, quick look only, not `drive_coupling.py`): no speed near f/8 or f/4 in any
+  hold. Angle range during each hold, measured: 96°, 151°, 206°, 133°, 202°, 310°, 241°;
+  largest in hold 6. Hold 1 started from rest and still spanned 96°. That is far larger than
+  the ~1° static detent estimate, and the cause is not yet separated (drive torque vs the
+  start/stop DC kick). The rotor settled before hold 4 but was still swinging ±90° at the
+  start of holds 5–7, so hold 7's resonance test started from a 209° p-p swing (241° in its
+  last 30 s).
+- FE − true GPS = 15368.7 s (read live 0.5 h after the video start).
+- Data: `dropbox:Microspheres/TFINER/videos/{output_basler,blob_live}_gps1477668186.*`;
+  `data/LES_video/` and `data/Electrodes/` `*_1477683254_1477685619.h5` (LES PIT/YAW,
+  OUTS V1–V4).
+- Analysis (gate 7, `drive_coupling.py`) pending.
+
 ### 2026-11-01 — Drive clean start written; lab_utils stale-script list (Mac, no hardware)
 
 `stator_osc_drive.py` on branch `drive-clean-start`: DRV_FREQ jumped at zero gain (no
