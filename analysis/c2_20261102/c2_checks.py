@@ -10,6 +10,7 @@
    excluding +-0.02 Hz of k*f (k=1..4) and the 0.2-0.45 Hz swing band.
 3. Swing amplitude (sqrt2 * rms of the linearly detrended angle) before and after each
    drive on/off (drive amplitude crossing 0.5).
+4. Step 0 no-glide: field frequency in V2..V4_OUT_DQ during the outputs-off test.
 """
 import os, sys
 import numpy as np
@@ -59,3 +60,18 @@ for i in np.flatnonzero(np.diff(on.astype(int))):
     tc = t[i]
     print('%s %7.1f s: [-15,-3] %5.1f -> [+3,+15] %5.1f -> [+15,+30] %5.1f' % (
         'ON ' if on[i + 1] else 'OFF', tc, sw(tc - 15, tc - 3), sw(tc + 3, tc + 15), sw(tc + 15, tc + 30)))
+
+
+# 4. step 0 no-glide: field frequency of V2..V4_OUT_DQ in the outputs-off test (FE 1477683385-407)
+import h5py
+ph = []
+for c in ('V2', 'V4', 'V3'):
+    with h5py.File(os.path.join(D, 'Y1_RDS-OUTS_%s_OUT_DQ_%s.h5' % (c, W))) as h:
+        ph.append(h['data'][:].astype(float)); fs = h.attrs['sample_rate']; g0 = h['segments/gps_start'][0]
+i0, i1 = int((1477683380 - g0) * fs), int((1477683412 - g0) * fs)
+z = sum(x[i0:i1] * np.exp(2j * np.pi * k / 3) for k, x in enumerate(ph))   # common pedestal cancels
+k = np.flatnonzero(abs(z) > 0.5 * abs(z).max()); tk = g0 + (i0 + k) / fs; pk = np.unwrap(np.angle(z[k]))
+inst = np.diff(pk) * fs / 2 / np.pi
+print('\n4. step 0: drive above half amplitude FE %.2f-%.2f; f over first 2/5/10 s %s Hz; instantaneous f, first 1 s, %.4f-%.4f Hz'
+      % (tk[0], tk[-1], '/'.join('%.4f' % (np.polyfit(tk[tk < tk[0] + w], pk[tk < tk[0] + w], 1)[0] / 2 / np.pi) for w in (2, 5, 10)),
+         inst[:int(fs)].min(), inst[:int(fs)].max()))
