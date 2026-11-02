@@ -244,8 +244,10 @@ def run(args):
     try:
         # ---- bring-up: pedestal, outputs, frozen oscillator, field, gains
         print('\n  bring-up:')
+        # Back-to-back, not waiting on each: in C2 sequential writes made the three pedestals
+        # ramp up to 125 ms apart at 4 of 8 starts (an 11% differential field; analysis/c2_20261102).
         for n in phases:
-            put(f'{PREFIX}_V{n}_OFFSET', args.amp)
+            put(f'{PREFIX}_V{n}_OFFSET', args.amp, wait=False)
         if args.enable_outputs:
             for n in phases:
                 if not sw2_before[n] & SW2_OUTPUT_ON:
@@ -342,7 +344,7 @@ def run(args):
             put(f'{PREFIX}_DRVMTRX_TRAMP', before['DRVMTRX_TRAMP'] or 2)
             put(f'{PREFIX}_DRV_TRAMP', before['DRV_TRAMP'] or 5)
             for n in phases:
-                put(f'{PREFIX}_V{n}_OFFSET', 0)
+                put(f'{PREFIX}_V{n}_OFFSET', 0, wait=False)
             w = max(float(caget(f'{PREFIX}_V{n}_TRAMP') or 0) for n in phases) + 1.0
             time.sleep(w)
             for n in phases:

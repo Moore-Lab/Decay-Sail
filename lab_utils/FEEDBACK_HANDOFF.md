@@ -84,5 +84,7 @@ without it the rotor never gets over the top (derived, `selftest`).
 
 Then, on the Mac: `python3 lab_utils/feedback_f1_check.py LOG V2.h5 V3.h5 V4.h5`, plus the
 no-glide check on the clean-start hold (`../analysis/c2_20261102/c2_checks.py` part 4 method).
+Also check in OUT_DQ whether the three pedestals now ramp together. They are written back-to-back;
+in C2 sequential writes staggered them by up to 125 ms (`c2_checks.py` part 6 does this check).
 If check 2 sees only ~1 step for many commanded changes, the LOAD_MATRIX record probably acts
 only on a 0 → 1 edge: rerun step 4 with `--load-toggle`.
