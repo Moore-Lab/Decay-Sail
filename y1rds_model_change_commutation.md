@@ -73,11 +73,15 @@ amplitude to 0. A stalled worker2 then cannot leave the field pointing somewhere
 ## What Alma's y1dmd model already does (read from `y1dmd.mdl`, 2026-11-02; wiring read by Claude, part semantics not verified)
 
 Copies are on Dropbox `Microspheres/TFINER/data/models/`: `y1dmd.mdl`, `y1rds.mdl`, and the RCG library `CDS_PARTS.mdl`.
-- **`PARTICLE/PLL`, a phase-locked loop running in the model.** A sensor input is multiplied by
-  the output of a VCO, filtered (`FILT`), integrated (`INT`) and fed back through a unit delay into the
-  VCO's input. The VCO is **`cdsOscSetPhase`**, an oscillator whose phase or frequency input is a
-  *model signal* updated every cycle. That is the part a commutation block needs: sin/cos of a
-  computed angle at model rate, without custom C.
+- **`PARTICLE/PLL`** multiplies a sensor input by the COS output of a `cdsOscSetPhase` and filters
+  it (`FILT`). The scaled result plus a nominal frequency goes to `freq`; a filter `INT` feeds the
+  oscillator's single input through a unit delay.
+- **What `cdsOscSetPhase` actually does (RCG source `OscSetPhase.pm`, advligorts 5.5 tree on worker2;
+  Dropbox `data/models/rcg_osc/`).** Its one input is a **time offset in seconds**. It is read **only when
+  the EPICS `FREQ` setting changes**, and then sets the phase to `2π·f·(cycle GPS time − input)`. In
+  between, the oscillator free-runs at `FREQ`. With TRAMP ≤ 0 this variant applies the new phase at
+  once; plain `cdsOsc` waits for the next GPS second. **It cannot follow an angle that changes every
+  cycle,** and its frequency still arrives through EPICS (16 Hz). (Corrects Claude's earlier reading.)
 - **`PARTICLE` phase detection.** An input ("charge in") is demodulated against a digital LO (`DIGLO`
   cos/sin) into I and Q. **`cdsAtan2`** gives the phase (`PHI`) and `cdsSqrt` the amplitude (`CHARGE`).
   That is the template for extracting an angle from a periodic sensor (e.g. LES) in real time.
@@ -86,16 +90,19 @@ Copies are on Dropbox `Microspheres/TFINER/data/models/`: `y1dmd.mdl`, `y1rds.md
 - Other parts in the library that may help: `cdsUnwrapPhase`, `cdsDemodRotate`, `cdsEpicsIn`,
   `cdsProduct`, `cdsFunctionCall` (user C).
 
-Consequence for this proposal (interpretation, not approved): the commutation block can probably
-be built from `cdsEpicsIn` (THETA, OMEGA) → arithmetic → `cdsOscSetPhase` (phase input) → DRVMTRX.
-Alma's PLL is also a template for a camera-free option: lock a VCO to a sensor signal that turns
-with the rotor.
+Consequence for this proposal (interpretation, not approved):
+- No stock part gives sin/cos of a phase computed every cycle.
+- The clean route is a **`cdsFunctionCall`** (user C, ~20 lines). It reads THETA/OMEGA/SEQ (via
+  `cdsEpicsIn`) and every cycle computes the predicted ψ, the watchdog and sin/cos, outputting sin ψ
+  and cos ψ to DRVMTRX.
+- Possible but fiddly: a stock-part rotator (rotate a unit vector by a small angle per cycle with
+  `cdsProduct`/sum blocks, renormalise with `cdsSqrt`).
+- Alma's `cdsAtan2` phase detection on demodulated I/Q stays useful if a sensor-based angle is ever wanted.
 
 ## Questions for Molly and Alma
 
 - Is a model change and restart acceptable now? Who builds it?
 - Are there free ADC channels on the cymac1 I/O chassis, for a possible analog angle path?
-- Alma: what exactly are `cdsOscSetPhase`'s inputs (phase, frequency, or both), and what does your
-  `PARTICLE/PLL` lock to? Could the same structure commutate our stator?
+- Is a `cdsFunctionCall` (user C) acceptable in y1rds, and who reviews the C?
 - Can a 2048 Hz test point of `OUTS_V{n}_OUT` be read over NDS on worker2? That would settle whether the
   post-step ringing in `OUT_DQ` is only the DAQ's decimation filter.
