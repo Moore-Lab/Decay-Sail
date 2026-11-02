@@ -48,6 +48,30 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   to ~1 s, so a clear drop from ~2.6 s is the result that matters), and one output step per update.
   The out-of-range transients may get worse with paced updates, because each step is larger.
   Watch for them in OUT_DQ.
+- **F1b ran 2026-11-02 (worker2 agent, outputs off; Dropbox `data/feedback/f1b/`).**
+  Measured:
+  - **Writes:** 536 updates in 60 s, median interval 117 ms. Each write took 2.4 ms median (p99 8.9);
+    frame to written took 11 ms median (p99 18).
+  - **Steps:** with the commands shifted by +3.84 s, the measured field angle matches them step for
+    step (`scratchpad` plot; reproduce with `feedback_f1_check.py`).
+  - **Every output step lands on a 1/16 s grid:** in F1 and F1b, 424/424 and 428/428 step onsets sit
+    at the same position within the 62.5 ms tick, and step intervals are multiples of 1/16 s.
+    **So the front end applies EPICS-written matrix values only at 16 Hz.** That is the update limit
+    of this route, whatever rate worker2 writes at.
+  - **Ringing:** after each step the outputs ring (about ±400 counts, decaying over ~12 samples, with
+    1000 counts of overshoot). There is no ringing before a step, so the filter is causal. Whether the
+    ringing is in the real output or only in the DQ recording's anti-alias filter is not known.
+- **Correction to the F1 "~1.5–2.6 s late" finding.** That delay, and F1b's 3.84 s, are relative to the
+  front-end time read from `Y1:DAQ-DC0_GPS` at loop start. DC0 is the data concentrator, and its
+  GPS may itself lag the front end by seconds (assumed, not checked). The 1.2 s difference between
+  F1 and F1b matches the front-end clock drift over the 16 min between them (~1 ms/s). **So the true
+  camera-to-field delay is not measured.** It is at least the wait for the next 1/16 s tick (0–62.5 ms)
+  plus the write time.
+- **Verdict on the no-model-change route.** The field direction is right, and updates now land whole
+  at 16 Hz (measured). The latency is unknown, and the ringing is unresolved. 16 Hz is probably enough
+  to pump the swing: a ~3 s period is ~50 updates (derived). It is not enough for fast spinning.
+  A model change is needed for anything faster, and it only helps if the angle reaches the front end
+  by a path other than EPICS.
 
 ## How it points the field (no model change)
 
