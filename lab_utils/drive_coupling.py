@@ -160,7 +160,8 @@ def load(args):
     for fn in (args.v2, args.v4, args.v3):
         with h5py.File(fn) as h:
             ph.append(h['data'][:].astype(float)); fs = h.attrs['sample_rate']; fe0 = h['segments/gps_start'][0]
-    a, b, cc = (x - 6400 for x in ph)
+    nd = min(len(x) for x in ph)              # channels fetched near "now" can end a few s apart
+    a, b, cc = (x[:nd] - 6400 for x in ph)
     phi_d, amp_d = drive_phase(a, b, cc)
     td = fe0 + np.arange(len(a)) / fs - args.tau - t_true0       # drive time on the video clock
     phi = np.interp(t, td, phi_d); amp = np.interp(t, td, amp_d)

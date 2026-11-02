@@ -40,7 +40,10 @@ lights on; rotor still at the start (tracker: 0.3° span over 40 s).
 - Data: `dropbox:Microspheres/TFINER/videos/{output_basler,blob_live}_gps1477668186.*`;
   `data/LES_video/` and `data/Electrodes/` `*_1477683254_1477685619.h5` (LES PIT/YAW,
   OUTS V1–V4).
-- Analysis (gate 7, `drive_coupling.py`) pending.
+- Analysis (Mac): `analysis/c2_20261102/README.md`. Gate 7 PASS: 0 dropped, live = offline on 99.966%
+  of frames within 0.1°, NCC median 0.964. The no-glide check passes. No lock in any hold (mean speed ≤ 0.002 rev/s). The wobble
+  torques are at the free-swing noise floor, so they are not measurements. The swing changed by 10–50° during holds
+  and by ≤ 4° across drive-off gaps; the cause (drive torque vs DC kick) is not separated.
 
 ### 2026-11-01 — Drive clean start written; lab_utils stale-script list (Mac, no hardware)
 
