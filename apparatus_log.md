@@ -14,6 +14,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-02 — Feedback drive F0 and clean-start fix (Mac, no hardware)
+
+Did: `feedback-drive` branch: `lab_utils/feedback_drive.py` (it freezes the oscillator at FREQ 0
+and points the field each camera frame through DRVMTRX column 2; no model change), the F1 scorer
+`feedback_f1_check.py`, and `live_blob_track.py --publish`. Self-test (simulated rotor) and
+stub-EPICS runs pass. Also `drive-gps-second`: the clean start now holds DRV_TRAMP 0 for 1.1 s
+(RCG cdsOsc applies FREQ at the next GPS second; LIGO-T080135 §7.6.3); merged into
+`feedback-drive`. Not run on worker2. Plan and F1 steps: `lab_utils/FEEDBACK_HANDOFF.md`
+(on the branch); F1 approved by Molly for the next lab session.
+
 ### 2026-11-02 — Free-swing recording after C2 (no drive; Molly, worker2 agent)
 
 `live_blob_track.py` (camera only), video `output_basler_gps1477678308` (true GPS), 39.0 min,
