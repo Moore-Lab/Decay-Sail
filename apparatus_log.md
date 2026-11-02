@@ -19,12 +19,7 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 `live_blob_track.py` (camera only), video `output_basler_gps1477678308` (true GPS), 39.0 min,
 0 dropped, NCC median 0.836. LES PIT/YAW fetched FE 1477685294–1477696028. FE − true GPS 15380.9 s, read
 live; this morning's read was 15368.7 s, so the offset drifts ~3.9 s/h.
-Saw (measured):
-- Swing ±27° → ±24° over the 39 min: τ_A ≈ 15000 s, Q ~ 1.6 × 10⁴. From ±105° at the end of C2,
-  the average τ_A is ≈ 6200 s.
-- Swing frequency 0.354 → 0.319 Hz over the same 39 min, at nearly fixed amplitude. Cause not
-  investigated.
-Analysis: `analysis/ringdown_20261102/README.md`.
+Saw: the swing went ±27° → ±24° and its frequency 0.354 → 0.319 Hz over the 39 min. Analysis: `analysis/ringdown_20261102/README.md`.
 
 ### 2026-11-02 — C2 drive holds: seven holds, no lock on the quick look (worker2 agent, Molly in lab)
 
@@ -42,20 +37,13 @@ lights on; rotor still at the start (tracker: 0.3° span over 40 s).
   4 0.1 rev 1477684399–549 · 5 0.2 rev 1477684643–793 · 6 0.4 rev 1477684887–5037 ·
   7 0.155 fwd 1477685131–282.
 - Saw (live angles, quick look only, not `drive_coupling.py`): no speed near f/8 or f/4 in any
-  hold. Angle range during each hold, measured: 96°, 151°, 206°, 133°, 202°, 310°, 241°;
-  largest in hold 6. Hold 1 started from rest and still spanned 96°. That is far larger than
-  the ~1° static detent estimate, and the cause is not yet separated (drive torque vs the
-  start/stop DC kick). The rotor settled before hold 4 but was still swinging ±90° at the
-  start of holds 5–7, so hold 7's resonance test started from a 209° p-p swing (241° in its
-  last 30 s).
+  hold. Angle range during each hold: 96°, 151°, 206°, 133°, 202°, 310°, 241°. Hold 1 started
+  from rest. The rotor settled before hold 4 but was still swinging ±90° at the start of holds 5–7.
 - FE − true GPS = 15368.7 s (read live 0.5 h after the video start).
 - Data: `dropbox:Microspheres/TFINER/videos/{output_basler,blob_live}_gps1477668186.*`;
   `data/LES_video/` and `data/Electrodes/` `*_1477683254_1477685619.h5` (LES PIT/YAW,
   OUTS V1–V4).
-- Analysis (Mac): `analysis/c2_20261102/README.md`. Gate 7 PASS: 0 dropped, live = offline on 99.966%
-  of frames within 0.1°, NCC median 0.964. The no-glide check passes. No lock in any hold (mean speed ≤ 0.002 rev/s). The wobble
-  torques are at the free-swing noise floor, so they are not measurements. The swing changed by 10–50° during holds
-  and by ≤ 4° across drive-off gaps; the cause (drive torque vs DC kick) is not separated.
+- Analysis (Mac): `analysis/c2_20261102/README.md` (gate 7 PASS; no lock in any hold).
 
 ### 2026-11-01 — Drive clean start written; lab_utils stale-script list (Mac, no hardware)
 

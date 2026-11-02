@@ -1,5 +1,7 @@
 # C2 drive holds, 2026-11-02: analysis
 
+The measured numbers here come from the listed commands. Statements of cause or meaning are Claude's interpretations, marked "(interpretation, not approved)".
+
 Run: `apparatus_log.md` 2026-11-02. The plan and pass marks are in `lab_utils/DRIVE_LOCK_HANDOFF.md` ("C2 hold schedule").
 Data (Dropbox `Microspheres/TFINER/`):
 - `videos/output_basler_gps1477668186.{avi,csv}` and `videos/blob_live_gps1477668186.csv`
@@ -50,7 +52,7 @@ python3 lab_utils/drive_coupling.py blob_live_gps1477668186.csv output_basler_gp
   - Detuning the reference by ±0.02 Hz gives similar amplitudes, 0.3–31°.
   - The off-line amplitude spectrum's 95th percentile is 5–12°.
 
-  With a 40–100° free swing present, a wobble below ~10° can't be separated from the swing by this method. The table's 2–6 × 10⁻¹² N·m therefore bounds nothing either way.
+  (Interpretation, not approved.) With a 40–100° free swing present, a wobble below ~10° can't be separated from the swing by this method, so the table's 2–6 × 10⁻¹² N·m bounds nothing either way.
 
 ## Swing amplitude per hold (measured)
 
@@ -66,10 +68,11 @@ Amplitude is √2 × rms of the detrended angle, in degrees. Start and end are t
 | 6 | −0.400 | 89 | 99 | +10 | 102.7 → 98.9 |
 | 7 | +0.155 | 93 | 111 | +18 | 105 (end of recording) |
 
-- **Between holds the amplitude holds steady:** it changes by ≤ 4° across each ~80 s drive-off gap. The changes inside holds, by contrast, are 10–50°, and the hold 3 switch-off dropped the swing from 26° to 4°. So the swing changes while the drive is on or switching, and not while it is off (measured). What does it is not established: the drive torque at f or 2f, the amplifier's DC step at switch-on and switch-off (AC-coupled, τ ≈ 5–7 s estimated), or both.
+- **Measured:** the amplitude changes by ≤ 4° across each ~80 s drive-off gap. Inside holds it changes by 10–50°, and the hold 3 switch-off dropped it from 26° to 4°.
+- **(Interpretation, not approved.)** The swing changes while the drive is on or switching, and not while it is off. What does it is not established: the drive torque at f or 2f, the amplifier's DC step at switch-on and switch-off (AC-coupled, τ ≈ 5–7 s estimated), or both.
 - **Switch-on growth.** In holds 1 and 4, starting near rest, the swing reached 28° (7°) by 15 s and 42° (41°) by 30 s. A sustained drive torque would build it over that time, and so would the pedestal's DC step, which decays over ~20 s. So the timing does not tell the two apart.
-- **Unexplained:** a 40° swing from rest, against the ~1° static detent estimated from the design torque and trap stiffness (`lab_utils/DRIVE_LOCK_HANDOFF.md`, Detent test).
-- **Hold 7 (resonance test) is not a clean test.** It started at a ~93° swing, where the free-swing frequency nearby in time was ~0.28 Hz rather than 0.31, so 2f = 0.31 Hz was off resonance.
+- **Unexplained (interpretation, not approved):** a 40° swing from rest, against the ~1° static detent estimated from the design torque and trap stiffness (`lab_utils/DRIVE_LOCK_HANDOFF.md`, Detent test).
+- **Hold 7 (resonance test) is not a clean test (interpretation, not approved).** It started at a ~93° swing, where the free-swing frequency nearby in time was ~0.28 Hz rather than 0.31, so 2f = 0.31 Hz was off resonance.
 
 ## Not done / open
 

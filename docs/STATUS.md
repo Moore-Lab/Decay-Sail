@@ -36,11 +36,8 @@ The goal these serve is in `measurement_objective.md`.
   vs V². The blob tracker can measure the steps.
 - **Drive lock:** at amplitude 6400, a 0.4 → 4 Hz electrical sweep (gps1477428272) did not
   lock the rotor at ±f/8 or ±f/4; it kept swinging (~0.3 Hz) with bursts of net rotation
-  one way. C2 holds (2026-11-02, 0.1/0.2/0.4 Hz both ways + 0.155 Hz): no lock either
-  (measured); the swing grew or shrank by 10–50° per hold only while the drive was on, cause
-  not separated (drive torque vs DC step). Free swing afterwards: Q ~ 10⁴ (damping too small
-  to matter); the swing frequency drifted 0.354 → 0.319 Hz in 39 min at ~25°
-  (`analysis/c2_20261102/README.md`, `analysis/ringdown_20261102/README.md`). Next (C4): change one variable (DC coupling
+  one way. C2 holds (2026-11-02): no lock either; results and open questions in
+  `analysis/c2_20261102/README.md`. Next (C4): Molly picks one variable (DC coupling
   via J1/J5, slow pedestal ramp, rotor charge, CTR bias). `lab_utils/DRIVE_LOCK_HANDOFF.md`.
 - **Drive start/stop transients:** `bring_up()` glides DRV_FREQ from the previous run's
   value while the gains ramp in, and the pedestal step reaches the electrodes as a DC
@@ -62,7 +59,7 @@ The goal these serve is in `measurement_objective.md`.
   (disk + sail) weighed 7 mg. Some models assume 0.5 mm thick. Measure the actual disk
   thickness and OD.
 - **Trap / libration frequency:** small-amplitude f₀ ~ 0.31 Hz (stopwatch 09-09 0.310 Hz and
-  video 10-30 0.311 Hz agree); it was lower at large amplitude (0.275 Hz at ±105°), but on 2026-11-02 it drifted 0.354 → 0.319 Hz in 39 min at ~25°, so it is not set by amplitude alone (`analysis/ringdown_20261102/README.md`). Current value:
+  video 10-30 0.311 Hz agree); how it depends on amplitude and time is open (`analysis/ringdown_20261102/README.md`). Current value:
   `docs/DECISIONS.md`. The older LES-based 0.12–0.16 Hz values predate the comb rule and
   are unexplained. Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the
   time domain (cusp spacing, not a peak finder).

@@ -1,5 +1,9 @@
 # Free-swing ring-down, 2026-11-02 (no drive)
 
+This is a **libration ring-down**: the rotor swings in its trap and never turns fully round. It is NOT a spindown. The recorded damping (`docs/DECISIONS.md` 2026-10-30, τ_mech = 79.8 min) comes from true spindowns of a fully rotating rotor, measured until it stopped doing full turns. The two are compared below only under a stated assumption.
+
+Interpretations in this file are Claude's and **not approved by Molly**.
+
 The rotor's free swing after the C2 run, with nothing driving it.
 - **Recording:** `videos/output_basler_gps1477678308.{avi,csv}` and `blob_live_gps1477678308.csv` (Dropbox `Microspheres/TFINER/`). Recorded by Molly with `live_blob_track.py`, 39.0 min, 116853 frames, 0 dropped.
 - **Worker2 report:** `videos/ringdown_report_1477678308.md`.
@@ -8,12 +12,13 @@ The rotor's free swing after the C2 run, with nothing driving it.
 
 Run: `python3 ringdown.py ~/Library/CloudStorage/Dropbox/Microspheres/TFINER/videos <C2 data dir>`. It fits A cos(2πft+p) plus a linear baseline in 60 s windows. One window, at 1590 s, failed to fit (A 0.5°) and is dropped. Plot: `plots/ringdown_20261102.png` (gitignored).
 
-## Damping (measured)
+## Libration damping (measured)
 
 - **Over this recording:** the amplitude fell 27.3° → 23.5° in 39 min, so τ_A ≈ 15000 s. The fit's ±150 s is optimistic because the windows overlap. Q = π f τ_A ≈ 16000.
 - **Since the end of C2:** the swing went from ±105° (end of C2, true GPS ≈ 1477669949) to ±27° (start of this recording) over 8359 s, which averages τ_A ≈ 6200 s.
 - **So the decay is faster at large amplitude, or it is not exponential.** Not resolved; the LES covers the gap.
-- **Consequence (derived):** for viscous drag the spin-down time is τ_A/2 ≥ 3000 s. The drag torque at a lock speed of 0.0125 rev/s is then ≲ I·ω/3000 s ≈ 3 × 10⁻¹⁶ N·m. That is ~3000× below the design drive torque, so damping does not explain the missing lock.
+- **Comparison with the recorded spindown (assumed: the same linear drag in libration and rotation).** τ_mech = τ_A/2 ≈ 3100–7500 s, against the recorded 4788 s (September, before the board and beam changes). Without that assumption, the libration data says nothing about rotational drag.
+- **Drag vs drive torque (derived from the RECORDED spindown γ = 2.30e-15 N·m·s, not from this file):** at lock speeds of 0.0125–0.1 rev/s, the drag is γω ≈ 2 × 10⁻¹⁶ to 1.4 × 10⁻¹⁵ N·m. The design drive torque is ~10⁻¹² N·m. For drag to matter at these speeds, the spindown time would have to be ≲ 7 s. Interpretation, not approved: damping does not explain the missing lock.
 
 ## Swing frequency drifts with time (measured)
 

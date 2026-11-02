@@ -10,13 +10,10 @@ go through Molly or the cleanup session.
 All seven C2 holds ran (`apparatus_log.md` 2026-11-02). Analysis: `../analysis/c2_20261102/README.md`.
 - **Gate 7 (L3 + L4): PASS.** L3 p99 4.72 ms. L4: 0 dropped; live = offline on 99.966% of frames within 0.1°; NCC median 0.964.
 - **Step 0 clean start: PASS.** The 0.1 Hz started without a glide.
-- **C3: no lock in any hold (measured).** Mean speed ≤ 0.002 rev/s.
-- **The wobble torques are not measurements:** they sit at the floor set by a 40–100° free swing.
-- **The swing changes only while the drive is on or switching (measured).** It changed by 10–50° per hold and by ≤ 4° across drive-off gaps. Hold 1 went from rest to 42°. The cause (drive torque vs the DC step) is not separated.
-- **The swing frequency drifts:** 0.34 Hz at 46° down to 0.27 Hz at 105° during C2, but this is confounded with time. Later the free swing drifted 0.354 → 0.319 Hz in 39 min at ~25°.
-- **Damping is small:** τ_A ≈ 6000–15000 s, Q ~ 10⁴ (`../analysis/ringdown_20261102/README.md`).
+- **C3: no lock in any hold.** Mean speed ≤ 0.002 rev/s.
+- Everything else (swing, wobble, free swing afterwards) is in the analysis README, with its open questions.
 
-So C4 is next.
+C4 is next per the plan below; Molly picks the variable.
 
 ## Done (2026-11-01, recording gps1477428272)
 
