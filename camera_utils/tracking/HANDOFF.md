@@ -14,7 +14,12 @@
 - **Lighting:** the "new lighting" of gps1477428272 is the two-light setup (Molly,
   2026-11-01); tracking under it is good enough, no further lighting comparison needed.
   Run tracking-dependent tests (detent, gate 7) with both lights on.
-- **Next:** lab day (L4 + the C2 holds), then merge this branch to `main`.
+- **Gate 7: PASS (2026-11-02)** on the 29 min lab recording gps1477668186:
+  - L3 p99 4.72 ms.
+  - L4: 0 dropped; live = offline on 99.966% of frames within 0.1° (max 0.47°, at the 0/360° wrap); NCC median 0.964.
+  - `blob_track.py` and `gate7_check.py` now stream frames (6.6 GB of frames vs 8 GB on the Mac).
+  - Analysis: `analysis/c2_20261102/README.md` on `main`.
+- **Next:** merge this branch to `main` (Molly's OK).
 
 ## Gate record (2026-10-30 onward)
 
