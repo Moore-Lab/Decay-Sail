@@ -61,6 +61,15 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   - **Ringing:** after each step the outputs ring (about ±400 counts, decaying over ~12 samples, with
     1000 counts of overshoot). There is no ringing before a step, so the filter is causal. Whether the
     ringing is in the real output or only in the DQ recording's anti-alias filter is not known.
+- **Filter state (worker2, read-only, 2026-11-02 ~20:55 UTC; Dropbox `data/feedback/filter_state_2026-11-02.md`):**
+  - **Modules:** OUTS_V1..V4 all read SW1R 12 (input, offset), SW2R 768 (limit, decimation, output off),
+    GAIN 1, LIMIT 12800. No FM stage is engaged, and the foton file defines no filters for V1..V4.
+  - **Rates:** the model runs at 2048 Hz, and `OUT_DQ` is recorded at 1024 Hz.
+  - **So the post-step ringing is most likely the DAQ's 2048 → 1024 Hz anti-alias filter (derived, not
+    proven):** it is causal, alternates near Nyquist and decays over ~12 samples. The real output
+    should step cleanly.
+  - **To prove it:** read the module output as a 2048 Hz test point during an outputs-off replay loop.
+    Until then, run F2 at `--amp 5000` on the 6400 pedestal, which leaves ±1400 counts of margin.
 - **Correction to the F1 "~1.5–2.6 s late" finding.** That delay, and F1b's 3.84 s, are relative to the
   front-end time read from `Y1:DAQ-DC0_GPS` at loop start. DC0 is the data concentrator, and its
   GPS may itself lag the front end by seconds (assumed, not checked). The 1.2 s difference between
