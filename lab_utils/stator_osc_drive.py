@@ -532,8 +532,9 @@ def main():
         the AC waits for that ramp (the live value) to finish.
 
         CLEAN FREQUENCY START (2026-11-01): DRV_FREQ is JUMPED to the target
-        with DRV_TRAMP 0 while the gains are 0, then DRV_TRAMP is restored
-        before the gains ramp in. Before this, DRV_FREQ glided from the previous
+        with DRV_TRAMP 0 while the gains are 0, held 1.1 s so the jump lands at
+        the next front-end GPS second (RCG cdsOsc rule), then DRV_TRAMP is
+        restored before the gains ramp in. Before this, DRV_FREQ glided from the previous
         run's value while the gains ramped in (seen in gps1477428272: 12-16 s
         of glide from 4.0 Hz at the start of a 0.4 Hz sweep).
         """
@@ -569,7 +570,12 @@ def main():
             put(f'{PREFIX}_DRV_TRAMP', 0, dry)
             put(f'{PREFIX}_DRV_FREQ', f_elec, dry)
             if not dry:
-                time.sleep(0.5)
+                # RCG cdsOsc (LIGO-T080135 sec 7.6.3): with TRAMP <= 0 a FREQ
+                # change takes effect at the NEXT front-end GPS second, phase 0.
+                # Hold TRAMP 0 until that second has passed (<= 1 s + caput
+                # latency), else restoring TRAMP first could turn the jump into
+                # a glide. Was 0.5 s, which could restore TRAMP too early.
+                time.sleep(1.1)
                 f_rb = caget(f'{PREFIX}_DRV_FREQ')
                 print(f'    DRV_FREQ readback {f_rb:g} Hz (target {f_elec:g}) '
                       f'-- setpoint only; the glide-free start is checked in '
