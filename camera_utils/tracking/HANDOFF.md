@@ -1,6 +1,27 @@
 # Angle tracking: handoff
 
-## 0. Current state (2026-10-30, end of gate-2 session)
+## 0. Current state (2026-11-01)
+
+- **Gates 1–6 passed** (centre, blob, ground truth, scorer, pass mark, angle vs LES); details below.
+- **Gate 7 (live tracking):** L1 replay and L2 centre registration passed; L3 (worker2
+  speed, p99 < 10 ms) is step 0 of the lab-day runbook (`lab_utils/DRIVE_LOCK_HANDOFF.md`);
+  L4 = the lab-day recording, scored on the Mac with `gate7_check.py` (written and tested
+  2026-11-01, section "Gate 7 scorer" below). The live CSV header now writes the centre to
+  6 decimals (rounding to 0.01 px alone failed the gate).
+- **Lab day runs from branch `drive-clean-start`** (= this branch + the clean drive start).
+- **Direction vs the board** (measured 2026-11-01, reviewer AGREE): + image angle = C→B→A
+  sector direction; `lab_utils/drive_coupling.py` docstring. Wiring since 08-24 unverified.
+- **Lighting:** the "new lighting" of gps1477428272 is the two-light setup (Molly,
+  2026-11-01); tracking under it is good enough, no further lighting comparison needed.
+  Run tracking-dependent tests (detent, gate 7) with both lights on.
+- **Gate 7: PASS (2026-11-02)** on the 29 min lab recording gps1477668186:
+  - L3 p99 4.72 ms.
+  - L4: 0 dropped; live = offline on 99.966% of frames within 0.1° (max 0.47°, at the 0/360° wrap); NCC median 0.964.
+  - `blob_track.py` and `gate7_check.py` now stream frames (6.6 GB of frames vs 8 GB on the Mac).
+  - Analysis: `analysis/c2_20261102/README.md` on `main`.
+- **Next:** merge this branch to `main` (Molly's OK).
+
+## Gate record (2026-10-30 onward)
 
 **Read first:** `../TRACKING_NOTES.md` (what the rotor looks like, the gate plan, lessons)
 and `../../CLAUDE.md`.
@@ -63,23 +84,10 @@ blob_track (preview of gates 4-5, not the formal score): constant offset 0.25 de
 (fast 0.84, reversal 0.93, low-margin 1.12). With ~0.8 deg of label scatter, the tracker's own
 error is roughly 0.5 deg rms (derived, rough).
 
-Tool notes (kept from the build):
-Decided (Molly, 2026-10-30): gate 3 uses only gps1477428272 (the new lighting); the first
-video stays an unlabelled stress test. `label_frames.py` (headless-tested with simulated
-clicks: angles recorded exactly, resume/skip/back, repeat pass and compare all work).
-200 frames picked (`labels/selection_gps1477428272.csv`): 119 evenly in angle, 40
-fastest, 20 swing reversals, 20 lowest detector margin, 1 random; shown shuffled and
-without any detector angle. Molly runs, on the Mac:
-
-    cd ~/Desktop/VSCode/decay_sail/camera_utils/tracking
-    python label_frames.py point 1477428272    # once: click the rotor point to use
-    python label_frames.py label 1477428272    # pass 1, resumable (q quits, saves)
-    python label_frames.py repeat 1477428272   # pass 2 on 20 frames, later
-    python label_frames.py compare 1477428272  # gate 3 passes if within a few degrees
-
-(`select` was run as `label_frames.py select VIDEO centre_gps1477428272.json
-blob_gps1477428272.csv`; rerun only if the frames cache is lost.) The labels CSVs are
-ground truth: commit them.
+Labels: gps1477428272 only (Molly, 2026-10-30; the first video stays an unlabelled stress
+test). `label_frames.py` (select / point / label / repeat / compare; usage in its docstring).
+200 frames (`labels/selection_gps1477428272.csv`): 119 by angle, 40 fastest, 20 reversals,
+20 lowest margin, 1 random; shown shuffled, without detector angles. Labels are committed.
 
 **Gate 4, scorer: PASSED (2026-10-30).** `score_angles.py ANGLES.csv GPS --offset DEG`;
 `score_angles.py selftest GPS` checks it: 100% on the labels themselves; FAILS the labels
@@ -130,11 +138,48 @@ its docstring; figures `plots/gate6_gps1477428272_{align,swing}.png`, gitignored
   (84 s), 90% above 0.2, 77% above 0.1. Sign convention set by this one recording.
 - Scope: the 1x/2x split is a property of the LES beam geometry as it is now (beam moved
   2026-10-09); re-check it if the beam moves before trusting /2.
+- **Video swing frequency, drive off** (`les_compare.py` prints it): 0-55 s **0.311 Hz**
+  (amplitude ~+-55-62 deg, with slow drift); 210-261 s **0.275 Hz** (+-105 deg). Molly
+  2026-11-01: small-amplitude f0 ~ 0.31 Hz (agrees with the 09-09 stopwatch 0.310 Hz).
 - Gate 6 as written ("agrees with LES at /1 or /2") is met for rotation (/2); for swinging the
   answer is neither. CLAUDE.md's LES rule rewritten accordingly (Molly, 2026-10-31).
 
-**Next:** gate 7 (same code live while recording; live and recorded scores match), with
-Molly at the screen on worker2.
+**Gate 7 build (branch `live-blob-tracker`, gates agreed with Molly 2026-10-31):**
+`blob_core.py` = the per-frame maths, shared by `blob_track.py` (refactored; output
+byte-identical on all 13071 frames) and `live_blob_track.py` (camera, records FFV1 +
+timestamps + angles; measures only; `--replay VIDEO` runs the same path on a file).
+`template_gps1477428272.npz` = the stored template (frame 0 at 257 deg, the labels' zero,
+offset +0.56) and that video's median frame.
+| Gate | Pass when | Result |
+|---|---|---|
+| L1 replay | live path = blob_track.py on 13071 frames (< 0.01 deg) | **PASSED**: 0.0000 deg max diff; 2.9 ms median, 3.9 ms p99 per frame (Mac) |
+| L2 centre by board registration | gps1477419607 centre within 1 px of (116.2, 180.2) | **PASSED**: 0.83-0.89 px from 4 windows; = that video's blob-orbit centre (115.70, 180.69) to ~0.2 px; own video 0.04 px |
+| L3 speed on worker2 | p99 < 10 ms from file | pending (Molly/agent runs one command, read-only) |
+| L4 live = gate 7 | no drops; live = offline on >= 99.9% of frames within 0.1 deg; NCC median >= 0.9 | lab, with Molly; score with `gate7_check.py` (below) |
+
+**Gate 7 scorer, `gate7_check.py` (2026-11-01, Mac).** One command after the lab run:
+`python gate7_check.py DIR/blob_live_gps<GPS>.csv` (video and timestamps found next to it;
+`--video` to point elsewhere). Re-runs `blob_track.py` with the live run's centre and
+template, checks dropped frames (BlockID gaps, late camera timestamps, frame counts),
+live vs offline, NCC; writes the circled-frame sheet to `plots/gate7_gps<GPS>_frames.png`.
+Exit 0 = pass. Tested on a `--replay` of gps1477428272: PASS (13071 frames, max diff
+0.0000 deg, NCC median 0.957). Fails, on the right check, a missing row, angles shifted by one
+frame, a BlockID gap of 3, and NCC 0.85.
+**Measured while testing:** the live CSV header wrote the registered centre to 0.01 px;
+re-running offline with that rounded centre (0.001-0.004 px off) put 0.22% of frames more
+than 0.1 deg off (max 0.48 deg), which fails gate 7. Header now writes 6 decimals
+(`live_blob_track.py`), after which live = offline exactly. So the per-frame angle of a
+small fraction of frames flips by up to ~0.5 deg for a ~0.004 px centre change (cause not
+investigated; within the ~1 deg rms of gate 5).
+
+L3 command on worker2 (after `git fetch && git checkout live-blob-tracker`):
+
+    cd camera_utils/tracking
+    python3 live_blob_track.py --replay /home/controls/stator_detent/output_basler_gps1477428272.avi \
+        --centre 132.3,180.6 --outdir /tmp/l3 --snapshot ""
+
+Settings for the lab run (as gps1477428272): exposure 15 ms, gain 0, 50 fps, ROI
+544,432,256,292, no flips (camera UserSet1); these are live_blob_track.py's defaults.
 
 **Open questions for Molly:** whether to add a synthetic video
 (rendered from the DXF) as an exact-truth test.
