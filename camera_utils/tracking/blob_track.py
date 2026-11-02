@@ -33,21 +33,39 @@ video, W, H, centre_file, REF, REF_ANG, out = sys.argv[1:8]
 W, H, REF, REF_ANG = int(W), int(H), int(REF), float(REF_ANG)
 opt = lambda k: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else None
 cx, cy = json.load(open(centre_file))['centre_xy_px']
-raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', video, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
-                     capture_output=True, check=True).stdout
-a = np.frombuffer(raw, np.uint8).reshape(-1, H, W); n = len(a)
+
+
+def frames(video, W, H):
+    """Stream gray frames from ffmpeg one at a time (a 30 min recording is ~6.6 GB)."""
+    pr = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', video, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+                          stdout=subprocess.PIPE)
+    while True:
+        b = pr.stdout.read(W * H)
+        if len(b) < W * H:
+            break
+        yield np.frombuffer(b, np.uint8).reshape(H, W)
+    pr.stdout.close()
+    if pr.wait():
+        sys.exit('ffmpeg failed on %s' % video)
+
 
 trk = blob_core.Tracker(cx, cy, W, H)
 if opt('--template'):
     T, ref_ang, _, _ = blob_core.load_template(opt('--template'))
     trk.T, trk.ref_angle = T, ref_ang; tag = 'template=%s' % opt('--template').split('/')[-1]
 else:
-    trk.cut_template(a[REF], REF_ANG); tag = 'ref=%d@%.0fdeg' % (REF, REF_ANG)
+    tag = 'ref=%d@%.0fdeg' % (REF, REF_ANG)
+    for i, f in enumerate(frames(video, W, H)):
+        if i == REF:
+            trk.cut_template(f, REF_ANG); break
 if opt('--save-template'):
-    blob_core.save_template(opt('--save-template'), trk, np.median(a[::5], 0).astype(np.uint8),
+    sub = np.array([f for i, f in enumerate(frames(video, W, H)) if i % 5 == 0])
+    blob_core.save_template(opt('--save-template'), trk, np.median(sub, 0).astype(np.uint8),
                             video.split('/')[-1], REF)
+    del sub
 
-rows = [(i, *trk.process(f)) for i, f in enumerate(a)]
+rows = [(i, *trk.process(f)) for i, f in enumerate(frames(video, W, H))]
+n = len(rows)
 with open(out, 'w') as fh:
     fh.write('# blob_track.py %s centre=(%.1f,%.1f) %s\n' % (video.split('/')[-1], cx, cy, tag))
     fh.write('frame,angle_deg,r_px,ncc,ncc_elsewhere,source\n')

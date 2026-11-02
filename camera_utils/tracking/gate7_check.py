@@ -68,10 +68,24 @@ print('gate 7: gps%s  centre (%.4f, %.4f)  template %s%s' % (gps, cx, cy, tname,
 W, H = (int(v) for v in subprocess.run(
     ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
      '-of', 'csv=p=0', video], capture_output=True, text=True, check=True).stdout.split(','))
-raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', video, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
-                     capture_output=True, check=True).stdout
-frames = np.frombuffer(raw, np.uint8).reshape(-1, H, W)
-n_vid = len(frames)
+
+def video_frames(keep=()):
+    """Stream the video once (it can be several GB); return the frame count and the kept frames."""
+    pr = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', video, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+                          stdout=subprocess.PIPE)
+    n, kept = 0, {}
+    while True:
+        b = pr.stdout.read(W * H)
+        if len(b) < W * H:
+            break
+        if n in keep:
+            kept[n] = np.frombuffer(b, np.uint8).reshape(H, W).copy()
+        n += 1
+    pr.stdout.close(); pr.wait()
+    return n, kept
+
+
+n_vid, _ = video_frames()
 
 # ---------------------------------------------------------------- 1. dropped frames
 ts = np.genfromtxt(tsf, delimiter=',', names=True)
@@ -135,6 +149,7 @@ for k, why in [(k, 'even') for k in esel] + [(k, 'max diff') for k in dsel] + [(
     if 0 <= k < n_vid and k not in [s[0] for s in sel]:
         sel.append((int(k), why))
 cols = 4; rows = int(np.ceil(len(sel) / cols))
+_, frames = video_frames(set(k for k, _ in sel))
 fig, axs = plt.subplots(rows, cols, figsize=(3.2 * cols, 3.6 * rows))
 lrow = {int(k): i for i, k in enumerate(fidx)}; orow = {int(k): i for i, k in enumerate(off['frame'])}
 for ax, (k, why) in zip(np.ravel(axs), sel):
