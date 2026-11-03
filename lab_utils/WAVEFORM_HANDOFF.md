@@ -62,6 +62,26 @@ The scorer is model-free where the AWG's conventions are undocumented:
 
 **Python library time units:** with python-awg 4.2.3 (worker2, 2026-11-03), `Excitation` takes `start` in GPS **seconds** and multiplies it by 1e9. `stator_awg_drive.py` passes nanoseconds, so with this library version its excitations would be scheduled absurdly far in the future (not run; derived from the source).
 
+## W1 results (2026-11-03, worker2 agent, outputs off, Molly's go each; Dropbox `data/feedback/waveform/`)
+
+Re-scored on the Mac from the Dropbox files; the numbers match worker2's.
+- **`bburst_1793739733`: PASS.**
+  - Every burst at its commanded second, amplitude 5001.4 for 5000 (+0.03%), residual 0.10%.
+  - 0 counts where none was commanded.
+  - At the joint burst, V2, V3 and V4 are sample-for-sample identical (0.000 ms).
+  - All arrive 1.06 ms after the commanded time.
+  - The AWG's periodic waveform is a **sine** (measured from the burst shape).
+- **`bchirp_1793739965`: PASS.**
+  - Amplitudes 99.8–100.2% at 0.3, 0.5, 1, 2, 5 and 10 Hz.
+  - Lag of V3 and V4 against V2: within ±0.03 ms at 5 and 10 Hz and ±0.3 ms at 1–2 Hz. The ±0.4 ms at 0.3–0.5 Hz is the estimator's scatter at low frequency.
+  - Field direction **reversed**: V4 leads V2 by 120°. The AWG's `phase` enters with the opposite sign to the 08-24 convention, as `stator_awg_drive.py` found on 2026-08-28. Negate the phases for a forward field.
+- **`bchirp` range:**
+  - The recording left 1400..11400 by at most ~110 counts (V3 1287, V4 11511), only at the first sample after the start.
+  - The sweep starts at full amplitude, so V3 and V4 step by ~4300 counts at t = 0. That is ~2.5% overshoot in the recording after a sharp step.
+  - After 60 s the sweep restarts (restart = sweeptime) until the stop at ~61 s.
+- **`bsine`:** not run (Molly skipped it; the chirp covers 2 Hz).
+- **Before W2 (proposed):** a 0.5 s amplitude phase-in on `bchirp`, and built-in stops with a 0.5 s gain ramp, so there are no full-amplitude steps at the electrodes.
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |

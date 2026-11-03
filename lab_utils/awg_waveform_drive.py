@@ -105,7 +105,7 @@ def make_excitation(chan, samples, start_s):
 BUILTIN = {
     # name: (duration s, description)
     'bsine': (10.0, 'three-phase Sine 2 Hz, 10 s, phases 0/-120/-240 deg (A/B/C), 0.5 s linear phase-in'),
-    'bchirp': (60.0, 'three-phase SweptSine 0.1 -> 12 Hz, log, 60 s, phases 0/-120/-240 deg'),
+    'bchirp': (60.0, 'three-phase SweptSine 0.1 -> 12 Hz, log, 60 s, phases 0/-120/-240 deg, 0.5 s linear phase-in'),
     'bburst': (6.0, 'one-cycle 10 Hz Sine bursts: V2 at 1 s, V3 at 2 s, V4 at 3 s, all three at 4 s'),
 }
 
@@ -122,6 +122,7 @@ def builtin_excitations(name, amp, start):
         elif name == 'bchirp':
             e = awg.SweptSine(chan, ampl1=amp, freq1=0.1, phase1=ph, ampl2=amp, freq2=12.0, phase2=ph,
                               amplramp='linear', freqramp='log', start=start, sweeptime=BUILTIN[name][0])
+            e.set_phase_in(ramp='linear', ramptime=0.5)   # W1: a full-amplitude start stepped V3/V4 by ~4300 counts
         elif name == 'bburst':
             ts = {2: (1, 4), 3: (2, 4), 4: (3, 4)}[n]
             comps = [awg.Sine(chan, ampl=amp, freq=10.0, phase=0.0, start=start + k, duration=0.1) for k in ts]
@@ -171,7 +172,10 @@ def stop_all(exc, state, ramp, outputs_on, dry):
         def _stop(e=e):
             try:
                 e.keep_running = False
-                e.stop(ramptime=0)              # ArbitraryLoop: joins the thread, aborts and closes the stream
+                if hasattr(e, 'components'):    # built-in Excitation: 0.5 s gain ramp to 0, then stop + free the slot
+                    e.stop(ramptime=0.5, wait=True)
+                else:
+                    e.stop(ramptime=0)          # ArbitraryLoop: joins the thread, aborts and closes the stream
             except Exception as err:
                 print(f'    ! stop: {err}')
         th = threading.Thread(target=_stop, daemon=True)
