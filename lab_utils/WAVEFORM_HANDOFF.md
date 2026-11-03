@@ -54,7 +54,7 @@ Fix made after W0 (8ca0199): each stream's stop has a 10 s limit, and the pedest
   - The front-end side passes: built-in sine, chirp and bursts are exact on V2–V4 and aligned to well under 1 ms (W1).
   - At the electrodes (W2, amp 500 on 1000): V2 and V3 are flat 0.3–10 Hz with timing < 0.13 ms. V4 is checked only on bursts and the 2 Hz sine, before the ground change.
   - Streamed arbitrary waveforms wait for the front-end clock fix (W0; question for Alma).
-- **V4 grounding:** Molly floated V4's DAQ-output ground at ~22:05Z to match the other channels. V4 then showed no signal at the scope, so she reverted it (~22:30Z). She'll retry with a different BNC cable on 2026-11-04, then repeat W2 `bburst` and `bchirp` and check CH4.
+- **V4 grounding:** Molly floated V4's DAQ-output ground at ~22:05Z to match the other channels. V4 then showed no signal at the scope, so she reverted it (by ~22:20Z). She'll retry with a different BNC cable on 2026-11-04, then repeat W2 `bburst` and `bchirp` and check CH4.
 - **Scope capture:**
   - `--scope` arms a single acquisition (SING) and waits for COMP before reading.
   - The trigger (CH2 rising, 5 V) fires on the first crossing, which may be during the chirp. The record is still complete with the trigger at the screen centre at 10 s/div (±60 s).
