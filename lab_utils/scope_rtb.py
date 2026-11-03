@@ -86,8 +86,10 @@ class Scope:
         os.close(self.fd)
 
 
-PROBE = ['*IDN?', 'ACQ:STAT?', 'TIM:SCAL?', 'CHAN2:STAT?', 'CHAN2:SCAL?', 'CHAN2:OFFS?', 'CHAN2:POS?',
-         'CHAN2:COUP?', 'PROB2:SET:ATT:MAN?', 'CHAN2:DATA:POIN?', 'CHAN2:DATA:HEAD?', 'FORM?']
+# Answered 2026-11-03: *IDN? ACQ:STAT? TIM:SCAL? CHAN2:STAT? CHAN2:SCAL? CHAN2:OFFS?.
+# CHAN2:POS? got NO REPLY and wedged the link (removed everywhere). Next, the ones `read` needs most first.
+PROBE = ['*IDN?', 'FORM?', 'CHAN2:DATA:HEAD?', 'CHAN2:DATA:POIN?', 'TIM:POS?', 'TIM:REF?', 'ACQ:POIN?',
+         'ACQ:SRAT?', 'CHAN2:COUP?', 'PROB2:SET:ATT:MAN?']
 
 
 def probe(s):
@@ -110,7 +112,7 @@ def settings(s):
            'acq_points': s.q('ACQ:POIN?'), 'srate': s.q('ACQ:SRAT?')}
     for ch in CHANNELS:
         for key, cmd in (('state', 'CHAN{}:STAT?'), ('scale', 'CHAN{}:SCAL?'), ('offset', 'CHAN{}:OFFS?'),
-                         ('position', 'CHAN{}:POS?'), ('coupling', 'CHAN{}:COUP?'),
+                         ('coupling', 'CHAN{}:COUP?'),
                          ('probe', 'PROB{}:SET:ATT:MAN?')):
             out[f'ch{ch}_{key}'] = s.q(cmd.format(ch))
     out['errors'] = s.errors()
