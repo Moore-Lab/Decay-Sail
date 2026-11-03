@@ -132,7 +132,14 @@ def arm(s):
     errs = s.errors()
     if errs:
         print(f'  ! scope errors after SING: {errs}')
-    return not errs
+    # The scope fills its pre-trigger buffer first (screen shows "Pre nn%"); a trigger during that fill is
+    # ignored (W2 bchirp 2026-11-03: the pedestal step was missed and it triggered ~45 s into the chirp).
+    # Pre-trigger time = 12 divisions x timebase x (trigger reference %).
+    try:
+        pre = 12 * float(s.q('TIM:SCAL?')) * float(s.q('TIM:REF?')) / 100.0
+    except Exception:
+        pre = 0.0
+    return pre
 
 
 def wait_complete(s, timeout):

@@ -300,7 +300,10 @@ def main():
                 sc = scope_rtb.Scope(a.scope_dev)
                 try:
                     print('\n  arming the scope (single acquisition):')
-                    scope_rtb.arm(sc)
+                    pre = scope_rtb.arm(sc)
+                    if pre > 0:
+                        print(f'  waiting {pre + 3:.0f} s for the scope to fill its pre-trigger buffer ("Pre %") ...')
+                        time.sleep(pre + 3)
                 finally:
                     sc.close()
             except Exception as err:
