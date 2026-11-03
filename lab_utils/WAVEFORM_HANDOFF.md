@@ -32,6 +32,22 @@ closing the loop with the camera, comes after. The y1rds model change is paused 
 - **Not yet checked: the RTB SCPI spellings.** The first query attempt timed out on every bulk write after the `*IDN?` that worked. A scope power-cycle is pending.
 - **Not written yet:** the W2 scorer (scope ÷ command: gain, delay and the chirp's amplitude/phase vs frequency, including the AC coupling).
 
+## W0 result (2026-11-03, worker2 agent, outputs off; data Dropbox `data/feedback/waveform/w0_pulse_1793738075/`)
+
+Measured:
+- **Clocks:** the front-end clock (`Y1:DAQ-DC0_GPS`) minus worker2's clock was **+15496.6 s**. For comparison, it was +8376 s on 2026-08-28.
+- **Playback:** with the start time in the front-end frame, the stream started on time, but **only the first 3.0 s played**.
+  - V2's pulse at 1 s and V3's at 2 s came through whole.
+  - V4's pulse straddles 3.0 s, so it was cut at 3.0 s.
+  - Every later pulse is missing.
+- **Timing of what played:** `waveform_check.py` lag for V2 and V3 is 1.05 ms, with the two within 0.01 ms of each other. The gains it reports (0.25) only reflect the missing pulses.
+- **The cut V4 pulse:** after the abrupt drop at 3.0 s, `OUT_DQ` undershot the pedestal by ~900 counts (5499) on a drop of ~5000 counts. A sharp drop rings in the recording, as in F1/F2.
+- **The stop hung:** "awgsendwaveform RPC error = 5" ×3, then killed by worker2's 300 s timeout. The pedestal was left at 6400 with outputs off, then cleaned up (Molly OK). `awg_reclaim.py` found 4 distinct leaked slots.
+
+(Interpretation, not approved.) libSIStr sends its 1 s chunks paced by worker2's clock. A start time 4.3 h ahead in that clock lets the first buffered chunks out and then holds the rest. With `--clock local`, the front end would probably see the data as 4.3 h late. So streaming arbitrary waveforms needs the front-end clock fixed, or a route that doesn't stream.
+
+Fix made after W0 (8ca0199): each stream's stop has a 10 s limit, and the pedestal drops only after EXCMON reads 0 for 3 s (tested on the Mac with a simulated hang and with live AC).
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |
