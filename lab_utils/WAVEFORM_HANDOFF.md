@@ -82,6 +82,15 @@ Re-scored on the Mac from the Dropbox files; the numbers match worker2's.
 - **`bsine_1793740354`: PASS.** Amplitude 5000.1 on all three, phases exactly ±120.00° (reversed), residual 0.00%, clean stop.
 - **Before W2 (proposed):** a 0.5 s amplitude phase-in on `bchirp`, and built-in stops with a 0.5 s gain ramp, so there are no full-amplitude steps at the electrodes.
 
+## W2 attempts (2026-11-03, outputs on, bburst amp 500 on pedestal 1000, Molly's go each)
+
+- **`bburst_1793741789_w2_no_scope`:** the scope was stopped during the run, so there's no capture. OUT_DQ is exact, as in W1.
+- **`bburst_1793742033`:** OUT_DQ is exact. The scope read came ~90 s after the run, so the bursts had scrolled off the 60 s screen. The floats were also parsed with the wrong byte order (the RTB sends REAL,32 MSB-first). Both are fixed in 53e1224: `--scope` reads right after the stop.
+- **Unexplained event (measured, not interpreted):**
+  - At 21:42:49Z (FE ≈ 1477792886, ~75 s after the run, nothing commanded), CH2–4 show a 14 ms event on all three at once: CH2 −23.5..+25.7 V, CH3 −15.0..+34.2 V, CH4 −25.0..+23.9 V. The baseline is the same before and after.
+  - Over FE 1477792860–910, `OUT_DQ` V2–V4 are exactly 0, and LES YAW, PIT and SUM show no step beyond their normal sample-to-sample range.
+  - worker2 made no writes then. Data: Dropbox `waveform/bburst_1793742033/event_2142/`.
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |
