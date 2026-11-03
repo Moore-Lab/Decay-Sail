@@ -40,6 +40,7 @@ verified on the scope; the model change is paused until then.
 - W2 grounded (all three): `bburst` start FE 1477796873 and `bchirp` start FE 1477797395 (`--scope`, triggered on the pedestal
   step). All three electrodes flat 0.3–10 Hz (V2 0.0124, V3 0.0127, V4 0.0127 V/count), within 0.33 ms of each other at 1–10 Hz;
   τ 5.4–5.7 s with clean fits; no spikes. PASS by the proposed mark.
+- **Wiring change (Molly, by ~23:08Z):** V1 (centre electrode) also grounded after the DAQ output, so V1–V4 all match. No runs since.
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
