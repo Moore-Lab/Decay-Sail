@@ -9,8 +9,11 @@ import sys, numpy as np
 sys.path.insert(0, '/Users/mollywatts/Desktop/VSCode/decay_sail_wt_wave/lab_utils')
 import scope_check as S
 from scipy.signal import hilbert
-D='/Users/mollywatts/Library/CloudStorage/Dropbox/Microspheres/TFINER/data/feedback/waveform/bchirp_1793743924'
-cmd=dict(np.load(D+'/command.npz')); dq=dict(np.load(D+'/out_dq.npz')); sc=dict(np.load(D+'/scope_1793744239_w2_complete.npz'))
+import glob, os
+D = sys.argv[1] if len(sys.argv) > 1 else '/Users/mollywatts/Library/CloudStorage/Dropbox/Microspheres/TFINER/data/feedback/waveform/bchirp_1793743924'
+SF = sys.argv[2] if len(sys.argv) > 2 else sorted(glob.glob(os.path.join(D, 'scope_*complete*.npz')) or glob.glob(os.path.join(D, 'scope_*.npz')))[-1]
+print('run', D, 'scope file', os.path.basename(SF))
+cmd=dict(np.load(D+'/command.npz')); dq=dict(np.load(D+'/out_dq.npz')); sc=dict(np.load(SF))
 fs=float(dq['fs']); t_dq=float(dq['gps0'])+np.arange(dq['V2'].size)/fs; start=float(cmd['start_gps'])
 x2=dq['V2'].astype(float)
 off0,_=S.coarse_offset(t_dq, x2-x2.mean(), sc['CH2_t'].astype(float), sc['CH2'].astype(float))
@@ -47,4 +50,6 @@ print('V2 phase - one-pole(5.6 s) lead, after best pure delay %.2f ms (arbitrary
       ' '.join(f'{fb:g}:{np.degrees(p-l+2*np.pi*fb*dt):+.1f}' for fb,p,l in zip(f,ph2,lead)))
 rel=np.degrees(np.angle(H3/H2)); print('V3 vs V2 phase deg:', ' '.join(f'{fb:g}:{r:+.2f}' for fb,r in zip(f,rel)))
 print('  -> V3 vs V2 timing ms (+ = V3 later):', ' '.join(f'{fb:g}:{-1e3 * r / 360 / fb:+.3f}' for fb, r in zip(f, rel)))
+H4=np.array([h for _,h,_ in res[4]]); rel4=np.degrees(np.angle(H4/H2))
+print('  -> V4 vs V2 timing ms (+ = V4 later):', ' '.join(f'{fb:g}:{-1e3 * r / 360 / fb:+.3f}' for fb, r in zip(f, rel4)))
 print('residual V:', ' '.join(f'{r:.2f}' for _,_,r in res[2]))

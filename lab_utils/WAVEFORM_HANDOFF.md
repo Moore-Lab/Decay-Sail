@@ -62,13 +62,31 @@ The scope was triggered by the pedestal step, after the pre-trigger wait. Full 1
 - **V3 now fits the one-pole AC-coupling model like the others.** Its odd slow response appeared only while it was floated (one run each way, so not yet repeated).
 - **The FE/scope clock-rate difference** came out at +1.230 ms/s again.
 
+## W2 grounded `bchirp_1793746531` (22:55Z, all three grounded; scope 20 s/div, triggered on the pedestal step)
+
+Full 240 s record, no spikes. `python3 chirp_tf.py <run dir> <scope file>`, measured:
+- **Gain, 0.3–10 Hz:**
+  - V2 0.01240–0.01242 V/count (±0.1%).
+  - V3 0.01257–0.01268 (±0.4%).
+  - V4 0.01269–0.01276 (±0.3%).
+  - **All three are flat from 0.3 to 10 Hz.** V3 and V4 sit 2.1% and 2.8% above V2.
+- **Timing vs V2 (+ = later):**
+  - V3: −0.04..+0.08 ms at 1–10 Hz; −0.01 ms at 10 Hz.
+  - V4: −0.33..+0.07 ms at 1–10 Hz; −0.006 ms at 10 Hz.
+  - Below 1 Hz the estimate drifts to −2.3 ms (V3) and −4.9 ms (V4) at 0.3 Hz. That's 0.24° and 0.53° of phase.
+  - (Interpretation, not approved.) Part of that is the electrodes' different AC-coupling τ: V4's 5.43 s vs V2's 5.69 s gives a ~0.25° extra lead at 0.3 Hz.
+- **W2 by the proposed mark (flat gain; within 1 ms at ≥ 1 Hz): PASS on all three electrodes.**
+
 ## Next (as of 2026-11-03 evening)
 
 - **Problem 1, status:**
   - The front-end side passes: built-in sine, chirp and bursts are exact on V2–V4 and aligned to well under 1 ms (W1).
-  - At the electrodes (W2, amp 500 on 1000): V2 and V3 are flat 0.3–10 Hz with timing < 0.13 ms. V4 is checked only on bursts and the 2 Hz sine, before the ground change.
+  - At the electrodes (W2, amp 500 on 1000), all three grounded (22:36Z on): all three are flat 0.3–10 Hz and within 0.33 ms of each other at 1–10 Hz (`bchirp_1793746531`). Bursts are aligned within 0.01 ms (`bburst_1793746069`).
   - Streamed arbitrary waveforms wait for the front-end clock fix (W0; question for Alma).
-- **V4 grounding:** Molly floated V4's DAQ-output ground at ~22:05Z to match the other channels. V4 then showed no signal at the scope, so she reverted it (by ~22:20Z). She'll retry with a different BNC cable on 2026-11-04, then repeat W2 `bburst` and `bchirp` and check CH4.
+- **Grounding:**
+  - Floating V4's DAQ-output ground (~22:05Z) lost V4 at the scope; Molly reverted it.
+  - On her PI's advice (the float is only needed for a direct DAQ-to-scope connection), V2 and V3 were then grounded too (~22:36Z). All three work and match.
+  - Whether to record this as a decision is for Molly.
 - **Scope capture:**
   - `--scope` arms a single acquisition (SING) and waits for COMP before reading.
   - The trigger (CH2 rising, 5 V) fires on the first crossing, which may be during the chirp. The record is still complete with the trigger at the screen centre at 10 s/div (±60 s).
