@@ -35,6 +35,13 @@ stub-EPICS runs pass. Also `drive-gps-second`: the clean start now holds DRV_TRA
 (RCG cdsOsc applies FREQ at the next GPS second; LIGO-T080135 §7.6.3); merged into
 `feedback-drive`. Not run on worker2. Plan and F1 steps: `lab_utils/FEEDBACK_HANDOFF.md`
 (on the branch); F1 approved by Molly for the next lab session.
+Later (evening, Mac only):
+- y1rds commutation model change approved (Molly builds; `docs/DECISIONS.md`).
+- `lab_utils/rcg/commutate.c` (RCG cdsFunctionCall) with `test_commutate.py`, which passes.
+- Simulink steps: `rcg/SIMULINK_EDITS.md`.
+- `feedback_drive.py frontend` mode; `--pedestal` now separate from `--amp`; F2 scorer `feedback_f2_check.py`.
+- Runbooks for F2 and for FE1 (after the model change), all on branch `feedback-drive`.
+- Not built or run on hardware.
 
 ### 2026-11-02 — Free-swing recording after C2 (no drive; Molly, worker2 agent)
 
