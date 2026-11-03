@@ -48,6 +48,20 @@ Measured:
 
 Fix made after W0 (8ca0199): each stream's stop has a 10 s limit, and the pedestal drops only after EXCMON reads 0 for 3 s (tested on the Mac with a simulated hang and with live AC).
 
+## Built-in route (Molly OK 2026-11-03, after W0)
+
+The AWG server makes these waveforms itself, so there's no streaming and no dependence on worker2's clock. The start time is in the front-end frame, as for the August sines. They're added to `awg_waveform_drive.py` as `--wave bsine|bchirp|bburst` and scored by `builtin_check.py`, whose `selftest` passes.
+- **`bsine`:** three-phase 2 Hz, 10 s, with a 0.5 s amplitude phase-in.
+- **`bchirp`:** three-phase log sweep from 0.1 to 12 Hz over 60 s, so 10 Hz is inside the sweep. It's scored in bands from 0.3 to 10 Hz.
+- **`bburst`:** one-cycle 10 Hz bursts, V2 alone at 1 s, V3 at 2 s, V4 at 3 s, then all three at 4 s.
+
+The scorer is model-free where the AWG's conventions are undocumented:
+- **sin or cos:** `bburst` reports the shape.
+- **sign of `phase`:** reported as "forward" or "reversed".
+- **the log-sweep law:** the chirp is fitted against V2's own measured phase.
+
+**Python library time units:** with python-awg 4.2.3 (worker2, 2026-11-03), `Excitation` takes `start` in GPS **seconds** and multiplies it by 1e9. `stator_awg_drive.py` passes nanoseconds, so with this library version its excitations would be scheduled absurdly far in the future (not run; derived from the source).
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |
@@ -76,10 +90,10 @@ outputs off, the out-of-range transients are in the recording. W2's scope shows 
    - Record which one worked here.
 3. **W1, outputs off.** Molly approves each `--live`.
    - Start state: `stator_osc_drive.py status` should show DRVON 0, gains 0, outputs off, offsets 0.
-   - With the clock found in W0, for each waveform in the order `pulse`, `sine`, `step`, `spinup`, `chirp`:
-     - dry run: `python3 awg_waveform_drive.py --wave pulse --amp 5000 --pedestal 6400`
-     - then: `python3 awg_waveform_drive.py --wave pulse --amp 5000 --pedestal 6400 --live`
-     - then: `python3 waveform_check.py ~/waveform_runs/pulse_<time>`
+   - Built-ins first, in the order `bburst`, `bsine`, `bchirp`, scored with `builtin_check.py`. The streamed waveforms (`pulse`, `sine`, `step`, `spinup`, `chirp`) wait for the clock fix. For each:
+     - dry run: `python3 awg_waveform_drive.py --wave bburst --amp 5000 --pedestal 6400`
+     - then the same with `--live`
+     - then: `python3 builtin_check.py ~/waveform_runs/bburst_<time>`
    - Amp 5000 on 6400 is F2's level. The outputs are off, so nothing reaches the chamber, and the `step` ringing can be compared with F2.
    - If `OUT_DQ` is flat, run `python3 awg_reclaim.py` as its own process and try again.
    - rclone `~/waveform_runs/` to Dropbox `Microspheres/TFINER/data/feedback/waveform/`.

@@ -90,6 +90,46 @@ def make_excitation(chan, samples, start_s):
     return awg.ArbitraryLoop(chan, padded(samples), rate=int(waveforms.FS), start=int(start_s))
 
 
+# ---- Built-in AWG waveforms (Molly OK 2026-11-03, after W0): generated inside the AWG server, so no
+# streaming and no dependence on worker2's clock. python-awg 4.2.3 (worker2, source read 2026-11-03):
+#   Sine(chan, ampl, freq, phase[rad], offset, start[GPS s], duration[s], restart[s])
+#   SweptSine(chan, ampl1, freq1, phase1, offset1, ampl2, freq2, phase2, offset2, amplramp, freqramp,
+#             start, sweeptime)   sweeptime sets duration AND restart (it repeats unless stopped)
+#   Excitation.compose([...]) puts several components (<= 5000) on one channel.
+# The header says a component's phase is "relative to the last GPS one-day boundary", and whether the
+# periodic signal is sin or cos is not documented. So every component starts on a whole second with an
+# integer frequency (or the scorer fits the phase), and builtin_check.py measures, model-free:
+# relative phases/lags between electrodes, amplitudes, and the sin-or-cos shape.
+# Phases are given as electrical lags A=0, B=120, C=240 deg (A,B,C = V2,V4,V3); whether awg's phase
+# enters with + or - sign (stator_awg_drive.py found it inverted on 2026-08-28) is reported by the scorer.
+BUILTIN = {
+    # name: (duration s, description)
+    'bsine': (10.0, 'three-phase Sine 2 Hz, 10 s, phases 0/-120/-240 deg (A/B/C), 0.5 s linear phase-in'),
+    'bchirp': (60.0, 'three-phase SweptSine 0.1 -> 12 Hz, log, 60 s, phases 0/-120/-240 deg'),
+    'bburst': (6.0, 'one-cycle 10 Hz Sine bursts: V2 at 1 s, V3 at 2 s, V4 at 3 s, all three at 4 s'),
+}
+
+
+def builtin_excitations(name, amp, start):
+    import awg
+    out = []
+    for n in ELECTRODES:
+        chan = f'{PREFIX}_V{n}_EXC'
+        ph = -np.radians(waveforms.DELTA[n])
+        if name == 'bsine':
+            e = awg.Sine(chan, ampl=amp, freq=2.0, phase=ph, start=start, duration=BUILTIN[name][0])
+            e.set_phase_in(ramp='linear', ramptime=0.5)
+        elif name == 'bchirp':
+            e = awg.SweptSine(chan, ampl1=amp, freq1=0.1, phase1=ph, ampl2=amp, freq2=12.0, phase2=ph,
+                              amplramp='linear', freqramp='log', start=start, sweeptime=BUILTIN[name][0])
+        elif name == 'bburst':
+            ts = {2: (1, 4), 3: (2, 4), 4: (3, 4)}[n]
+            comps = [awg.Sine(chan, ampl=amp, freq=10.0, phase=0.0, start=start + k, duration=0.1) for k in ts]
+            e = awg.Excitation.compose(comps)
+        out.append(e)
+    return out
+
+
 def checks(amp, ped, w, outputs_on):
     bad = []
     if caget(f'{PREFIX}_DRVON'):
@@ -203,7 +243,8 @@ def fetch_dq(gps_a, gps_b, out_path):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--wave', required=True, choices=sorted(waveforms.WAVES))
+    p.add_argument('--wave', required=True, choices=sorted(waveforms.WAVES) + sorted(BUILTIN),
+                   help='streamed sample arrays (waveforms.py) or AWG built-ins: ' + '; '.join(f'{k}: {v[1]}' for k, v in BUILTIN.items()))
     p.add_argument('--amp', type=float, required=True, help='peak AC counts per electrode')
     p.add_argument('--pedestal', type=float, required=True, help='DC counts on V{n}_OFFSET')
     p.add_argument('--ramp', type=float, default=3.0, help='pedestal ramp, s (V{n}_TRAMP)')
@@ -219,8 +260,13 @@ def main():
     a = p.parse_args()
     dry = not a.live
 
-    t, w = waveforms.make(a.wave)
-    dur = t[-1] + 1 / waveforms.FS
+    builtin = a.wave in BUILTIN
+    if builtin:
+        dur = BUILTIN[a.wave][0]
+        t, w = np.zeros(1), np.array([[-1.0, 1.0]] * 3)   # range check only: peak |AC| = amp
+    else:
+        t, w = waveforms.make(a.wave)
+        dur = t[-1] + 1 / waveforms.FS
     print(('LIVE' if a.live else 'DRY RUN (add --live)') + f'  {a.wave}: {dur:.1f} s, {t.size} samples/ch, '
           f'amp {a.amp:g}, pedestal {a.pedestal:g}, outputs {"ON (W2)" if a.outputs_on else "stay OFF (W1)"}')
     print(f'  amplifier input range {a.pedestal + a.amp * w.min():.0f}..{a.pedestal + a.amp * w.max():.0f} counts')
@@ -246,7 +292,7 @@ def main():
         for n in ELECTRODES:                      # back to back: the three ramps start together
             put(f'{PREFIX}_V{n}_OFFSET', a.pedestal, dry)
         if dry:
-            print(f'\n  [dry] would wait {a.ramp + 1:.0f} s, arm {len(ELECTRODES)} ArbitraryLoop streams '
+            print(f'\n  [dry] would wait {a.ramp + 1:.0f} s, arm {len(ELECTRODES)} {"built-in excitations" if builtin else "ArbitraryLoop streams"} '
                   f'at {a.clock} GPS now + {a.lead:g} s, play {dur:.1f} s, then stop and ramp down:')
             return 0                              # the finally block prints the stop sequence
         time.sleep(a.ramp + 1.0)
@@ -260,13 +306,16 @@ def main():
         now = fe_gps() if a.clock == 'fe' else local_gps()
         start = float(np.ceil(now + a.lead))      # ArbitraryLoop takes an integer GPS second
         print(f'\n  shared start GPS {start:.0f} ({a.clock} clock; FE now {fe_gps():.1f}, local now {local_gps():.1f})')
-        for k, n in enumerate(ELECTRODES):
-            exc.append(make_excitation(f'{PREFIX}_V{n}_EXC', a.amp * w[k], start))
+        if builtin:
+            exc = builtin_excitations(a.wave, a.amp, start)
+        else:
+            for k, n in enumerate(ELECTRODES):
+                exc.append(make_excitation(f'{PREFIX}_V{n}_EXC', a.amp * w[k], start))
         for e in exc:
             e.start(ramptime=0, wait=False)
         if a.clock == 'local':                    # the scorer and the NDS fetch work in the FE frame
             start = start + (fe_gps() - local_gps())
-        np.savez(os.path.join(run_dir, 'command.npz'), name=a.wave, fs=waveforms.FS, t=t, w=w,
+        np.savez(os.path.join(run_dir, 'command.npz'), name=a.wave, builtin=builtin, duration=dur, fs=waveforms.FS, t=t, w=w,
                  amp=a.amp, pedestal=a.pedestal, start_gps=start, outputs_on=a.outputs_on,
                  host_time_armed=time.time())
         print(f'  armed; playing {dur:.1f} s ...')
@@ -287,7 +336,7 @@ def main():
     print(f'\n  waiting {a.nds_lag:g} s for NDS frames ...')
     time.sleep(a.nds_lag)
     fetch_dq(start - 3, start + dur + 3, os.path.join(run_dir, 'out_dq.npz'))
-    print(f'\n  run folder: {run_dir}\n  score: python3 waveform_check.py {run_dir}')
+    print(f'\n  run folder: {run_dir}\n  score: python3 {"builtin_check.py" if builtin else "waveform_check.py"} {run_dir}')
     return 0
 
 
