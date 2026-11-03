@@ -140,10 +140,30 @@ def wait_complete(s, timeout):
     t0 = time.time()
     while time.time() - t0 < timeout:
         st = s.q('ACQ:STAT?').upper()
-        if 'COMP' in st or 'STOP' in st or 'BRE' in st:
+        if 'COMP' in st:                        # W2 bchirp: STOP right after SING did NOT mean a finished record
             return True
         time.sleep(1.0)
     return False
+
+
+def diag(s, out_dir, force_after=10.0, timeout=180.0):
+    """Scope-only test of the single-acquisition path (no drive): SING, log ACQ:STAT? every second, force a
+    trigger (*TRG) after `force_after` s, wait for COMP, then read and print what came back."""
+    s.write('SING', echo=True)
+    print('  errors after SING:', s.errors())
+    t0 = time.time(); forced = False; last = None
+    while time.time() - t0 < timeout:
+        st = s.q('ACQ:STAT?')
+        if st != last:
+            print(f'  {time.time() - t0:6.1f} s  ACQ:STAT? -> {st}')
+            last = st
+        if 'COMP' in st.upper():
+            break
+        if not forced and time.time() - t0 > force_after:
+            s.write('*TRG', echo=True); forced = True
+            print('  errors after *TRG:', s.errors())
+        time.sleep(1.0)
+    _read(s, out_dir, 'diag')
 
 
 def read(s, out_dir, label, stop=True, restart=True, wait=0.0):
@@ -210,7 +230,7 @@ def _read(s, out_dir, label):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('cmd', choices=('idn', 'probe', 'settings', 'read'))
+    p.add_argument('cmd', choices=('idn', 'probe', 'settings', 'read', 'diag'))
     p.add_argument('out_dir', nargs='?')
     p.add_argument('--label', default='')
     p.add_argument('--no-stop', action='store_true', help='refuse to read a running scope instead of stopping it')
@@ -223,6 +243,10 @@ def main():
             print(s.q('*IDN?'))
         elif a.cmd == 'probe':
             probe(s)
+        elif a.cmd == 'diag':
+            if not a.out_dir:
+                sys.exit('diag needs OUT_DIR')
+            diag(s, a.out_dir)
         elif a.cmd == 'settings':
             for k, v in settings(s).items():
                 print(f'  {k:16s} {v}')
