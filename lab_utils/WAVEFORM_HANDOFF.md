@@ -121,6 +121,20 @@ Scored on the Mac with `scope_check.py` (scope vs `out_dq_long.npz`, FE 14777932
   - Phase vs V2: V3 −119.43°, V4 +120.15°, i.e. 0.57° and 0.15° from ±120° (0.8 and 0.2 ms at 2 Hz).
 - **No spikes in this record.** The whole-record τ fit failed on the partial record (not meaningful).
 
+## W2 `bchirp_1793743924` (22:12Z, outputs on, amp 500 on pedestal 1000; after the V4 ground change at ~22:05Z)
+
+- **OUT_DQ:** W1 PASS on all three.
+- **Scope:** the first read came too early (my wait took STOP for "complete") and is garbage; kept as `scope_1793744012_w2.npz`. The completed 120 s record was read afterwards without touching the scope: `scope_1793744239_w2_complete.npz`.
+- **Response 0.3–10 Hz at the electrodes (`chirp_tf.py`, measured):**
+  - V2 gain: 0.01238–0.01241 V/count at every band, 0.3, 0.5, 0.7, 1, 1.5, 2, 3, 5, 7, 10 Hz. **Flat within ±0.15%.**
+  - V3 gain: 0.01256–0.01266 V/count, flat within ±0.4%. It is ~2% above V2.
+  - V3 vs V2 timing: within ±0.13 ms from 1 to 10 Hz (−0.009 ms at 10 Hz). At 0.3–0.7 Hz the estimate scatters by up to ~1.7 ms.
+  - Absolute phase is not reported: it depends on the arbitrary scope-clock alignment.
+- **V4: no signal at the scope.** CH4 shows 0.3–0.8 V peak-to-peak noise for the whole record, a fitted gain of 0.00008 V/count, although OUT_DQ V4 is exact.
+  - In `bsine` at 21:57Z, before the ground change, CH4 carried 14.3 V peak-to-peak.
+  - So since the change, V4's signal doesn't reach the scope, and possibly not the electrode. To check (Molly).
+- **The trigger** fired ~45 s into the chirp, not at the pedestal step (CH2 crosses 5 V repeatedly). The record still covers the whole run because the trigger sat at the screen centre.
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |
