@@ -7,7 +7,20 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   if it fails, the next step is a front-end model change.
 - **Background:** the C2 results it builds on are in `../analysis/c2_20261102/README.md`.
 
-## Current state (2026-11-02)
+## Current state (end of 2026-11-02): read this first
+
+- **EPICS matrix route:**
+  - F0 built; F1 and F1b ran on worker2 with outputs off.
+  - The field follows the commands, but EPICS writes apply only at 16 Hz (measured).
+  - The latency is not measured, and the post-step ringing is probably only the DAQ decimation filter.
+- **Model change approved (Molly builds it; `docs/DECISIONS.md` 2026-11-02):**
+  - `rcg/commutate.c` (tests: `rcg/test_commutate.py`, all pass).
+  - Simulink steps: `rcg/SIMULINK_EDITS.md`.
+  - worker2 side: `feedback_drive.py frontend`.
+- **Next, 2026-11-03 in the lab:**
+  1. The small-swing trap measurement (camera only).
+  2. **F2** through the EPICS route (runbook below; Molly watching).
+  3. Then the model change and **FE1**, outputs off (runbook below), on the same day or later.
 
 - **F0 (design and code, Mac): built.** Selftests pass; not yet run on worker2.
   - `feedback_drive.py`: the controller. Its `selftest` uses a simulated rotor and covers
