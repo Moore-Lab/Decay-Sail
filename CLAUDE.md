@@ -157,7 +157,8 @@ Design operating protocol (charge neutralisation, ramp rates, science-run ground
 | `lab_utils/track_drive.py` | LES frequency tracking during a drive |
 | `camera_utils/rotor_angle_loop.py` | rotor angle from the white dot (Basler) |
 | `lab_utils/stator_epics_drive.py` | **Deleted 2026-11-01** (never reached the electrodes). A replacement detent test, `stator_detent.py`, is on branch `detent-test`, not yet run |
-| `lab_utils/stator_awg_drive.py` | AWG route; superseded by DRVMTRX |
+| `lab_utils/awg_waveform_drive.py` | Test waveforms on V2–V4 through the AWG (built-in sine/chirp/bursts work; streamed arbitrary waveforms need the front-end clock fixed). `--scope` reads the RTB2004. Results: `lab_utils/WAVEFORM_HANDOFF.md` |
+| `lab_utils/stator_awg_drive.py` | AWG route; superseded by DRVMTRX. Passes `start` in ns, but python-awg 4.2.3 on worker2 expects GPS seconds, so it would never play (derived from the source 2026-11-03, not run) |
 | `lab_utils/stator_drive.py` | Physics reference only (torque/capture/ramp formulas); its backend cannot run |
 | `lab_utils/three_phase_drive.py` | Superseded; never zeroes `TRAMP` |
 | `lab_utils/sweep_oscillator_reverse.py` | Broken — its reversal cancels itself |
