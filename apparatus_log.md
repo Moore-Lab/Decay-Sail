@@ -30,6 +30,8 @@ verified on the scope; the model change is paused until then.
   start FE 1477793256 (two earlier attempts: scope stopped, then read too late). Bursts at the electrodes in order, aligned
   within 0.07 ms; ~0.0125 V/count; AC-coupling τ ≈ 5.6 s on V2/V4. Two unexplained 14 ms ±25 V spikes on all scope
   channels (21:42:49Z, 21:48:32Z), not in OUT_DQ.
+- **Wiring change (Molly, ~22:05Z):** the ground after the DAQ output was floated on **V4**. All the other channels already
+  had it floated; V4 was the only one that hadn't. Runs before this (including W2 `bburst_1793742522` and `bsine_1793742986`) had V4 grounded.
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
