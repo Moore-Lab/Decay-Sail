@@ -110,6 +110,17 @@ Scored on the Mac with `scope_check.py` (scope vs `out_dq_long.npz`, FE 14777932
   - So front-end "seconds" are ~0.12% short of real seconds (derived). A 10 Hz front-end signal is ~10.012 Hz in real time, and frequencies of real signals read in FE time come out ~0.12% low.
 - **A second 14 ms all-channel spike,** at 21:48:32Z, 9 s before the run started. It appears on CH1 (LES) too, at −0.09..+3.3 V, so it isn't only on the electrode lines. Not explained.
 
+## W2 `bsine_1793742986` (21:56Z, outputs on, amp 500 on pedestal 1000, `--scope`)
+
+- **OUT_DQ:** exact (W1 PASS).
+- **The scope record ended before the STOP:** it holds only t 25.3–29.8 s, ~4.5 s of the 10 s sine.
+  - The record is the last *completed* 60 s acquisition, not the 60 s up to the STOP (interpretation: at 5 s/div the scope is not in roll mode).
+  - Fix: trigger the scope on the pedestal step (Normal/Single, CH2 rising edge), with the trigger position near the left edge.
+- **2 Hz fit on the captured 3.7 s (sine + offset + slope):**
+  - Gain: V2 0.01238, V3 0.01250, V4 0.01276 V/count, the same as the `bburst` gains to 0.3%.
+  - Phase vs V2: V3 −119.43°, V4 +120.15°, i.e. 0.57° and 0.15° from ±120° (0.8 and 0.2 ms at 2 Hz).
+- **No spikes in this record.** The whole-record τ fit failed on the partial record (not meaningful).
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |
