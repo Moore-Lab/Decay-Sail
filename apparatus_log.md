@@ -32,6 +32,9 @@ verified on the scope; the model change is paused until then.
   channels (21:42:49Z, 21:48:32Z), not in OUT_DQ.
 - **Wiring change (Molly, ~22:05Z):** the ground after the DAQ output was floated on **V4**. All the other channels already
   had it floated; V4 was the only one that hadn't. Runs before this (including W2 `bburst_1793742522` and `bsine_1793742986`) had V4 grounded.
+- W2 `bchirp` (V4 floated), start FE 1477794662: V2/V3 at the electrodes flat 0.3–10 Hz (±0.15% / ±0.4%), V3–V2 timing
+  < 0.13 ms at 1–10 Hz; **V4 showed no signal at the scope** (OUT_DQ exact). Molly then **restored V4 to its previous
+  grounding** (~22:30Z); a retry with a different BNC cable is planned for 2026-11-04.
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
