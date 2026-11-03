@@ -73,9 +73,9 @@ def field_column(psi_deg):
 class Controller:
     """theta in, psi out. Pure: no I/O, so the selftest drives it with a simulated rotor."""
 
-    def __init__(self, lead=45.0, sign=-1, m=8, latency=0.04, vmin=6.0, nfit=5):
-        self.lead, self.sign, self.m, self.latency, self.vmin, self.nfit = lead, sign, m, latency, vmin, nfit
-        self.th = None; self.hist = []; self.w = 0.0; self.dir = 1
+    def __init__(self, lead=45.0, sign=-1, m=8, latency=0.04, vmin=6.0, nfit=5, nacc=9):
+        self.lead, self.sign, self.m, self.latency, self.vmin, self.nfit, self.nacc = lead, sign, m, latency, vmin, nfit, nacc
+        self.th = None; self.hist = []; self.w = 0.0; self.a = 0.0; self.dir = 1
 
     def update(self, t, theta_deg):
         """Unwrap, fit a line to the last nfit frames (angle and velocity at t, less noise than
@@ -84,11 +84,15 @@ class Controller:
             self.th = theta_deg
         else:
             self.th += (theta_deg - self.th + 180.0) % 360.0 - 180.0
-        self.hist.append((t, self.th)); self.hist = self.hist[-self.nfit:]
+        self.hist.append((t, self.th)); self.hist = self.hist[-max(self.nfit, self.nacc):]
         th_now = self.th
         if len(self.hist) >= 3:
-            tt = np.array([h[0] for h in self.hist]) - t; yy = np.array([h[1] for h in self.hist])
+            h = self.hist[-self.nfit:]
+            tt = np.array([x[0] for x in h]) - t; yy = np.array([x[1] for x in h])
             self.w, th_now = np.polyfit(tt, yy, 1)
+        if len(self.hist) >= self.nacc:              # acceleration (for the front-end prediction) from a longer quadratic fit
+            tt = np.array([x[0] for x in self.hist]) - t; yy = np.array([x[1] for x in self.hist])
+            self.a = 2 * np.polyfit(tt, yy, 2)[0]
         if abs(self.w) > self.vmin:
             self.dir = 1 if self.w > 0 else -1
         th_p = th_now + self.w * self.latency
