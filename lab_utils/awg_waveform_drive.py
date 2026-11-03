@@ -260,6 +260,8 @@ def main():
     p.add_argument('--clock', choices=('fe', 'local'), default='fe',
                    help='frame of the shared start time. fe = Y1:DAQ-DC0_GPS, which the old Excitation route '
                         'needed (2026-08-28); whether the SIStr stream route needs the same is untested: W0')
+    p.add_argument('--scope', action='store_true', help='read the RTB2004 right after the stop (scope_rtb.py)')
+    p.add_argument('--scope-dev', default='/dev/usbtmc1')
     p.add_argument('--live', action='store_true')
     a = p.parse_args()
     dry = not a.live
@@ -337,6 +339,19 @@ def main():
             pass
     if dry or not os.path.exists(os.path.join(run_dir, 'command.npz')):
         return 0
+    if a.scope:
+        # Read the scope straight after the stop, while the run is still on its screen (W2 2026-11-03: a read
+        # ~90 s later had scrolled the bursts off a 60 s screen). scope_rtb.read stops, reads, then RUNs.
+        try:
+            import scope_rtb
+            sc = scope_rtb.Scope(a.scope_dev)
+            try:
+                print('\n  reading the scope:')
+                scope_rtb.read(sc, run_dir, 'w2')
+            finally:
+                sc.close()
+        except Exception as err:
+            print(f'  ! scope read failed: {err}. If it timed out, power-cycle the scope before the next query.')
     print(f'\n  waiting {a.nds_lag:g} s for NDS frames ...')
     time.sleep(a.nds_lag)
     fetch_dq(start - 3, start + dur + 3, os.path.join(run_dir, 'out_dq.npz'))

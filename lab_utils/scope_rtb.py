@@ -35,6 +35,7 @@ import numpy as np
 
 DEV = '/dev/usbtmc1'
 CHANNELS = {1: 'LES_YAW', 2: 'V2', 3: 'V3', 4: 'V4'}
+MAX_RATE = 20000.0      # saved samples/s per channel (block-averaged down from the record)
 
 
 class Scope:
@@ -72,7 +73,11 @@ class Scope:
             raise RuntimeError(f'{cmd}: expected a binary block, got {raw[:60]!r}')
         nd = int(raw[1:2]); n = int(raw[2:2 + nd])
         data = raw[2 + nd:2 + nd + n]
-        return np.frombuffer(data, '<f4').astype(float)
+        # The RTB2004 sends REAL,32 MSB-first (W2 2026-11-03: '<f4' gave 1e-41..6e23, '>f4' gave volts).
+        y = np.frombuffer(data, '>f4').astype(np.float32)
+        if y.size and not np.all(np.abs(y[np.isfinite(y)]) < 1e4):
+            raise RuntimeError(f'{cmd}: values outside +-1e4 V after big-endian parse; byte order wrong?')
+        return y
 
     def errors(self):
         errs = []
@@ -151,19 +156,27 @@ def _read(s, out_dir, label):
         if int(vps) != 1:
             print(f'  ! CH{ch}: {int(vps)} values per sample (peak-detect?); keeping every first value')
             y = y[::int(vps)]
+        # keep at most MAX_RATE samples/s (block means: an anti-alias average), float32, to keep files small
+        tt = np.linspace(x0, x1, y.size, endpoint=False)
+        fs_rec = y.size / (x1 - x0) if x1 > x0 else 0
+        k = int(fs_rec // MAX_RATE) if fs_rec > MAX_RATE else 1
+        if k > 1:
+            m = (y.size // k) * k
+            y = y[:m].reshape(-1, k).mean(axis=1).astype(np.float32)
+            tt = tt[:m].reshape(-1, k).mean(axis=1)
         heads[ch] = (x0, x1, int(npts))
-        traces[ch] = y
-        print(f'  CH{ch} ({CHANNELS[ch]}): {y.size} points, {x0:+.4g} .. {x1:+.4g} s')
+        traces[ch] = (tt, y)
+        print(f'  CH{ch} ({CHANNELS[ch]}): {int(npts)} points read, {y.size} saved, {x0:+.4g} .. {x1:+.4g} s, '
+              f'{y.min():+.2f} .. {y.max():+.2f} V')
     info['errors_after'] = s.errors()
     if info['errors_after']:
         print('  scope errors:', info['errors_after'])
     os.makedirs(out_dir, exist_ok=True)
     stem = os.path.join(out_dir, f'scope_{int(host_time)}' + (f'_{label}' if label else ''))
     arrays = {}
-    for ch, y in traces.items():
-        x0, x1, n = heads[ch]
+    for ch, (tt, y) in traces.items():
         arrays[f'CH{ch}'] = y
-        arrays[f'CH{ch}_t'] = np.linspace(x0, x1, y.size, endpoint=False)
+        arrays[f'CH{ch}_t'] = tt
     np.savez(stem + '.npz', host_time=host_time, label=label, **arrays)
     with open(stem + '.json', 'w') as f:
         json.dump(dict(info, host_time=host_time, label=label, channels=CHANNELS,
