@@ -2,6 +2,7 @@
 """Read traces from the R&S RTB2004 over USB-TMC (worker2, /dev/usbtmc1). Read-only by default.
 
     python3 scope_rtb.py idn
+    python3 scope_rtb.py probe                    # one query at a time; stops at the first silent one
     python3 scope_rtb.py settings                 # timebase, channel scales, probe factors, state
     python3 scope_rtb.py read OUT_DIR [--label L] # all four channels -> OUT_DIR/scope_<host time>.npz/.csv
 
@@ -85,6 +86,24 @@ class Scope:
         os.close(self.fd)
 
 
+PROBE = ['*IDN?', 'ACQ:STAT?', 'TIM:SCAL?', 'CHAN2:STAT?', 'CHAN2:SCAL?', 'CHAN2:OFFS?', 'CHAN2:POS?',
+         'CHAN2:COUP?', 'PROB2:SET:ATT:MAN?', 'CHAN2:DATA:POIN?', 'CHAN2:DATA:HEAD?', 'FORM?']
+
+
+def probe(s):
+    """One query at a time, printed as it answers; stops at the first one that gets no reply, since a
+    timed-out query has left the scope's USB link stuck twice (2026-11-03; a power-cycle cleared it)."""
+    for c in PROBE:
+        print(f'  {c:22s}', end=' ', flush=True)
+        try:
+            print(s.q(c)[:120], flush=True)
+        except OSError as err:
+            print(f'NO REPLY ({err}). Stopping here: this spelling is the suspect. Power-cycle the scope before '
+                  f'the next query.')
+            return False
+    return True
+
+
 def settings(s):
     out = {'idn': s.q('*IDN?'), 'acq_state': s.q('ACQ:STAT?'),
            'tim_scale': s.q('TIM:SCAL?'), 'tim_pos': s.q('TIM:POS?'), 'tim_ref': s.q('TIM:REF?'),
@@ -142,7 +161,7 @@ def read(s, out_dir, label, stop):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('cmd', choices=('idn', 'settings', 'read'))
+    p.add_argument('cmd', choices=('idn', 'probe', 'settings', 'read'))
     p.add_argument('out_dir', nargs='?')
     p.add_argument('--label', default='')
     p.add_argument('--stop', action='store_true', help='send STOP if the scope is still running')
@@ -152,6 +171,8 @@ def main():
     try:
         if a.cmd == 'idn':
             print(s.q('*IDN?'))
+        elif a.cmd == 'probe':
+            probe(s)
         elif a.cmd == 'settings':
             for k, v in settings(s).items():
                 print(f'  {k:16s} {v}')
