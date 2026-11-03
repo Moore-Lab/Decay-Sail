@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-03 — Problem 1 (arbitrary waveforms): scope on USB; W0 AWG stream test, outputs off (worker2 agent; Molly approved)
+
+Branch `waveform-test`. Split agreed with the PI (Molly): first show arbitrary signals on V2–V4 up to ~10 Hz,
+verified on the scope; the model change is paused until then.
+- Scope RTB2004 on worker2 USB-TMC `/dev/usbtmc1` (udev rule by Molly); `*IDN?` answered twice, but later queries
+  wedged it twice (cause not found). CH1 LES YAW, CH2–4 = V2–V4. LAN: "no cable", unresolved.
+- W0 `awg_waveform_drive.py --wave pulse --amp 5000 --pedestal 6400 --live` (outputs off), start FE 1477788806.
+  Saw: front-end clock − worker2 clock = +15496.6 s; only the first 3.0 s of the waveform played; the stop hung
+  ("awgsendwaveform RPC error = 5") and was killed, leaving the pedestal up (outputs off).
+  Cleanup (Molly OK): `awg_reclaim.py` freed 4 slots, EXCMON 0, offsets ramped to 0, TRAMP 1; all resting.
+- Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
+
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
 
 Branch `feedback-drive` (4bb45fc). Live tracker gps1477756297 (0 dropped).
