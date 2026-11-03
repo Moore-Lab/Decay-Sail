@@ -26,6 +26,10 @@ verified on the scope; the model change is paused until then.
   Cleanup (Molly OK): `awg_reclaim.py` freed 4 slots, EXCMON 0, offsets ramped to 0, TRAMP 1; all resting.
 - W1 (outputs off, AWG built-ins, FE clock): `awg_waveform_drive.py --wave bburst --amp 5000 --pedestal 6400 --live`,
   start FE 1477790462; `--wave bchirp` (0.1→12 Hz, 60 s), start FE 1477790695; `--wave bsine`, start FE 1477791083. All three PASS by the proposed mark; clean stops.
+- W2 (outputs ON, electrodes connected, scope CH2–4 by BNC 1×): `--wave bburst --amp 500 --pedestal 1000 --outputs-on --scope --live`,
+  start FE 1477793256 (two earlier attempts: scope stopped, then read too late). Bursts at the electrodes in order, aligned
+  within 0.07 ms; ~0.0125 V/count; AC-coupling τ ≈ 5.6 s on V2/V4. Two unexplained 14 ms ±25 V spikes on all scope
+  channels (21:42:49Z, 21:48:32Z), not in OUT_DQ.
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
