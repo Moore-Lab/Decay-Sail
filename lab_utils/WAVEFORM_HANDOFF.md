@@ -48,6 +48,20 @@ Measured:
 
 Fix made after W0 (8ca0199): each stream's stop has a 10 s limit, and the pedestal drops only after EXCMON reads 0 for 3 s (tested on the Mac with a simulated hang and with live AC).
 
+## W2 grounded `bburst_1793746069` (22:47Z; all three grounded after the DAQ output since ~22:36Z)
+
+The scope was triggered by the pedestal step, after the pre-trigger wait. Full 120 s record, no spikes. `scope_check.py`: **PASS.** Measured, with today's earlier runs for comparison:
+
+| | burst gain, V/count | earlier runs | τ, s (whole-record residual) | earlier runs |
+|---|---|---|---|---|
+| V2 (was floated) | 0.01243 | 0.01241 | 5.69 (1.8%) | 5.69 (2.2%) |
+| V3 (was floated) | 0.01268 | 0.01250 | 5.56 (1.7%) | 4.83 (6.6%), poor fit |
+| V4 (grounded throughout, apart from the ~22:05–22:20 float) | 0.01275 | 0.01276 | 5.43 (1.9%) | 5.57 (2.1%) |
+
+- **Joint burst:** V3 and V4 within +0.00 and −0.01 ms of V2.
+- **V3 now fits the one-pole AC-coupling model like the others.** Its odd slow response appeared only while it was floated (one run each way, so not yet repeated).
+- **The FE/scope clock-rate difference** came out at +1.230 ms/s again.
+
 ## Next (as of 2026-11-03 evening)
 
 - **Problem 1, status:**
