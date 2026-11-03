@@ -147,3 +147,60 @@ Also check in OUT_DQ whether the three pedestals now ramp together. They are wri
 in C2 sequential writes staggered them by up to 125 ms (`c2_checks.py` part 6 does this check).
 If check 2 sees only ~1 step for many commanded changes, the LOAD_MATRIX record probably acts
 only on a 0 → 1 edge: rerun step 4 with `--load-toggle`.
+
+## F2 runbook: first outputs-on test, EPICS matrix route (Molly in the lab and watching)
+
+Goal: does pushing along the motion grow the swing, and which lead does it? Pass mark (agreed 2026-11-02):
+one lead grows the swing and its opposite shrinks it, in two scans.
+1. `cd ~/rds-code/Decay-Sail && git fetch && git checkout feedback-drive && git pull`, then
+   `python3 lab_utils/feedback_drive.py selftest` → `SELFTEST PASSED`.
+2. Both lights on. Close `grab_basler.py`. Live tracker with publishing, in the `ueye` env:
+   `cd camera_utils/tracking && /home/controls/.conda/envs/ueye/bin/python live_blob_track.py --outdir ~/stator_detent --show --publish 127.0.0.1:5005`
+   Molly checks the red circle is on the blob. After 30 s, the median ncc must be ≥ 0.9 (the controller's
+   watchdog trips at 0.8).
+3. **The swing must be ±10–30°.**
+   - If the rotor is nearly still, give it a swing first with one C2-style hold:
+     `cd lab_utils && python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 30 --enable-outputs --live`.
+     On 2026-11-02 that took the rotor from rest to ~±40°.
+   - Then wait ≥ 60 s with the drive off.
+   - If it is swinging more than ±40°, wait or record it as is (it decays with τ ≈ 1.5–4 h).
+4. **Scan 1:**
+   `cd lab_utils && python3 feedback_drive.py run --scan default --dwell 10 --amp 5000 --rate 10 --live --enable-outputs`
+   That is 8 leads × 10 s = 80 s, at amplitude 5000 on the 6400 pedestal (±1400 counts of margin for the
+   output ringing). Molly watches the window. Ctrl-C stops it with a full teardown.
+5. Wait ≥ 60 s with the drive off. **Scan 2:** the same command.
+6. If neither scan moves the swing visibly, run one more scan with `--sign 1` (it covers a changed channel map).
+7. Stop the tracker. Fetch `Y1:RDS-OUTS_V2,V3,V4_OUT_DQ` over the whole session.
+   - rclone to `dropbox:Microspheres/TFINER/data/feedback/f2/`: the video, its `.csv`, `blob_live_gps*.csv`, the
+     `feedback_*.csv` logs and the h5 files.
+   - Write a raw report: commands, front-end GPS per run, anything odd.
+8. `git checkout main`.
+
+On the Mac: swing amplitude per 10 s step from `blob_live` against the lead in the log (growth − decay per pair).
+
+## FE1 runbook: after the y1rds model change, outputs off (nothing reaches the chamber)
+
+Preconditions: the model is rebuilt and restarted with the edits in `rcg/SIMULINK_EDITS.md`, and
+`commutate.c` is at `/opt/rtcds/userapps/mastqg/src/commutate.c`.
+1. **The old path is unchanged:**
+   - `cd lab_utils && python3 stator_osc_drive.py status` (forward matrix, gains 0).
+   - `caget Y1:RDS-OUTS_COMMSEL Y1:RDS-OUTS_COMM_ENABLE Y1:RDS-OUTS_COMM_WDOG Y1:RDS-OUTS_COMM_AMP` → all 0.
+   - Clean-start hold, outputs off: `python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`.
+2. **Replay tracker** (no camera), as in F1:
+   `cd camera_utils/tracking && python3 live_blob_track.py --replay /home/controls/stator_detent/output_basler_gps1477428272.avi --replay-realtime --centre 132.3,180.6 --outdir /tmp/fe1 --snapshot "" --publish 127.0.0.1:5005`
+3. **Commutation, outputs off:**
+   `cd lab_utils && python3 feedback_drive.py frontend --lead 45 --duration 60 --latency 0.06 --live`
+4. **Front-end watchdog test, outputs off:**
+   `python3 feedback_drive.py frontend --lead 45 --duration 15 --freeze-at 8 --live`
+   It stops sending at 8 s and leaves ENABLE at 1. Pass: the printed `COMM_GAIN` falls to 0 within ~1 s
+   (WDOG 0.5 s + 0.5 s ramp) and stays 0.
+5. Stop the tracker. Fetch `OUTS_V2,V3,V4_OUT_DQ` over steps 1–4. rclone them with the `feedback_*.csv` logs to
+   `dropbox:Microspheres/TFINER/data/feedback/fe1/`, with a raw report. Then `git checkout main`.
+
+Pass marks (Mac, proposed):
+- The OUT_DQ field angle moves smoothly between the 16 Hz updates: no 1/16 s staircase, and per-sample steps
+  ≤ ~2° except at direction flips.
+- It follows −8·θ + lead from the log, with coherence ≥ 0.9 at the best lag.
+- The field size equals `--amp` within 1%.
+- The step 4 field drops to 0 within 1 s of the freeze.
+- The step 1 hold starts at 0.1000 Hz with no glide.

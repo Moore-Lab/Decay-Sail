@@ -367,11 +367,169 @@ def run(args):
         log.close()
 
 
+def run_frontend(args):
+    """Mode 'frontend': the y1rds commutation block (lab_utils/rcg/commutate.c, after the model change)
+    points the field; worker2 only reports the camera angle. Each frame it writes THETA (unwrapped deg),
+    OMEGA (deg/s), ALPHA (deg/s^2) and SEQ to Y1:RDS-OUTS_COMM_*. Settings: M, SIGN, LEAD, LATENCY, WDOG,
+    VMIN, AMP. Start: pedestal (back-to-back), outputs (if --enable-outputs), DRVON 1, first fresh angle,
+    COMMSEL 1, AMP, ENABLE 0 -> 1 (re-arms the front-end watchdog). Stop: ENABLE 0 (the block ramps its gain
+    to 0 in 0.5 s), COMMSEL 0, AMP 0, DRVON 0, pedestal down, then outputs restored. Oscillator gains are
+    not touched (they must be 0: preflight)."""
+    dry = not args.live
+    if not dry:
+        from epics import caget, caput
+    else:
+        caget = lambda pv, **k: 0.0
+        caput = None
+    C = f'{PREFIX}_COMM'
+
+    def put(pv, val, wait=True, echo=True):
+        if echo:
+            print(f'    {"[dry] " if dry else ""}{pv:<34} <- {val:g}')
+        if not dry:
+            caput(pv, float(val), wait=wait, timeout=3.0)
+
+    def fe_gps():
+        return caget('Y1:DAQ-DC0_GPS') if not dry else float('nan')
+
+    phases = (2, 3, 4)
+    if args.amp <= 0 or 2 * args.amp > LIMIT:
+        sys.exit('! --amp must be in (0, %d]' % (LIMIT // 2))
+    if not dry and caget(f'{C}_THETA') is None:
+        sys.exit(f'! {C}_THETA not found: the commutation model change is not installed')
+    g = [caget(f'{PREFIX}_DRV_SINGAIN'), caget(f'{PREFIX}_DRV_COSGAIN')]
+    off = [caget(f'{PREFIX}_V{n}_OFFSET') for n in (1, 2, 3, 4)]
+    if not dry and (any(abs(v or 0) > 1e-6 for v in g) or any(abs(v or 0) > 1e-6 for v in off)):
+        sys.exit(f'! refusing: oscillator gains {g} / offsets {off} not all 0 (another drive running?)')
+    sw2_before = {n: int(caget(f'{PREFIX}_V{n}_SW2R') or 0) for n in (1, 2, 3, 4)}
+    vtramp = {n: float(caget(f'{PREFIX}_V{n}_TRAMP') or 0) for n in (1, 2, 3, 4)}
+    print('=' * 70)
+    print(f'  feedback drive, FRONT-END commutation: lead {args.lead}, sign {args.sign}, m {args.m}, '
+          f'latency {args.latency} s, watchdog {args.wdog} s')
+    print(f'  amp {args.amp:g}, pedestal {args.amp:g}; outputs {"ON" if args.enable_outputs else "OFF -- nothing reaches the chamber"}'
+          f'; {"DRY RUN" if dry else "LIVE"}')
+    print('=' * 70)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); sock.bind(('127.0.0.1', args.port)); sock.settimeout(0.05)
+    os.makedirs(os.path.dirname(os.path.abspath(args.log)), exist_ok=True)
+    log = open(args.log, 'w', buffering=1)
+    log.write('# feedback_drive.py %s\n' % ' '.join(sys.argv[1:]))
+    log.write('host_time,frame,frame_host_time,angle_deg,ncc,theta_sent,w_dps,a_dps2,seq,lead,write_ms\n')
+    ctrl = Controller(lead=args.lead, sign=args.sign, m=args.m, latency=args.latency, vmin=args.vmin)
+    leads = (SCAN_DEFAULT if args.scan == 'default' else [float(v) for v in args.scan.split(',')]) if args.scan else [args.lead]
+    brought_up = False; seq = 0
+    try:
+        print('\n  bring-up:')
+        put(f'{C}_ENABLE', 0); put(f'{PREFIX}_COMMSEL', 0); put(f'{C}_AMP', 0)
+        for k, v in (('M', args.m), ('SIGN', args.sign), ('LEAD', leads[0]), ('LATENCY', args.latency),
+                     ('WDOG', args.wdog), ('VMIN', args.vmin)):
+            put(f'{C}_{k}', v)
+        for n in phases:
+            put(f'{PREFIX}_V{n}_OFFSET', args.amp, wait=False)
+        if args.enable_outputs:
+            for n in phases:
+                if not sw2_before[n] & SW2_OUTPUT_ON:
+                    put(f'{PREFIX}_V{n}_SW2S', sw2_before[n] | SW2_OUTPUT_ON)
+        brought_up = True
+        if not dry:
+            w = max(vtramp[n] for n in phases) + 1.0
+            print(f'    waiting {w:.0f} s for the pedestal ramp'); time.sleep(w)
+        put(f'{PREFIX}_DRVON', 1)
+        if dry:
+            print('  [dry] would wait for a fresh angle, write THETA/OMEGA/ALPHA/SEQ, COMMSEL 1, AMP, ENABLE 0 -> 1,')
+            print('        then write THETA/OMEGA/ALPHA/SEQ once per received angle')
+            return
+        t_wait = time.time()
+        while True:
+            if time.time() - t_wait > 5.0:
+                raise RuntimeError('no fresh angle from the tracker in 5 s -- commutation never enabled')
+            try:
+                k, ht, ang, ncc = sock.recv(256).decode().split(',')
+            except socket.timeout:
+                continue
+            if time.time() - float(ht) < 0.1:
+                ctrl.update(float(ht), float(ang)); break
+
+        def send():
+            nonlocal seq
+            seq += 1
+            for kk, vv in (('THETA', ctrl.th), ('OMEGA', ctrl.w), ('ALPHA', ctrl.a), ('SEQ', seq)):
+                put(f'{C}_{kk}', vv, echo=False)
+        send()
+        put(f'{PREFIX}_COMMSEL', 1); put(f'{C}_AMP', args.amp)
+        put(f'{C}_ENABLE', 0); put(f'{C}_ENABLE', 1)
+        fe0, h0 = fe_gps(), time.time()
+        log.write('# loop_start host_time %.6f fe_gps %.0f\n' % (h0, fe0))
+        print(f'  loop start, front-end GPS {fe0:.0f}; lead {leads[0]:g}')
+        t_start = time.time(); last_fresh = time.time(); low = 0; k_lead = 0; t_lead = t_start; last_write = 0.0
+        frozen = False; last_gain_print = 0.0
+        while True:
+            now = time.time()
+            if now - t_start >= args.duration * (len(leads) if args.scan else 1):
+                print('  end of run'); break
+            if args.scan and now - t_lead >= args.dwell and k_lead + 1 < len(leads):
+                k_lead += 1; t_lead = now; put(f'{C}_LEAD', leads[k_lead])
+                print(f'    lead {leads[k_lead]:g}  (front-end GPS {fe_gps():.0f})')
+            if now - last_fresh > args.stale:
+                print(f'! watchdog: no fresh angle for {now - last_fresh:.2f} s'); break
+            try:
+                pkt = sock.recv(256)
+            except socket.timeout:
+                continue
+            now = time.time()
+            k, ht, ang, ncc = pkt.decode().split(',')
+            k, ht, ang, ncc = int(k), float(ht), float(ang), float(ncc)
+            if now - ht > 0.1:
+                continue
+            last_fresh = now
+            low = low + 1 if ncc < args.ncc_min else 0
+            if low >= 5:
+                print(f'! watchdog: ncc < {args.ncc_min} for 5 frames'); break
+            ctrl.update(ht, ang)
+            if args.freeze_at and now - t_start >= args.freeze_at:
+                if not frozen:
+                    frozen = True
+                    print(f'  FREEZE: stopped sending at {now - t_start:.1f} s (front-end GPS {fe_gps():.0f}); '
+                          f'ENABLE left at 1 so the FRONT-END watchdog must cut the drive')
+                if now - last_gain_print > 0.25:
+                    last_gain_print = now
+                    print(f'    COMM_GAIN {caget(f"{C}_GAIN")}  t {now - t_start:.2f} s')
+                continue
+            if args.rate > 0 and now - last_write < 1.0 / args.rate:
+                continue
+            last_write = now
+            t_w0 = time.time(); send()
+            log.write('%.6f,%d,%.6f,%.3f,%.3f,%.4f,%.3f,%.2f,%d,%g,%.2f\n' % (
+                time.time(), k, ht, ang, ncc, ctrl.th, ctrl.w, ctrl.a, seq, leads[k_lead], 1e3 * (time.time() - t_w0)))
+    except KeyboardInterrupt:
+        print('\n  Ctrl-C')
+    except RuntimeError as e:
+        print(f'\n! {e}')
+    finally:
+        if brought_up and not dry:
+            print(f'\n  stopping (front-end GPS {fe_gps():.0f}):')
+            put(f'{C}_ENABLE', 0)
+            time.sleep(1.0)                          # the block ramps its gain to 0 in 0.5 s
+            put(f'{PREFIX}_COMMSEL', 0); put(f'{C}_AMP', 0)
+            put(f'{PREFIX}_DRVON', 0)
+            for n in phases:
+                put(f'{PREFIX}_V{n}_OFFSET', 0, wait=False)
+            w = max(float(caget(f'{PREFIX}_V{n}_TRAMP') or 0) for n in phases) + 1.0
+            time.sleep(w)
+            for n in phases:
+                cur = int(caget(f'{PREFIX}_V{n}_SW2R') or 0)
+                want = (cur & ~SW2_OUTPUT_ON) | (sw2_before[n] & SW2_OUTPUT_ON)
+                if want != cur:
+                    put(f'{PREFIX}_V{n}_SW2S', want)
+            offs = [caget(f'{PREFIX}_V{n}_OFFSET') for n in phases]
+            print(f'  offsets now {offs}; COMM_GAIN {caget(f"{C}_GAIN")}; front-end GPS {fe_gps():.0f}; log {args.log}')
+        log.close()
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == 'selftest':
         sys.exit(selftest())
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('mode', choices=['run'])
+    p.add_argument('mode', choices=['run', 'frontend'], help='run = EPICS matrix route; frontend = y1rds commutation block')
     p.add_argument('--lead', type=float, default=45.0, help='electrical degrees ahead along the motion')
     p.add_argument('--sign', type=int, default=-1, choices=[-1, 1])
     p.add_argument('--m', type=int, default=8)
@@ -385,7 +543,9 @@ def main():
     p.add_argument('--stale', type=float, default=0.25)
     p.add_argument('--ncc-min', type=float, default=0.8)
     p.add_argument('--port', type=int, default=5005)
-    p.add_argument('--rate', type=float, default=10.0, help='max field updates per second (0 = every frame). '
+    p.add_argument('--wdog', type=float, default=0.5, help='frontend: front-end watchdog, s without a new SEQ')
+    p.add_argument('--freeze-at', type=float, default=0.0, help='frontend, OUTPUTS-OFF TEST ONLY: stop sending after S s but keep ENABLE 1 (tests the front-end watchdog)')
+    p.add_argument('--rate', type=float, default=None, help='max updates per second (0 = every frame; default 10 for run, 25 for frontend, above the 16 Hz EPICS tick). '
                    'F1 2026-11-02 at every frame (~50/s, no wait) measured a ~1.5-2.6 s delay')
     p.add_argument('--no-wait', action='store_true', help='send writes without waiting for completion (the F1 2026-11-02 mode)')
     p.add_argument('--load-toggle', action='store_true', help='write LOAD_MATRIX 0 then 1 each frame '
@@ -396,7 +556,11 @@ def main():
     args = p.parse_args()
     if args.scan:
         args.duration = args.dwell
-    run(args)
+    if args.freeze_at and args.enable_outputs:
+        sys.exit('! --freeze-at is for the outputs-off watchdog test only')
+    if args.rate is None:
+        args.rate = 25.0 if args.mode == 'frontend' else 10.0
+    run_frontend(args) if args.mode == 'frontend' else run(args)
 
 
 if __name__ == '__main__':

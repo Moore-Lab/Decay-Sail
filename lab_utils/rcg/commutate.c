@@ -26,7 +26,7 @@
 // SIN/COS carry the amplitude like the oscillator's SINGAIN/COSGAIN do, so DRVMTRX and the V{n}
 // modules are used unchanged (forward matrix, V{n}_LIMIT 12800, pedestal on V{n}_OFFSET).
 // Law (same as lab_utils/feedback_drive.py Controller): psi = SIGN*M*theta_pred + dir*LEAD,
-// theta_pred = THETA + OMEGA*tau + ALPHA*tau^2/2, tau = time since SEQ last changed + LATENCY;
+// theta_pred = THETA + OMEGA*tau + ALPHA*tau^2/2, tau = time since THETA or SEQ last changed + LATENCY;
 // dir = sign of the predicted velocity OMEGA + ALPHA*tau, with hysteresis.
 // No libm: sincos() is provided by the RCG build (inlineMath); the test harness supplies its own.
 void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
@@ -34,6 +34,8 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     static double t_now = 0.0;         // s since model start (cycle count / FE_RATE)
     static double t_upd = 0.0;         // time SEQ last changed
     static double seq_prev = -1.0e300;
+    static double theta_prev = -1.0e300;
+    static double t_seq = 0.0;         // time SEQ last changed (watchdog)
     static double gain = 0.0;
     static double dir = 1.0;
     static double en_prev = 0.0;
@@ -53,17 +55,24 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     double dt, tau, w_p, th_p, psi, turns, s, c, target, step;
 
     t_now += 1.0 / (double) FE_RATE;
-    if (seq != seq_prev) {
-        seq_prev = seq;
+    // A new camera update: THETA or SEQ changed. worker2 writes them as separate EPICS records, so
+    // they can land on different 16 Hz ticks; the prediction restarts at whichever arrives first.
+    if (seq != seq_prev || theta != theta_prev) {
         t_upd = t_now;
     }
+    if (seq != seq_prev) {
+        t_seq = t_now;                 // the watchdog follows SEQ only
+    }
+    seq_prev = seq;
+    theta_prev = theta;
     if (enable > 0.5 && en_prev <= 0.5) {
         tripped = 0;                   // re-arm on a fresh enable
         t_upd = t_now;
+        t_seq = t_now;
     }
     en_prev = enable;
     dt = t_now - t_upd;
-    if (wdog > 0.0 && dt > wdog) {
+    if (wdog > 0.0 && t_now - t_seq > wdog) {
         tripped = 1;
     }
     if (wdog > 0.0 && dt > wdog) {
