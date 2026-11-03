@@ -35,6 +35,8 @@ verified on the scope; the model change is paused until then.
 - W2 `bchirp` (V4 floated), start FE 1477794662: V2/V3 at the electrodes flat 0.3–10 Hz (±0.15% / ±0.4%), V3–V2 timing
   < 0.13 ms at 1–10 Hz; **V4 showed no signal at the scope** (OUT_DQ exact). Molly then **restored V4 to its previous
   grounding** (by ~22:20Z); a retry with a different BNC cable is planned for 2026-11-04.
+- **Wiring change (Molly, by ~22:36Z, on her PI's advice):** V2 and V3 changed to **grounded** after the DAQ output, so all three
+  electrodes are now grounded (the ground only needs floating for a direct DAQ-to-scope connection; here the DAQ feeds the HV amp).
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
