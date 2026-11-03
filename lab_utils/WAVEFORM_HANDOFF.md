@@ -79,7 +79,7 @@ Re-scored on the Mac from the Dropbox files; the numbers match worker2's.
   - The recording left 1400..11400 by at most ~110 counts (V3 1287, V4 11511), only at the first sample after the start.
   - The sweep starts at full amplitude, so V3 and V4 step by ~4300 counts at t = 0. That is ~2.5% overshoot in the recording after a sharp step.
   - After 60 s the sweep restarts (restart = sweeptime) until the stop at ~61 s.
-- **`bsine`:** not run (Molly skipped it; the chirp covers 2 Hz).
+- **`bsine_1793740354`: PASS.** Amplitude 5000.1 on all three, phases exactly ±120.00° (reversed), residual 0.00%, clean stop.
 - **Before W2 (proposed):** a 0.5 s amplitude phase-in on `bchirp`, and built-in stops with a 0.5 s gain ramp, so there are no full-amplitude steps at the electrodes.
 
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
