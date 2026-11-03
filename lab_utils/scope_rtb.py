@@ -8,11 +8,12 @@
 
 Setup (2026-11-03): worker2 sees the scope as /dev/usbtmc1 (USB mode TMC; udev rule
 /etc/udev/rules.d/99-rs-scope.rules gives group plugdev rw). Channel map (Molly 2026-11-03):
-CH1 = LES YAW, CH2 = V2, CH3 = V3, CH4 = V4. Probes 10x on the amplifier outputs.
+CH1 = LES YAW, CH2 = V2, CH3 = V3, CH4 = V4. Plain BNC coax from the amplifier outputs (1x), DC coupled.
 
-`read` takes what the scope has ACQUIRED. Stop the scope (Run/Stop key) after the waveform
-has played, then run `read`. It refuses if the scope is still running, unless --stop is given,
-which sends STOP (the only acquisition state change this script makes; printed).
+`read` takes what the scope has ACQUIRED. Molly keeps the scope running, so by default `read` sends
+STOP (freezing the last screenful, e.g. ~60 s at 5 s/div), transfers the traces, then sends RUN to put
+it back as it was (Molly 2026-11-03). Both are printed. --no-restart leaves it stopped; --no-stop refuses
+to read a running scope instead.
 It does change two TRANSFER settings, printed when sent: FORM REAL,32 (binary floats) and
 CHANn:DATA:POIN DMAX (the full acquired record, not just the display points). Neither changes
 what the scope acquires or shows.
@@ -46,7 +47,7 @@ class Scope:
         os.write(self.fd, (cmd + '\n').encode())
 
     def read_raw(self):
-        out = b''
+        out = bytearray()
         while True:
             chunk = os.read(self.fd, 1 << 20)
             out += chunk
@@ -55,9 +56,9 @@ class Scope:
                 if len(out) >= 2 + nd:
                     n = int(out[2:2 + nd])
                     if len(out) >= 2 + nd + n:
-                        return out
+                        return bytes(out)
             elif out.endswith(b'\n'):
-                return out
+                return bytes(out)
 
     def q(self, cmd):
         self.write(cmd)
@@ -119,14 +120,23 @@ def settings(s):
     return out
 
 
-def read(s, out_dir, label, stop):
+def read(s, out_dir, label, stop=True, restart=True):
     st = s.q('ACQ:STAT?')
+    stopped_here = False
     if 'STOP' not in st.upper() and 'COMP' not in st.upper() and 'BRE' not in st.upper():
         if not stop:
-            sys.exit(f'! scope acquisition state is {st!r}: press Run/Stop on the scope after the waveform has '
-                     f'played, then read again (or pass --stop).')
+            sys.exit(f'! scope acquisition state is {st!r}: stop it first, or drop --no-stop.')
         s.write('STOP', echo=True)
         time.sleep(0.5)
+        stopped_here = True
+    try:
+        _read(s, out_dir, label)
+    finally:
+        if stopped_here and restart:
+            s.write('RUN', echo=True)
+
+
+def _read(s, out_dir, label):
     host_time = time.time()
     info = settings(s)
     s.write('FORM REAL,32', echo=True)
@@ -166,7 +176,8 @@ def main():
     p.add_argument('cmd', choices=('idn', 'probe', 'settings', 'read'))
     p.add_argument('out_dir', nargs='?')
     p.add_argument('--label', default='')
-    p.add_argument('--stop', action='store_true', help='send STOP if the scope is still running')
+    p.add_argument('--no-stop', action='store_true', help='refuse to read a running scope instead of stopping it')
+    p.add_argument('--no-restart', action='store_true', help='leave the scope stopped after the read')
     p.add_argument('--dev', default=DEV)
     a = p.parse_args()
     s = Scope(a.dev)
@@ -181,7 +192,7 @@ def main():
         else:
             if not a.out_dir:
                 sys.exit('read needs OUT_DIR')
-            read(s, a.out_dir, a.label, a.stop)
+            read(s, a.out_dir, a.label, stop=not a.no_stop, restart=not a.no_restart)
     finally:
         s.close()
 
