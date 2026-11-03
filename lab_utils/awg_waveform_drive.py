@@ -121,11 +121,41 @@ def checks(amp, ped, w, outputs_on):
 def stop_all(exc, state, ramp, outputs_on, dry):
     """AC first (and wait for it), then the pedestal ramps down, then switches back."""
     print('\n  stopping:')
+    # W0 (2026-11-03): ArbitraryLoop.stop() hung on "awgsendwaveform RPC error = 5" and never returned,
+    # so the pedestal was left up. Each stop now runs in a daemon thread with a 10 s limit; a hung stop is
+    # reported and abandoned (run awg_reclaim.py afterwards), and the pedestal only drops once EXCMON
+    # confirms no AC on V2..V4.
+    import threading
+    hung = []
     for e in exc:
-        try:
-            e.stop(ramptime=0)                  # ArbitraryLoop: joins the thread, aborts and closes the stream
-        except Exception as err:
-            print(f'    ! stop: {err}')
+        def _stop(e=e):
+            try:
+                e.keep_running = False
+                e.stop(ramptime=0)              # ArbitraryLoop: joins the thread, aborts and closes the stream
+            except Exception as err:
+                print(f'    ! stop: {err}')
+        th = threading.Thread(target=_stop, daemon=True)
+        th.start()
+        th.join(10.0)
+        if th.is_alive():
+            hung.append(getattr(e, 'chan', '?'))
+    if hung:
+        print(f'    ! stop did not return within 10 s on {hung}: abandoned. Run awg_reclaim.py as its own process.')
+    if exc and not dry:
+        quiet_since, t0 = None, time.time()
+        while time.time() - t0 < 15.0:         # EXCMON is a 16 Hz monitor: require 3 s of continuous zero
+            ex = {n: caget(f'{PREFIX}_V{n}_EXCMON') or 0.0 for n in ELECTRODES}
+            if all(abs(v) < 1.0 for v in ex.values()):
+                quiet_since = quiet_since or time.time()
+                if time.time() - quiet_since >= 3.0:
+                    break
+            else:
+                quiet_since = None
+            time.sleep(0.1)
+        else:
+            print(f'    ! EXCMON still nonzero {ex}: AC may be live. Pedestal LEFT UP (it must outlive the AC).\n'
+                  f'      Run awg_reclaim.py, check EXCMON is 0, then set V2..V4_OFFSET 0 by hand.')
+            return
     if exc:
         time.sleep(1.0)
     for n in ELECTRODES:
