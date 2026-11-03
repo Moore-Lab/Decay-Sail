@@ -48,6 +48,22 @@ Measured:
 
 Fix made after W0 (8ca0199): each stream's stop has a 10 s limit, and the pedestal drops only after EXCMON reads 0 for 3 s (tested on the Mac with a simulated hang and with live AC).
 
+## Next (as of 2026-11-03 evening)
+
+- **Problem 1, status:**
+  - The front-end side passes: built-in sine, chirp and bursts are exact on V2–V4 and aligned to well under 1 ms (W1).
+  - At the electrodes (W2, amp 500 on 1000): V2 and V3 are flat 0.3–10 Hz with timing < 0.13 ms. V4 is checked only on bursts and the 2 Hz sine, before the ground change.
+  - Streamed arbitrary waveforms wait for the front-end clock fix (W0; question for Alma).
+- **V4 grounding:** Molly floated V4's DAQ-output ground at ~22:05Z to match the other channels. V4 then showed no signal at the scope, so she reverted it (~22:30Z). She'll retry with a different BNC cable on 2026-11-04, then repeat W2 `bburst` and `bchirp` and check CH4.
+- **Scope capture:**
+  - `--scope` arms a single acquisition (SING) and waits for COMP before reading.
+  - The trigger (CH2 rising, 5 V) fires on the first crossing, which may be during the chirp. The record is still complete with the trigger at the screen centre at 10 s/div (±60 s).
+  - The scope-only `scope_rtb.py diag` is written, but not run.
+- **Unexplained, open:**
+  - The two 14 ms ±25 V all-channel scope spikes.
+  - V3's slow response doesn't fit a one-pole decay.
+  - The FE clock is 0.12% fast.
+
 ## Built-in route (Molly OK 2026-11-03, after W0)
 
 The AWG server makes these waveforms itself, so there's no streaming and no dependence on worker2's clock. The start time is in the front-end frame, as for the August sines. They're added to `awg_waveform_drive.py` as `--wave bsine|bchirp|bburst` and scored by `builtin_check.py`, whose `selftest` passes.
