@@ -18,7 +18,12 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   - Simulink steps: `rcg/SIMULINK_EDITS.md`.
   - worker2 side: `feedback_drive.py frontend`.
 - **Next, 2026-11-03 in the lab:**
-  1. The small-swing trap measurement (camera only).
+  1. The small-swing trap measurement, camera only:
+     - quiet the rotor; both lights on; no drive;
+     - run `/home/controls/.conda/envs/ueye/bin/python live_blob_track.py --outdir ~/stator_detent --show`
+       from `camera_utils/tracking` for ~10 min;
+     - rclone the video, its `.csv` and `blob_live` to `dropbox:Microspheres/TFINER/videos/`.
+     It gives the trap frequency at small swing (Mac: `analysis/ringdown_20261102/ringdown.py` method).
   2. **F2** through the EPICS route (runbook below; Molly watching).
   3. Then the model change and **FE1**, outputs off (runbook below), on the same day or later.
 
@@ -82,7 +87,8 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
     proven):** it is causal, alternates near Nyquist and decays over ~12 samples. The real output
     should step cleanly.
   - **To prove it:** read the module output as a 2048 Hz test point during an outputs-off replay loop.
-    Until then, run F2 at `--amp 5000` on the 6400 pedestal, which leaves ±1400 counts of margin.
+    Until then, run F2 at `--amp 5000 --pedestal 6400` (range 1400–11400, ±1400 counts of margin). `--pedestal` was
+    added 2026-11-02 evening; before that the pedestal equalled `--amp`, which would have left no margin.
 - **Correction to the F1 "~1.5–2.6 s late" finding.** That delay, and F1b's 3.84 s, are relative to the
   front-end time read from `Y1:DAQ-DC0_GPS` at loop start. DC0 is the data concentrator, and its
   GPS may itself lag the front end by seconds (assumed, not checked). The 1.2 s difference between
@@ -178,9 +184,9 @@ one lead grows the swing and its opposite shrinks it, in two scans.
    - Then wait ≥ 60 s with the drive off.
    - If it is swinging more than ±40°, wait or record it as is (it decays with τ ≈ 1.5–4 h).
 4. **Scan 1:**
-   `cd lab_utils && python3 feedback_drive.py run --scan default --dwell 10 --amp 5000 --rate 10 --live --enable-outputs`
-   That is 8 leads × 10 s = 80 s, at amplitude 5000 on the 6400 pedestal (±1400 counts of margin for the
-   output ringing). Molly watches the window. Ctrl-C stops it with a full teardown.
+   `cd lab_utils && python3 feedback_drive.py run --scan default --dwell 10 --amp 5000 --pedestal 6400 --rate 10 --live --enable-outputs`
+   That is 8 leads × 10 s = 80 s. The banner must print `range 1400..11400`, which leaves ±1400 counts of margin
+   for the output ringing. Molly watches the window. Ctrl-C stops it with a full teardown.
 5. Wait ≥ 60 s with the drive off. **Scan 2:** the same command.
 6. If neither scan moves the swing visibly, run one more scan with `--sign 1` (it covers a changed channel map).
 7. Stop the tracker. Fetch `Y1:RDS-OUTS_V2,V3,V4_OUT_DQ` over the whole session.
@@ -211,8 +217,9 @@ Preconditions: the model is rebuilt and restarted with the edits in `rcg/SIMULIN
    `dropbox:Microspheres/TFINER/data/feedback/fe1/`, with a raw report. Then `git checkout main`.
 
 Pass marks (Mac, proposed):
-- The OUT_DQ field angle moves smoothly between the 16 Hz updates: no 1/16 s staircase, and per-sample steps
-  ≤ ~2° except at direction flips.
+- The OUT_DQ field angle turns smoothly between the 16 Hz updates (≤ 2° per sample, no 1/16 s staircase).
+  At each update a correction is applied, by design. `test_commutate.py` gives median 8° and 95th percentile
+  26°, so the pass is 95% < 30°. Direction flips (2 × lead) are excluded.
 - It follows −8·θ + lead from the log, with coherence ≥ 0.9 at the best lag.
 - The field size equals `--amp` within 1%.
 - The step 4 field drops to 0 within 1 s of the freeze.

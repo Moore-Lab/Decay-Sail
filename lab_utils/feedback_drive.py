@@ -38,8 +38,9 @@ rotor goes over the top (dir stays constant), so it also commutates.
 
 SAFETY
 - Refuses to start if the oscillator gains are nonzero or any phase offset is nonzero.
-- Pedestal = --amp on the phase electrodes (amp input must stay 0-2.1 V: amp + pedestal <=
-  12800 = V{n}_LIMIT); |matrix| <= 1 so the electrode command stays in 0..2*amp.
+- Pedestal = --pedestal (default 6400) on the phase electrodes; refuses unless amp <= pedestal and
+  pedestal + amp <= 12800 = V{n}_LIMIT (amp input 0-2.1 V). |matrix| <= 1, so the command stays in
+  pedestal - amp .. pedestal + amp; amp 5000 on pedestal 6400 leaves 1400 counts of margin each side.
 - Watchdog: no fresh angle for --stale s, or ncc < --ncc-min for 5 frames in a row: stop.
 - Stop (Ctrl-C, watchdog, end): gains ramp to 0 over --gain-ramp s, DRVON 0, matrix restored to
   the forward drive matrix with TRAMP 2, DRV/matrix TRAMPs restored, pedestal dropped over the
@@ -165,6 +166,7 @@ def selftest():
     check('psi = 0 reproduces the forward drive matrix column 2', all(abs(col0[n] - MATRIX_FWD[n][1]) < 1e-9 for n in (1, 2, 3, 4)),
           'col %s' % {n: round(v, 3) for n, v in col0.items()})
     check('electrode command within 0..LIMIT at amp = pedestal = 6400', all(0 <= 6400 + 6400 * v <= LIMIT for p in range(0, 360, 5) for v in field_column(p).values()), '72 angles')
+    check('amp 5000 on pedestal 6400: command within 1400..11400', all(1400 - 1e-9 <= 6400 + 5000 * v <= 11400 + 1e-9 for p in range(0, 360, 5) for v in field_column(p).values()), '72 angles')
     # 2. pumping: V^2 coupling, right sign, lead 45 grows a 5 deg swing
     t, th = simulate(Controller(lead=45), T=120)
     a0, a1 = amp_of(t, th, 0, 10), amp_of(t, th, 100, 120)
@@ -222,8 +224,9 @@ def run(args):
         return caget('Y1:DAQ-DC0_GPS') if not dry else float('nan')
 
     phases = (2, 3, 4)
-    if args.amp <= 0 or 2 * args.amp > LIMIT:
-        sys.exit('! --amp must be in (0, %d]' % (LIMIT // 2))
+    # The amp input must stay in 0..LIMIT: pedestal - amp >= 0 and pedestal + amp <= LIMIT.
+    if args.amp <= 0 or args.pedestal < args.amp or args.pedestal + args.amp > LIMIT:
+        sys.exit('! need 0 < amp <= pedestal and pedestal + amp <= %d (got amp %g, pedestal %g)' % (LIMIT, args.amp, args.pedestal))
     # ---- preflight
     g = [caget(f'{PREFIX}_DRV_SINGAIN'), caget(f'{PREFIX}_DRV_COSGAIN')]
     off = [caget(f'{PREFIX}_V{n}_OFFSET') for n in (1, 2, 3, 4)]
@@ -234,7 +237,7 @@ def run(args):
     vtramp = {n: float(caget(f'{PREFIX}_V{n}_TRAMP') or 0) for n in (1, 2, 3, 4)}
     print('=' * 70)
     print(f'  feedback drive: lead {args.lead} elec deg, sign {args.sign}, m {args.m}, latency {args.latency} s')
-    print(f'  amp {args.amp:g}, pedestal {args.amp:g}; outputs {"ON" if args.enable_outputs else "OFF -- nothing reaches the chamber"}'
+    print(f'  amp {args.amp:g}, pedestal {args.pedestal:g} (range {args.pedestal - args.amp:g}..{args.pedestal + args.amp:g}); outputs {"ON" if args.enable_outputs else "OFF -- nothing reaches the chamber"}'
           f'; {"DRY RUN" if dry else "LIVE"}')
     print('=' * 70)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); sock.bind(('127.0.0.1', args.port)); sock.settimeout(0.05)
@@ -251,7 +254,7 @@ def run(args):
         # Back-to-back, not waiting on each: in C2 sequential writes made the three pedestals
         # ramp up to 125 ms apart at 4 of 8 starts (an 11% differential field; analysis/c2_20261102).
         for n in phases:
-            put(f'{PREFIX}_V{n}_OFFSET', args.amp, wait=False)
+            put(f'{PREFIX}_V{n}_OFFSET', args.pedestal, wait=False)
         if args.enable_outputs:
             for n in phases:
                 if not sw2_before[n] & SW2_OUTPUT_ON:
@@ -393,8 +396,9 @@ def run_frontend(args):
         return caget('Y1:DAQ-DC0_GPS') if not dry else float('nan')
 
     phases = (2, 3, 4)
-    if args.amp <= 0 or 2 * args.amp > LIMIT:
-        sys.exit('! --amp must be in (0, %d]' % (LIMIT // 2))
+    # The amp input must stay in 0..LIMIT: pedestal - amp >= 0 and pedestal + amp <= LIMIT.
+    if args.amp <= 0 or args.pedestal < args.amp or args.pedestal + args.amp > LIMIT:
+        sys.exit('! need 0 < amp <= pedestal and pedestal + amp <= %d (got amp %g, pedestal %g)' % (LIMIT, args.amp, args.pedestal))
     if not dry and caget(f'{C}_THETA') is None:
         sys.exit(f'! {C}_THETA not found: the commutation model change is not installed')
     g = [caget(f'{PREFIX}_DRV_SINGAIN'), caget(f'{PREFIX}_DRV_COSGAIN')]
@@ -406,7 +410,7 @@ def run_frontend(args):
     print('=' * 70)
     print(f'  feedback drive, FRONT-END commutation: lead {args.lead}, sign {args.sign}, m {args.m}, '
           f'latency {args.latency} s, watchdog {args.wdog} s')
-    print(f'  amp {args.amp:g}, pedestal {args.amp:g}; outputs {"ON" if args.enable_outputs else "OFF -- nothing reaches the chamber"}'
+    print(f'  amp {args.amp:g}, pedestal {args.pedestal:g} (range {args.pedestal - args.amp:g}..{args.pedestal + args.amp:g}); outputs {"ON" if args.enable_outputs else "OFF -- nothing reaches the chamber"}'
           f'; {"DRY RUN" if dry else "LIVE"}')
     print('=' * 70)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); sock.bind(('127.0.0.1', args.port)); sock.settimeout(0.05)
@@ -424,7 +428,7 @@ def run_frontend(args):
                      ('WDOG', args.wdog), ('VMIN', args.vmin)):
             put(f'{C}_{k}', v)
         for n in phases:
-            put(f'{PREFIX}_V{n}_OFFSET', args.amp, wait=False)
+            put(f'{PREFIX}_V{n}_OFFSET', args.pedestal, wait=False)
         if args.enable_outputs:
             for n in phases:
                 if not sw2_before[n] & SW2_OUTPUT_ON:
@@ -535,7 +539,8 @@ def main():
     p.add_argument('--m', type=int, default=8)
     p.add_argument('--latency', type=float, default=0.04, help='s of prediction (camera to field)')
     p.add_argument('--vmin', type=float, default=6.0, help='deg/s hysteresis for the motion direction')
-    p.add_argument('--amp', type=float, default=6400.0)
+    p.add_argument('--amp', type=float, default=6400.0, help='drive amplitude, counts')
+    p.add_argument('--pedestal', type=float, default=6400.0, help='V{n}_OFFSET pedestal, counts (needs amp <= pedestal, pedestal + amp <= 12800)')
     p.add_argument('--duration', type=float, default=60.0, help='s (per lead when --scan)')
     p.add_argument('--scan', default='', help='comma list of leads, each held --dwell s; "default" = 45,-45,90,-90,135,-135,0,180')
     p.add_argument('--dwell', type=float, default=10.0)
