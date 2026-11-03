@@ -178,8 +178,11 @@ def read(s, out_dir, label, stop=True, restart=True, wait=0.0):
         print(f'  waiting up to {wait:.0f} s for the scope acquisition to complete ...')
         print('  complete.' if wait_complete(s, wait) else '  ! not complete; stopping it and reading what is there.')
     st = s.q('ACQ:STAT?')
+    print(f'  ACQ:STAT? -> {st}')
     stopped_here = False
-    if 'STOP' not in st.upper() and 'COMP' not in st.upper() and 'BRE' not in st.upper():
+    # Anything but a finished record (COMP) or a stopped scope gets a STOP first. W2 2026-11-03 22:41Z: a
+    # single acquisition still waiting for its trigger was read without STOP, and DATA? wedged the scope.
+    if 'COMP' not in st.upper() and 'STOP' not in st.upper():
         if not stop:
             sys.exit(f'! scope acquisition state is {st!r}: stop it first, or drop --no-stop.')
         s.write('STOP', echo=True)
