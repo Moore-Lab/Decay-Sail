@@ -25,7 +25,7 @@ from feedback_drive import Controller          # worker2-side line fit (same cod
 
 SRC = os.path.join(HERE, 'commutate.c')
 FE_RATE = 2048
-NIN, NOUT = 11, 4
+NIN, NOUT = 12, 4
 ok_all = True
 
 
@@ -56,7 +56,7 @@ def rcg_parse(path, func):
 
 ins, outs, inv, outv = rcg_parse(SRC, 'COMMUTATE')
 print('commutate.c tests')
-check('RCG parse: 11 inputs used, literal indices 0..10', ins == set(range(NIN)), 'vars %s/%s, in %s' % (inv, outv, sorted(ins)))
+check('RCG parse: 12 inputs used, literal indices 0..11', ins == set(range(NIN)), 'vars %s/%s, in %s' % (inv, outv, sorted(ins)))
 check('RCG parse: 4 outputs used, literal indices 0..3', outs == set(range(NOUT)), 'out %s' % sorted(outs))
 
 # ------------------------------------------------------------------ 2. compile
@@ -82,11 +82,11 @@ fresh.n = 0
 
 
 def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, lat_frame=0.03, latency_param=0.06,
-        stop_seq_at=None, reenable_at=None, true_sign=-1, m=8, seed=0, use_acc=True):
+        stop_seq_at=None, reenable_at=None, true_sign=-1, m=8, seed=0, use_acc=True, amp_cmd=6400.0):
     rng = np.random.default_rng(seed)
     L = fresh()
     ain = (ctypes.c_double * NIN)(); aout = (ctypes.c_double * NOUT)()
-    ain[3], ain[4], ain[5], ain[6], ain[7], ain[8], ain[9] = m, -1, lead, latency_param, 1.0, 0.5, 6.0
+    ain[3], ain[4], ain[5], ain[6], ain[7], ain[8], ain[9], ain[11] = m, -1, lead, latency_param, 1.0, 0.5, 6.0, amp_cmd
     w0 = 2 * math.pi * f0; dt = 1.0 / FE_RATE
     th, om = math.radians(A0), 0.0
     ang = [0.0, -2 * math.pi / 3, -4 * math.pi / 3]
@@ -112,8 +112,8 @@ def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, l
         if reenable_at is not None and abs(t - reenable_at - 0.01) < dt / 2:
             ain[7] = 1.0
         L.COMMUTATE(ain, NIN, aout, NOUT)
-        s, c, psi, g = aout[0], aout[1], aout[2], aout[3]
-        outmax = max(outmax, abs(s), abs(c))
+        s, c, psi, g = aout[0] / 6400.0, aout[1] / 6400.0, aout[2], aout[3]   # field in units of full amplitude
+        outmax = max(outmax, abs(aout[0]), abs(aout[1]))
         psis.append(psi); gains.append(g)
         # phases: cos(psi + phi_n) = c cos(phi) - s sin(phi), AC-coupled
         z = 0j
@@ -138,7 +138,9 @@ def amp(t, th, a, b):
 t, th, psi, g, om = run(T=120, A0=5, lead=45)
 check('pump (lead +45, V^2): 5 deg swing grows', amp(t, th, 100, 120) > 4 * amp(t, th, 0, 10),
       '%.1f -> %.1f deg' % (amp(t, th, 0, 10), amp(t, th, 100, 120)))
-check('outputs bounded |SIN|,|COS| <= 1', om <= 1.0 + 1e-12, 'max %.6f' % om)
+check('outputs bounded |SIN|,|COS| <= AMP = 6400', om <= 6400 * (1 + 1e-12), 'max %.3f' % om)
+_, _, _, _, om2 = run(T=2, A0=5, amp_cmd=99999.0)
+check('AMP clamped to 6400 even if set to 99999', om2 <= 6400 * (1 + 1e-12), 'max %.3f' % om2)
 dpsi = np.abs((np.diff(psi) + 180) % 360 - 180)
 tick = FE_RATE // 16
 upd = np.zeros(len(dpsi), bool); upd[tick - 1::tick] = True        # cycle steps where a 16 Hz update lands

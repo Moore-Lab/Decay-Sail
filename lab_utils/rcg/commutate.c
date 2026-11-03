@@ -17,13 +17,14 @@
 //   argin[8]  WDOG_S   s without a new SEQ before the output ramps to 0 and latches off
 //   argin[9]  VMIN     deg/s hysteresis for the motion direction
 //   argin[10] ALPHA    rotor angular acceleration at that frame, deg/s^2 (worker2's quadratic fit)
+//   argin[11] AMP      drive amplitude, counts (clamped to 0..6400 here: amp + 6400 pedestal <= 12800)
 // Outputs (DEMUX order):
-//   argout[0] SIN      gain * sin(psi)  -> DRVMTRX input 1 (in place of the oscillator SIN)
-//   argout[1] COS      gain * cos(psi)  -> DRVMTRX input 2 (in place of the oscillator COS)
+//   argout[0] SIN      gain * AMP * sin(psi)  -> DRVMTRX input 1 (in place of the oscillator SIN)
+//   argout[1] COS      gain * AMP * cos(psi)  -> DRVMTRX input 2 (in place of the oscillator COS)
 //   argout[2] PSI      psi, electrical deg in [0, 360) (monitor)
 //   argout[3] GAIN     0..1 output gain after enable/watchdog ramps (monitor)
-// The drive amplitude stays in the existing path (DRVMTRX x V{n} limits); SIN/COS are unit-amplitude
-// times GAIN, so the matrix sees what the oscillator gave it with SINGAIN = COSGAIN = 1.
+// SIN/COS carry the amplitude like the oscillator's SINGAIN/COSGAIN do, so DRVMTRX and the V{n}
+// modules are used unchanged (forward matrix, V{n}_LIMIT 12800, pedestal on V{n}_OFFSET).
 // Law (same as lab_utils/feedback_drive.py Controller): psi = SIGN*M*theta_pred + dir*LEAD,
 // theta_pred = THETA + OMEGA*tau + ALPHA*tau^2/2, tau = time since SEQ last changed + LATENCY;
 // dir = sign of the predicted velocity OMEGA + ALPHA*tau, with hysteresis.
@@ -48,6 +49,7 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     double wdog = argin[8];
     double vmin = argin[9];
     double alpha = argin[10];
+    double amp = argin[11];
     double dt, tau, w_p, th_p, psi, turns, s, c, target, step;
 
     t_now += 1.0 / (double) FE_RATE;
@@ -97,9 +99,11 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
         gain -= step;
         if (gain < target) gain = target;
     }
+    if (amp > 6400.0) amp = 6400.0;
+    if (amp < 0.0) amp = 0.0;
     sincos(psi * 0.017453292519943295, &s, &c);
-    argout[0] = gain * s;
-    argout[1] = gain * c;
+    argout[0] = gain * amp * s;
+    argout[1] = gain * amp * c;
     argout[2] = psi;
     argout[3] = gain;
 }
