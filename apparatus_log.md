@@ -14,6 +14,19 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
+
+Branch `feedback-drive` (4bb45fc). Live tracker gps1477756297 (0 dropped).
+- Prep hold `stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 30 --enable-outputs --live`,
+  FE 1477771975–2007, from rest → ±25.5°.
+- Scan 1 `feedback_drive.py run --scan default --dwell 10 --amp 5000 --pedestal 6400 --rate 10 --live --enable-outputs`,
+  loop FE 1477772541–625.
+- Saw: from the −90 step on, full turns, up to 1.17 rev/s; −2.7 turns net over the scan. Molly: CCW turns, then a
+  slip and the other way (11:04–11:05 local); the outputs looked boxy (16 Hz staircase).
+- **Recorded outputs left 0–12800** (to −389 / 13198, 13–20 samples per channel). Unresolved whether real or the DQ filter.
+- Scan 2 not run (swing ±155°, Molly); free swing recorded ~13 min afterwards.
+- Analysis: `analysis/f2_20261103/README.md`. Data: Dropbox `data/feedback/f2/`.
+
 ### 2026-11-02 — Feedback drive F1 and F1b, outputs off (worker2 agent; Molly approved the --live runs)
 
 Branch `feedback-drive`; replay tracker (video gps1477428272) publishing angles; nothing reached the chamber.
