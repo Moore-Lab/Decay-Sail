@@ -24,6 +24,8 @@ verified on the scope; the model change is paused until then.
   Saw: front-end clock − worker2 clock = +15496.6 s; only the first 3.0 s of the waveform played; the stop hung
   ("awgsendwaveform RPC error = 5") and was killed, leaving the pedestal up (outputs off).
   Cleanup (Molly OK): `awg_reclaim.py` freed 4 slots, EXCMON 0, offsets ramped to 0, TRAMP 1; all resting.
+- W1 (outputs off, AWG built-ins, FE clock): `awg_waveform_drive.py --wave bburst --amp 5000 --pedestal 6400 --live`,
+  start FE 1477790462; `--wave bchirp` (0.1→12 Hz, 60 s), start FE 1477790695. Both PASS by the proposed mark; clean stops.
 - Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
 
 ### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
