@@ -91,6 +91,25 @@ Re-scored on the Mac from the Dropbox files; the numbers match worker2's.
   - Over FE 1477792860–910, `OUT_DQ` V2–V4 are exactly 0, and LES YAW, PIT and SUM show no step beyond their normal sample-to-sample range.
   - worker2 made no writes then. Data: Dropbox `waveform/bburst_1793742033/event_2142/`.
 
+## W2 result: `bburst_1793742522` (2026-11-03 21:48Z, outputs on, amp 500 on pedestal 1000, `--scope`)
+
+Scored on the Mac with `scope_check.py` (scope vs `out_dq_long.npz`, FE 1477793220–300). Measured:
+- **Bursts reach the electrodes in order and on time.** V2, V3, V4, then all three, as commanded. That confirms the scope channel map (CH2–4 = V2–V4).
+- **Alignment:** at the joint burst, V3 and V4 are within −0.07 and +0.02 ms of V2. **W2 bursts: PASS** by the proposed mark (1 ms; residual ≤ 5%).
+- **Gain at the electrode (per-burst fits; the AC-coupling decay is removed by a local slope):**
+  - V2 0.01241, V3 0.01251, V4 0.01277 V/count.
+  - That's ~13 V peak-to-peak for 1000 counts peak-to-peak.
+  - The fit residual is 2.5%, the size of the scope's baseline noise.
+  - For comparison, 0.0134 V/count was measured on the `_EXC` path on 2026-08-25. Different amplitude and method, so not directly comparable.
+- **AC-coupling decay after the pedestal step (one-pole fit to the whole record):**
+  - V2: τ = 5.69 s, residual 2.2%.
+  - V4: τ = 5.57 s, residual 2.1%.
+  - V3: the one-pole model fits poorly (τ 4.83 s, residual 6.6%, gain 0.0096, which disagrees with its burst gain). Not explained.
+- **Clock rate:** the front-end clock runs **+1.233 ms per second fast** relative to the scope (derived from the burst delays drifting across 3 s).
+  - This matches the FE−worker2 offset growing from +8376 s on 2026-08-28 to +15497 s on 2026-11-03: 7121 s over ~5.8e6 s = 0.12%.
+  - So front-end "seconds" are ~0.12% short of real seconds (derived). A 10 Hz front-end signal is ~10.012 Hz in real time, and frequencies of real signals read in FE time come out ~0.12% low.
+- **A second 14 ms all-channel spike,** at 21:48:32Z, 9 s before the run started. It appears on CH1 (LES) too, at −0.09..+3.3 V, so it isn't only on the electrode lines. Not explained.
+
 ## Gates (pass marks agreed with Molly 2026-11-03; numbers proposed by Claude)
 
 | gate | where | what | pass |

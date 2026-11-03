@@ -30,6 +30,7 @@ from scipy.signal import lfilter
 
 ELECTRODES = (2, 3, 4)
 SCOPE_CH = {2: 'CH2', 3: 'CH3', 4: 'CH4'}
+TREF = [0.0]   # scope time the clock-rate correction pivots on (mid-waveform), set by score()
 
 
 def highpass(x, fs, tau):
@@ -60,12 +61,13 @@ def coarse_offset(t_dq, ac_dq, t_sc, y_sc, fs_work=200.0):
     return tg[0] - tsg[0] + k / fs_work, span
 
 
-def fit_channel(t_dq, x_dq, fs_dq, t_sc, y_sc, off0, amp):
+def fit_channel(t_dq, x_dq, fs_dq, t_sc, y_sc, off0, amp, kappa=0.0):
     """Fit G, tau, delay, dc: scope(t_sc + off0 + d) = G*hp(x)(t) + dc."""
     def model(p, ts):
-        G, tau, d, dc = p
+        G, tau, d, dc = p[:4]
+        k = p[4] if len(p) > 4 else kappa
         hp = highpass(x_dq, fs_dq, max(tau, 0.05))
-        return G * resample_to(t_dq, hp, ts + off0 + d) + dc
+        return G * resample_to(t_dq, hp, (ts - TREF[0]) * (1 + k) + TREF[0] + off0 + d) + dc
 
     inside = (t_sc + off0 > t_dq[0] + 0.5) & (t_sc + off0 < t_dq[-1] - 0.5)
     ts, ys = t_sc[inside], y_sc[inside]
@@ -75,26 +77,64 @@ def fit_channel(t_dq, x_dq, fs_dq, t_sc, y_sc, off0, amp):
     # stage 1: G, tau, dc with no delay; stage 2: delay on a fine grid (G, dc linear at each trial);
     # stage 3: all four together from there
     r1 = least_squares(lambda p: model([p[0], p[1], 0.0, p[2]], ts) - ys, [0.0134, 6.0, 0.0],
-                       x_scale=[0.01, 3.0, 1.0], bounds=([-1, 0.05, -100], [1, 600, 100]))
+                       x_scale=[0.01, 3.0, 1.0], bounds=([-1, 0.05, -100], [1, 600, 100]),
+                       loss='soft_l1', f_scale=0.5)   # robust: the 14 ms all-channel spikes (W2) are outliers
     G, tau, dc = r1.x
     hp = highpass(x_dq, fs_dq, tau)
-    ac = np.abs(np.gradient(resample_to(t_dq, hp, ts + off0))) > 1e-3 * np.abs(np.gradient(hp)).max()
+    ac = np.abs(np.gradient(resample_to(t_dq, hp, (ts - TREF[0]) * (1 + kappa) + TREF[0] + off0))) > 1e-3 * np.abs(np.gradient(hp)).max()
     best = None
     for d in np.arange(-0.005, 0.005, 1e-5):
-        xm = resample_to(t_dq, hp, ts[ac] + off0 + d)
+        xm = resample_to(t_dq, hp, (ts[ac] - TREF[0]) * (1 + kappa) + TREF[0] + off0 + d)
         A = np.column_stack([xm, np.ones_like(xm)])
         coef, *_ = np.linalg.lstsq(A, ys[ac], rcond=None)
         e = np.sum((A @ coef - ys[ac]) ** 2)
         if best is None or e < best[0]:
             best = (e, d)
-    r = least_squares(lambda p: model(p, ts) - ys, [G, tau, best[1], dc], x_scale=[0.01, 3.0, 1e-4, 1.0],
-                      diff_step=[1e-6, 1e-6, 1e-3, 1e-6],
-                      bounds=([-1, 0.05, best[1] - 2e-4, -100], [1, 600, best[1] + 2e-4, 100]))
+    r = least_squares(lambda p: model(p, ts) - ys, [G, tau, best[1], dc, kappa], x_scale=[0.01, 3.0, 1e-4, 1.0, 1e-5],
+                      diff_step=[1e-6, 1e-6, 1e-3, 1e-6, 1e-3],
+                      bounds=([-1, 0.05, best[1] - 2e-4, -100, kappa - 1e-3], [1, 600, best[1] + 2e-4, 100, kappa + 1e-3]),
+                      loss='soft_l1', f_scale=0.5)
     res = model(r.x, ts) - ys
-    G, tau, d, dc = r.x
-    return dict(G=G, tau=tau, delay=-d, dc=dc,   # delay: + = the electrode lags OUT_DQ
+    spikes = np.abs(res - np.median(res)) > 10 * 1.4826 * np.median(np.abs(res - np.median(res)))
+    res = res[~spikes]                          # residual reported without the spike samples (count printed)
+    G, tau, d, dc, kfit = r.x
+    return dict(G=G, tau=tau, delay=-d, dc=dc, kappa=kfit, n_spike=int(spikes.sum()),   # delay: + = the electrode lags OUT_DQ
                 rms=res.std(), rms_pct=100 * res.std() / abs(G * amp), ts=ts, ys=ys,
                 model=model(r.x, ts))
+
+
+def burst_fits(cmd, dq, sc, off0, kappa=0.0):
+    """bburst only: per burst, a local fit  scope = a + b*t + G * ac(t + off0 + d)  over [t0-0.15, t0+0.25] s,
+    ac = OUT_DQ minus its local median (counts). The linear term absorbs the slow AC-coupling decay, so G and
+    the delay come from the burst alone. d on a 0.01 ms grid."""
+    fs = float(dq['fs'])
+    t_dq = float(dq['gps0']) + np.arange(np.asarray(dq['V2']).size) / fs
+    start = float(cmd['start_gps'])
+    plan = {2: (1, 4), 3: (2, 4), 4: (3, 4)}
+    out = {}
+    for n in ELECTRODES:
+        x = np.asarray(dq[f'V{n}'], float)
+        ts_all = np.asarray(sc[f'{SCOPE_CH[n]}_t'], float)
+        ys_all = np.asarray(sc[SCOPE_CH[n]], float)
+        for k in plan[n]:
+            t0 = start + k
+            loc = (t_dq > t0 - 0.3) & (t_dq < t0 + 0.4)
+            ac = x - np.median(x[loc])
+            tmap = (ts_all - TREF[0]) * (1 + kappa) + TREF[0] + off0
+            w = (tmap > t0 - 0.15) & (tmap < t0 + 0.25)
+            ts, ys = ts_all[w], ys_all[w]
+            best = None
+            for d in np.arange(-0.01, 0.01, 1e-5):
+                xm = resample_to(t_dq, ac, (ts - TREF[0]) * (1 + kappa) + TREF[0] + off0 + d)
+                A = np.column_stack([np.ones_like(ts), ts - ts.mean(), xm])
+                coef, *_ = np.linalg.lstsq(A, ys, rcond=None)
+                e = np.sum((A @ coef - ys) ** 2)
+                if best is None or e < best[0]:
+                    best = (e, d, coef)
+            e, d, coef = best
+            rms = np.sqrt(e / ts.size)
+            out[(n, k)] = dict(G=coef[2], delay=-d, rms=rms, rms_pct=100 * rms / abs(coef[2] * float(cmd['amp'])))
+    return out
 
 
 def load(run_dir, scope_file=None):
@@ -116,23 +156,47 @@ def score(cmd, dq, sc, quiet=False):
     # coarse alignment on V2: the scope clock is arbitrary
     x2 = np.asarray(dq['V2'], float)
     off0, _ = coarse_offset(t_dq, x2 - x2.mean(), np.asarray(sc['CH2_t'], float), np.asarray(sc['CH2'], float))
+    # clock-rate difference: FE seconds vs the scope's (W2 2026-11-03: burst delays drifted ~1.2 ms per s).
+    # For bburst, kappa = drift of V2's burst delay between 1 s and 4 s; otherwise it is fitted.
+    kappa = 0.0
+    TREF[0] = (float(cmd['start_gps']) + float(cmd.get('duration', 0)) / 2 - off0) if 'start_gps' in cmd else 0.0
+    if str(cmd['name']) == 'bburst' and 'start_gps' in cmd:
+        b0 = burst_fits(cmd, dq, sc, off0)
+        kappa = -(b0[(2, 4)]['delay'] - b0[(2, 1)]['delay']) / 3.0
     res = {}
     for n in ELECTRODES:
         ch = SCOPE_CH[n]
         if ch not in sc:
             continue
         res[n] = fit_channel(t_dq, np.asarray(dq[f'V{n}'], float), fs, np.asarray(sc[f'{ch}_t'], float),
-                             np.asarray(sc[ch], float), off0, amp)
+                             np.asarray(sc[ch], float), off0, amp, kappa)
     ok = all(r['rms_pct'] <= 5.0 for r in res.values())
     rel = {n: 1e3 * (res[n]['delay'] - res[2]['delay']) for n in res}
     ok &= all(abs(v) <= 1.0 for v in rel.values())
     if not quiet:
         print(f'{cmd["name"]}: amp {amp:g} counts, scope aligned to the FE record by cross-correlation '
-              f'(scope t + {off0:.3f} s)')
-        print('  elec   gain V/count   tau s    delay ms   rel V2 ms   residual rms V (% of AC)')
+              f'(scope t + {off0:.3f} s); FE/scope clock-rate difference kappa {1e3 * kappa:+.3f} ms per s')
+        print('  whole-record fit (needs OUT_DQ spanning the pedestal ramps for tau):')
+        print('  elec   gain V/count   tau s    delay ms   rel V2 ms   residual rms V (% of AC)   kappa ms/s')
         for n, r in res.items():
             print(f'  V{n}    {r["G"]:.5f}   {r["tau"]:7.2f}   {1e3 * r["delay"]:+8.2f}   {rel[n]:+8.2f}    '
                   f'{r["rms"]:.3f} ({r["rms_pct"]:.1f}%)')
+    if str(cmd['name']) == 'bburst' and 'start_gps' in cmd:
+        bf = burst_fits(cmd, dq, sc, off0, kappa)
+        d2 = bf[(2, 4)]['delay']
+        okb = all(r['rms_pct'] <= 5.0 for r in bf.values()) and all(abs(bf[(n, 4)]['delay'] - d2) <= 1e-3 for n in ELECTRODES)
+        if not quiet:
+            print('  per-burst fits (local baseline + slope, so the slow AC-coupling decay drops out):')
+            print('  elec  burst s   gain V/count   delay ms (+ = after OUT_DQ)   residual V (% of AC)')
+            for (n, k), r in sorted(bf.items()):
+                print(f'  V{n}     {k}       {r["G"]:.5f}        {1e3 * r["delay"]:+7.2f}                  {r["rms"]:.3f} ({r["rms_pct"]:.1f}%)')
+            print('  joint burst (4 s) delay relative to V2: ' +
+                  ', '.join(f'V{n} {1e3 * (bf[(n, 4)]["delay"] - d2):+.2f} ms' for n in (3, 4)))
+            print(f'  W2 bursts (proposed mark: residual <= 5 %, joint delays within 1 ms): {"PASS" if okb else "not met"}')
+            print('  (the whole-record fit above needs OUT_DQ spanning the pedestal ramps to measure tau)')
+        res['bursts'] = bf
+        ok = okb
+    if not quiet:
         print(f'  W2 (proposed mark): {"PASS" if ok else "not met"}')
     return ok, res
 

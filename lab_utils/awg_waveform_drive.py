@@ -289,6 +289,7 @@ def main():
     run_dir = os.path.join(a.out, f'{a.wave}_{int(time.time())}')
     exc = []
     try:
+        t_setup = fe_gps() if not dry else 0.0       # OUT_DQ is fetched from here, so the pedestal ramps are in it
         print('\n  setup:')
         for n in ELECTRODES:
             put(f'{PREFIX}_V{n}_TRAMP', a.ramp, dry)
@@ -332,6 +333,7 @@ def main():
         print('\n  interrupted')
     finally:
         stop_all(exc, state, a.ramp, a.outputs_on, dry)
+        t_end = fe_gps() if not dry else 0.0
         try:
             import awg
             awg.awg_cleanup()
@@ -354,7 +356,7 @@ def main():
             print(f'  ! scope read failed: {err}. If it timed out, power-cycle the scope before the next query.')
     print(f'\n  waiting {a.nds_lag:g} s for NDS frames ...')
     time.sleep(a.nds_lag)
-    fetch_dq(start - 3, start + dur + 3, os.path.join(run_dir, 'out_dq.npz'))
+    fetch_dq(min(t_setup, start) - 3, max(t_end, start + dur) + 3, os.path.join(run_dir, 'out_dq.npz'))
     print(f'\n  run folder: {run_dir}\n  score: python3 {"builtin_check.py" if builtin else "waveform_check.py"} {run_dir}')
     return 0
 
