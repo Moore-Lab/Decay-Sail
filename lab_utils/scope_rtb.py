@@ -125,7 +125,31 @@ def settings(s):
     return out
 
 
-def read(s, out_dir, label, stop=True, restart=True):
+def arm(s):
+    """Single acquisition: the scope waits for its trigger (Molly sets it on the panel: CH2 rising edge on the
+    pedestal step, Normal mode, trigger position near the left edge), records one screen, then stops (COMP)."""
+    s.write('SING', echo=True)
+    errs = s.errors()
+    if errs:
+        print(f'  ! scope errors after SING: {errs}')
+    return not errs
+
+
+def wait_complete(s, timeout):
+    """Poll until the single acquisition has completed, up to `timeout` s. True if it did."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        st = s.q('ACQ:STAT?').upper()
+        if 'COMP' in st or 'STOP' in st or 'BRE' in st:
+            return True
+        time.sleep(1.0)
+    return False
+
+
+def read(s, out_dir, label, stop=True, restart=True, wait=0.0):
+    if wait > 0:
+        print(f'  waiting up to {wait:.0f} s for the scope acquisition to complete ...')
+        print('  complete.' if wait_complete(s, wait) else '  ! not complete; stopping it and reading what is there.')
     st = s.q('ACQ:STAT?')
     stopped_here = False
     if 'STOP' not in st.upper() and 'COMP' not in st.upper() and 'BRE' not in st.upper():

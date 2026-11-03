@@ -262,6 +262,8 @@ def main():
                         'needed (2026-08-28); whether the SIStr stream route needs the same is untested: W0')
     p.add_argument('--scope', action='store_true', help='read the RTB2004 right after the stop (scope_rtb.py)')
     p.add_argument('--scope-dev', default='/dev/usbtmc1')
+    p.add_argument('--scope-wait', type=float, default=120.0,
+                   help='s to wait after the stop for the single acquisition to complete before reading')
     p.add_argument('--live', action='store_true')
     a = p.parse_args()
     dry = not a.live
@@ -290,6 +292,19 @@ def main():
     exc = []
     try:
         t_setup = fe_gps() if not dry else 0.0       # OUT_DQ is fetched from here, so the pedestal ramps are in it
+        if a.scope and not dry:
+            # Single acquisition armed before the pedestal step that triggers it (W2 bsine: a free-running scope
+            # kept the last COMPLETED 60 s block, which cut the waveform off).
+            try:
+                import scope_rtb
+                sc = scope_rtb.Scope(a.scope_dev)
+                try:
+                    print('\n  arming the scope (single acquisition):')
+                    scope_rtb.arm(sc)
+                finally:
+                    sc.close()
+            except Exception as err:
+                print(f'  ! scope arm failed: {err}')
         print('\n  setup:')
         for n in ELECTRODES:
             put(f'{PREFIX}_V{n}_TRAMP', a.ramp, dry)
@@ -349,7 +364,7 @@ def main():
             sc = scope_rtb.Scope(a.scope_dev)
             try:
                 print('\n  reading the scope:')
-                scope_rtb.read(sc, run_dir, 'w2')
+                scope_rtb.read(sc, run_dir, 'w2', wait=a.scope_wait)
             finally:
                 sc.close()
         except Exception as err:
