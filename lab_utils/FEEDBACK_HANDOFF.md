@@ -227,6 +227,18 @@ On the Mac: swing amplitude per 10 s step from `blob_live` against the lead in t
 - **Braking a resting rotor held a constant field.**
 - Fixed in a77c6a3: F3 writes 20/s, so each tick's ramp joins the next; the field turns off once braked below ~3°.
 
+**Pre-flight 2 (2026-11-04, outputs off, 16.7 writes/s; `data/feedback/f3/preflight2/`), measured:**
+- No spikes; outputs in range.
+- The field still ramps over one tick and then holds 1–2 ticks: new matrix loads land only every 2nd–3rd tick.
+  (Interpretation, not checked: a LOAD isn't taken while the matrix is still ramping. A ~40 ms ramp may fix it.)
+- The fake rotor stopped away from the rest angle and kept a held brake field. Fixed in c3865d9: field off when |ω| < vmin.
+
+**Tracker for F3 (2026-11-04, read-only checks; `data/feedback/f3/tracker_checks/`):**
+- The old flashlight had dimmed (ncc 0.80). Molly put in a new light.
+- At 15 ms: ncc 0.97, but the spot saturates.
+- **At 8 ms: ncc 0.958, no saturation, rest angle 229.9°** (std 0.14).
+- **F3 uses `--exposure 8 --centre 122.8,179.6` and `--rest-deg 229.9`.**
+
 Steps (worker2; each `--live` needs Molly's go):
 0. `cd ~/wt_wave && git checkout feedback-drive && git pull` (or a fresh worktree), then `cd lab_utils`.
 1. **Pre-flight, outputs OFF (rotor untouched): the whole EPICS path with a known rotor.**
@@ -239,7 +251,7 @@ Steps (worker2; each `--live` needs Molly's go):
    - If that fails: run the F2 prep swing (`stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 30 --enable-outputs --live`) while recording, then `camera_utils/tracking/centre_from_swing.py`, then replay check again.
    - **The rest angle for `--rest-deg` comes from the tracker** (its angle at rest), not from `centre_from_swing`.
 3. **F3 live, starting from rest:**
-   - tracker: `live_blob_track.py --centre X,Y --outdir ~/stator_detent --publish 127.0.0.1:5005 --show`
+   - tracker: `live_blob_track.py --exposure 8 --centre 122.8,179.6 --outdir ~/stator_detent --publish 127.0.0.1:5005 --show`
    - drive: `python3 feedback_drive.py run --f3 --amp 4000 --pedestal 6400 --mtramp 0.0625 --rest-deg R --enable-outputs --live`
    - It brakes by itself after the hold, or if it never gets over the top within 180 s. Ctrl-C ramps down safely, but may leave the rotor turning.
 4. **Score:** `python3 f3_check.py score <blob_live csv> <feedback log> --rest-deg R`. Upload both, with the OUT_DQ, to Dropbox `data/feedback/f3/`.
