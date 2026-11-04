@@ -14,6 +14,17 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 — ND 0.5 back in the LES beam; light-push test (worker2 agent, read-only)
+
+- **Camera moved slightly** (Molly, 2026-11-03), so the tracker's registration fails. Recalibrate before F3.
+- **Shared table:** the rotor trembles when the lab mate's system on the table changes pressure. One change was
+  reported at 16:37:06Z.
+- **Run:** video `grab_basler.py --exposure 15 --record --duration 630`, FE 1477860791–1477861422, with the ND
+  out/in/out/in. The ND stays in afterwards (Molly).
+- **Saw:** ND 0.5 transmits 37%. No rest-position shift with the ND (step 0.05 ± 0.3 px). LES noise is electronic,
+  so SNR drops ~2.5× with the ND. The "still" rotor moves ±2° at 0.735 Hz.
+- Analysis: `analysis/nd_test_20261104/README.md`. Data: Dropbox `data/nd_test_2026-11-04/`.
+
 ### 2026-11-03 (evening) — Feedback drive, model-change prep (Mac only, no runs)
 
 Branch `feedback-drive` (main merged in).
