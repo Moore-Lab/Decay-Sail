@@ -34,21 +34,28 @@ LO, HI = 0.4, 0.6
 
 
 def simulate(T_spin=180.0, T_hold=60.0, T_brake=90.0, amp=4000.0, push_max=0.3, target=0.5, mtramp=0.0625,
-             rate=10.0, latency=0.07, seed=0, w0sq=4.94, Q=1e4, noise=0.3, tau_ac=5.6):
+             rate=10.0, latency=0.07, seed=0, w0sq=4.94, Q=1e4, noise=0.3, tau_ac=5.6, rate0=0.0, brake_only=False,
+             ctrl_w0sq=None, brake_wmin=0.0, upd_every=1):
     rng = np.random.default_rng(seed)
     acc_lin = 1.52 * amp / 5000.0
     acc_v2 = 1.79 * (amp / 5000.0) ** 2
     w0 = math.sqrt(w0sq)
-    ctrl = SpeedController(target_rev=target, push_pos=90.0, push_neg=-90.0, w0sq=w0sq, push_max=push_max,
-                           latency=latency + mtramp / 2, sign=-1, m=8)
+    ctrl = SpeedController(target_rev=0.0 if brake_only else target, push_pos=90.0, push_neg=-90.0,
+                           w0sq=ctrl_w0sq or w0sq, push_max=push_max, latency=latency + mtramp / 2, sign=-1, m=8,
+                           brake_wmin=brake_wmin, rest_deg=0.0)
     dt = 1e-3
     th, om = math.radians(0.5), 0.0
+    if rate0:                                     # start rotating with the energy of mean rate rate0 (rev/s), at the bottom
+        from feedback_drive import energy_for_rate
+        om = math.copysign(math.sqrt(2 * energy_for_rate(abs(rate0), w0sq)), rate0)
     ang = np.radians([0.0, -120.0, -240.0])
     hp_in = np.zeros(3); hp_out = np.zeros(3); a_hp = tau_ac / (tau_ac + dt)
     applied = np.zeros(2); ramp_from = np.zeros(2); ramp_to = np.zeros(2); ramp_t0 = -1.0
     pending = []                                    # (land_time, (x, y))
     last_write = -1.0
-    phase = 'spin'; t_phase = 0.0; t_over = None
+    phase = 'brake' if brake_only else 'spin'; t_phase = 0.0; t_over = None
+    if brake_only:
+        T_spin = T_hold = 0.0
     out_t, out_th, phases = [], [], []
     T = T_spin + T_hold + T_brake
     n = int(T / dt)
@@ -71,7 +78,7 @@ def simulate(T_spin=180.0, T_hold=60.0, T_brake=90.0, amp=4000.0, push_max=0.3, 
             if t - last_write >= 1.0 / rate - 1e-9:
                 last_write = t
                 xy = np.zeros(2) if psi is None else np.array([math.cos(math.radians(psi)), math.sin(math.radians(psi))])
-                land = math.ceil((t + 0.003) * 16) / 16
+                land = math.ceil((t + 0.003) * 16 / upd_every) * upd_every / 16   # upd_every 2: loads only every 2nd tick (pre-flights)
                 pending.append((land, xy))
         while pending and pending[0][0] <= t:
             _, xy = pending.pop(0)

@@ -142,9 +142,11 @@ class SpeedController(Controller):
     motion. F2 fit: -88 / +167 (analysis/f2_20261103, derived, before its 0.07 s delay correction)."""
 
     def __init__(self, target_rev=0.5, band=0.2, push_pos=-88.0, push_neg=167.0, w0sq=4.94, rest_deg=None,
-                 push_max=0.3, **kw):
+                 push_max=0.3, brake_wmin=0.0, **kw):
         super().__init__(**kw)
         self.push_pos, self.push_neg, self.w0sq, self.band, self.push_max = push_pos, push_neg, w0sq, band, push_max
+        self.brake_wmin = brake_wmin          # deg/s: no BRAKE pushes slower than this (live 2: near a swing's turning
+                                              # point the motion direction is uncertain and a 'brake' push pumped)
         self.rest = rest_deg
         self.set_target(target_rev)
         self.action = 1                       # +1 accelerate along the motion, -1 brake
@@ -175,6 +177,8 @@ class SpeedController(Controller):
         elif self.E < self.E_lo:
             self.action = 1
         self.on = self.push_max is None or abs(self.w) / 360.0 < self.push_max
+        if self.action < 0 and abs(self.w) < self.brake_wmin:
+            self.on = False
         # Braking to rest: once the swing is below ~3 deg there is nothing to brake, and a held brake field would
         # push a resting rotor one way (pre-flight 2026-11-04: constant field at rest). Field off.
         if self.target_rev <= 0 and (self.E < self.w0sq * (1 - np.cos(np.radians(3.0))) or abs(self.w) < self.vmin):
@@ -337,6 +341,7 @@ def run(args):
         # the field by ~half a ramp on average, so the prediction horizon grows by that much.
         ctrl = SpeedController(target_rev=args.target_rev, band=args.band, push_pos=args.push_pos, push_neg=args.push_neg,
                                w0sq=args.trap_w0sq, push_max=(None if args.push_max <= 0 else args.push_max), rest_deg=args.rest_deg,
+                               brake_wmin=args.brake_wmin,
                                sign=args.sign, m=args.m, latency=args.latency + args.mtramp / 2, vmin=args.vmin)
         print(f'  F3: target {args.target_rev} rev/s +-{100 * args.band:.0f}%, push angles {args.push_pos:g} (+ motion) / {args.push_neg:g} (- motion), '
               f'push only below {args.push_max} rev/s, trap {args.trap_w0sq} rad/s^2, matrix ramp {args.mtramp} s; '
@@ -401,7 +406,10 @@ def run(args):
             return
         # ---- loop
         t_start = time.time(); last_fresh = time.time(); low = 0; k_lead = 0; t_lead = t_start; last_write = 0.0
-        if args.f3:
+        if args.f3 and args.brake_only:
+            phase, t_phase = 'brake', t_start; ctrl.set_target(0.0)
+            log.write('# phase brake %.6f\n' % t_start); print('    phase brake (brake-only run)')
+        elif args.f3:
             t_phase = t_start; log.write('# phase spin %.6f\n' % t_start); print('    phase spin-up')
         else:
             ctrl.lead = leads[0]; print(f'    lead {ctrl.lead:g}')
@@ -692,7 +700,10 @@ def main():
     p.add_argument('--band', type=float, default=0.2, help='F3: +- fraction of the target rate')
     p.add_argument('--push-pos', type=float, default=-88.0, help='F3: field-rotor angle (elec deg) accelerating + motion (F2 fit)')
     p.add_argument('--push-neg', type=float, default=167.0, help='F3: field-rotor angle accelerating - motion (F2 fit)')
-    p.add_argument('--push-max', type=float, default=0.3, help='F3: push only below this |speed|, rev/s (0 = always)')
+    p.add_argument('--push-max', type=float, default=0.4, help='F3: push only below this |speed|, rev/s (0 = always). 0.4 since live 2: '
+                   'at 0.5 rev/s mean the speed over the top was ~0.33, so 0.3 left the field off and the rotor coasted')
+    p.add_argument('--brake-wmin', type=float, default=40.0, help='F3: no brake pushes below this |speed|, deg/s (live 2: braking near a swing turning point pumped it)')
+    p.add_argument('--brake-only', action='store_true', help='F3: start in the brake phase (target 0) for --brake s, e.g. to stop a rotor that is turning')
     p.add_argument('--trap-w0sq', type=float, default=4.94, help='F3: 1x trap, rad/s^2 (F2 measured)')
     p.add_argument('--mtramp', type=float, default=0.0, help='DRVMTRX_TRAMP, s (0 = steps, as F1/F2; 0.0625 = ramp over one 16 Hz tick)')
     p.add_argument('--rest-deg', type=float, default=None, help='F3: rotor rest angle, tracker deg (default: the first angle, so start from rest)')
