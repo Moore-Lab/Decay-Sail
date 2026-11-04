@@ -101,6 +101,88 @@ class Controller:
         return psi % 360.0
 
 
+def pendulum_rate(E, w0sq):
+    """Mean rotation rate (rev/s) of a rotor in a once-per-turn trap (restoring accel w0sq * sin(theta), rad/s^2)
+    with energy E = w^2/2 + w0sq (1 - cos theta) (rad^2/s^2). 0 below the barrier 2*w0sq (it swings)."""
+    if E <= 2 * w0sq:
+        return 0.0
+    th = np.linspace(0, 2 * np.pi, 4001)
+    v = np.sqrt(2 * (E - w0sq * (1 - np.cos(th))))
+    return 1.0 / np.trapz(1.0 / v, th)
+
+
+def energy_for_rate(rate, w0sq):
+    """Energy (rad^2/s^2) whose mean rotation rate is `rate` rev/s (bisection); 0 for rate 0."""
+    if rate <= 0:
+        return 0.0
+    lo, hi = 2 * w0sq * (1 + 1e-9), 2 * w0sq + 0.5 * (2 * np.pi * rate * 4) ** 2 + 10 * w0sq
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if pendulum_rate(mid, w0sq) < rate:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+class SpeedController(Controller):
+    """Gate F3 (Molly OK 2026-11-04): spin up from rest, hold a MEAN rotation rate, brake to rest.
+
+    Why energy, not speed: the trap is once per turn, 1x peak 4.94 rad/s^2 (F2 2026-11-03, measured), so a rotor
+    turning slowly over the top speeds up at the bottom and nearly stops at the top. Going over at all needs
+    ~0.7 rev/s at the bottom (derived, 1x term only), and a mean rate is set by the energy
+    E = w^2/2 + w0sq (1 - cos(theta - rest)). This regulates E between the energies of target*(1-band) and
+    target*(1+band): below, push along the motion; above, brake; in between, keep the last action. The same law
+    pumps a still rotor's swing up, holds the rate, and with target 0 damps the rotor to rest.
+    push_max (rev/s): push only while |w| < push_max, field OFF (None) above it. EPICS lands updates at 16 Hz;
+    at the bottom of a turn (>= 0.7 rev/s = 5.7 Hz electrical) that is < 3 updates per electrical cycle and a
+    push turns into a pull (F2). Near the top, where the rotor needs the help, it is slow.
+    push_pos / push_neg: field-rotor angles (psi - sign*m*theta, elec deg) that accelerate + / - image-angle
+    motion. F2 fit: -88 / +167 (analysis/f2_20261103, derived, before its 0.07 s delay correction)."""
+
+    def __init__(self, target_rev=0.5, band=0.2, push_pos=-88.0, push_neg=167.0, w0sq=4.94, rest_deg=None,
+                 push_max=0.3, **kw):
+        super().__init__(**kw)
+        self.push_pos, self.push_neg, self.w0sq, self.band, self.push_max = push_pos, push_neg, w0sq, band, push_max
+        self.rest = rest_deg
+        self.set_target(target_rev)
+        self.action = 1                       # +1 accelerate along the motion, -1 brake
+        self.E = 0.0
+        self.on = True
+
+    def set_target(self, target_rev):
+        self.target_rev = target_rev
+        if target_rev > 0:
+            self.E_lo = energy_for_rate(target_rev * (1 - self.band), self.w0sq)
+            self.E_hi = energy_for_rate(target_rev * (1 + self.band), self.w0sq)
+        else:
+            self.E_lo = self.E_hi = 0.0
+
+    def update(self, t, theta_deg):
+        super().update(t, theta_deg)          # unwraps, fits w, sets self.dir with hysteresis
+        if self.rest is None:
+            self.rest = self.th               # the rotor's rest angle = where it is when we start (it is still)
+        th_now = self.th
+        if len(self.hist) >= 3:
+            h = self.hist[-self.nfit:]
+            tt = np.array([x[0] for x in h]) - t; yy = np.array([x[1] for x in h])
+            _, th_now = np.polyfit(tt, yy, 1)
+        w = np.radians(self.w)
+        self.E = 0.5 * w * w + self.w0sq * (1 - np.cos(np.radians(th_now - self.rest)))
+        if self.target_rev <= 0 or self.E > self.E_hi:
+            self.action = -1
+        elif self.E < self.E_lo:
+            self.action = 1
+        self.on = self.push_max is None or abs(self.w) / 360.0 < self.push_max
+        d = self.dir * self.action            # which way to push: along the motion, or against it
+        delta = self.push_pos if d > 0 else self.push_neg
+        self.lead = delta                     # logged in the 'lead' column
+        if not self.on:
+            return None                       # field off through the fast part
+        th_p = th_now + self.w * self.latency
+        return (self.sign * self.m * th_p + delta) % 360.0
+
+
 # ---------------------------------------------------------------------------------- selftest
 def simulate(ctrl, T=120.0, A0=5.0, f0=0.33, Q=1e4, acc=0.14, kind='v2', true_sign=-1, m=8,
              true_offset=0.0, lat=0.04, frame=0.02, tau_ac=6.0, trap='harmonic', noise=0.1,
@@ -245,9 +327,20 @@ def run(args):
     log = open(args.log, 'w', buffering=1)
     log.write('# feedback_drive.py %s\n' % ' '.join(sys.argv[1:]))
     log.write('host_time,frame,frame_host_time,angle_deg,ncc,w_dps,dir,lead,psi_deg,write_ms\n')
-    ctrl = Controller(lead=args.lead, sign=args.sign, m=args.m, latency=args.latency, vmin=args.vmin)
+    if args.f3:
+        # Gate F3: energy-regulated spin-up / hold / brake (SpeedController). The matrix ramp (--mtramp) delays
+        # the field by ~half a ramp on average, so the prediction horizon grows by that much.
+        ctrl = SpeedController(target_rev=args.target_rev, band=args.band, push_pos=args.push_pos, push_neg=args.push_neg,
+                               w0sq=args.trap_w0sq, push_max=(None if args.push_max <= 0 else args.push_max), rest_deg=args.rest_deg,
+                               sign=args.sign, m=args.m, latency=args.latency + args.mtramp / 2, vmin=args.vmin)
+        print(f'  F3: target {args.target_rev} rev/s +-{100 * args.band:.0f}%, push angles {args.push_pos:g} (+ motion) / {args.push_neg:g} (- motion), '
+              f'push only below {args.push_max} rev/s, trap {args.trap_w0sq} rad/s^2, matrix ramp {args.mtramp} s; '
+              f'phases: spin-up <= {args.spinup:g} s, hold {args.hold:g} s, brake {args.brake:g} s')
+    else:
+        ctrl = Controller(lead=args.lead, sign=args.sign, m=args.m, latency=args.latency, vmin=args.vmin)
     leads = (SCAN_DEFAULT if args.scan == 'default' else [float(v) for v in args.scan.split(',')]) if args.scan else [args.lead]
     brought_up = False
+    phase = 'spin'; t_phase = None; t_over = None
     try:
         # ---- bring-up: pedestal, outputs, frozen oscillator, field, gains
         print('\n  bring-up:')
@@ -268,7 +361,7 @@ def run(args):
         if not dry:
             time.sleep(1.1)          # FREQ applies at the next FE GPS second (cdsOsc), phase 0 -> COS = gain
         put(f'{PREFIX}_DRV_SINGAIN', 0)
-        put(f'{PREFIX}_DRVMTRX_TRAMP', 0)
+        put(f'{PREFIX}_DRVMTRX_TRAMP', args.mtramp)
         for n in (1, 2, 3, 4):
             put(f'{MTRX}_SETTING_{n}_1', 0)
         # No gain until the tracker is heard: the first field points from a fresh angle.
@@ -284,7 +377,9 @@ def run(args):
                 except socket.timeout:
                     continue
                 if time.time() - float(ht) < 0.1:
-                    psi0 = ctrl.update(float(ht), float(ang)); break
+                    psi0 = ctrl.update(float(ht), float(ang))
+                    psi0 = 0.0 if psi0 is None else psi0
+                    break
             print(f'    tracker heard: angle {float(ang):.1f} deg, ncc {float(ncc):.2f}; first field psi {psi0:.1f}')
         col = field_column(psi0)
         for n in (1, 2, 3, 4):
@@ -301,10 +396,29 @@ def run(args):
             return
         # ---- loop
         t_start = time.time(); last_fresh = time.time(); low = 0; k_lead = 0; t_lead = t_start; last_write = 0.0
-        ctrl.lead = leads[0]; print(f'    lead {ctrl.lead:g}')
+        if args.f3:
+            t_phase = t_start; log.write('# phase spin %.6f\n' % t_start); print('    phase spin-up')
+        else:
+            ctrl.lead = leads[0]; print(f'    lead {ctrl.lead:g}')
         while True:
             now = time.time()
-            if now - t_start >= args.duration * (len(leads) if args.scan else 1):
+            if args.f3:
+                if phase == 'spin':
+                    if t_over is None and ctrl.E > 2 * ctrl.w0sq * 1.02:
+                        t_over = now; print(f'    over the top at {now - t_start:.1f} s (front-end GPS {fe_gps():.0f})')
+                    if t_over is not None and now - t_over > 20.0:
+                        phase, t_phase = 'hold', now
+                    elif now - t_start > args.spinup:
+                        print(f'  spin-up did not go over the top in {args.spinup:g} s: braking'); phase, t_phase = 'brake', now
+                        ctrl.set_target(0.0)
+                    if phase != 'spin':
+                        log.write('# phase %s %.6f\n' % (phase, now)); print(f'    phase {phase} (front-end GPS {fe_gps():.0f})')
+                elif phase == 'hold' and now - t_phase >= args.hold:
+                    phase, t_phase = 'brake', now; ctrl.set_target(0.0)
+                    log.write('# phase brake %.6f\n' % now); print(f'    phase brake (front-end GPS {fe_gps():.0f})')
+                elif phase == 'brake' and now - t_phase >= args.brake:
+                    log.write('# phase end %.6f\n' % now); print('  end of run'); break
+            elif now - t_start >= args.duration * (len(leads) if args.scan else 1):
                 print('  end of run'); break
             if args.scan and now - t_lead >= args.dwell and k_lead + 1 < len(leads):
                 k_lead += 1; t_lead = now; ctrl.lead = leads[k_lead]
@@ -328,7 +442,7 @@ def run(args):
             if args.rate > 0 and now - last_write < 1.0 / args.rate:
                 continue                            # paced: write at most --rate times per second
             last_write = now
-            col = field_column(psi)
+            col = {n: 0.0 for n in (1, 2, 3, 4)} if psi is None else field_column(psi)   # None: field off (F3, fast part)
             w = not args.no_wait                    # wait for each write to complete (back-pressure)
             t_w0 = time.time()
             for n in phases:
@@ -336,7 +450,7 @@ def run(args):
             if args.load_toggle:                    # in case LOAD_MATRIX acts only on a 0 -> 1 edge
                 put(f'{MTRX}_LOAD_MATRIX', 0, wait=w, echo=False)
             put(f'{MTRX}_LOAD_MATRIX', 1, wait=w, echo=False)
-            log.write('%.6f,%d,%.6f,%.3f,%.3f,%.2f,%d,%g,%.3f,%.2f\n' % (time.time(), k, ht, ang, ncc, ctrl.w, ctrl.dir, ctrl.lead, psi,
+            log.write('%.6f,%d,%.6f,%.3f,%.3f,%.2f,%d,%g,%.3f,%.2f\n' % (time.time(), k, ht, ang, ncc, ctrl.w, ctrl.dir, ctrl.lead, (-1 if psi is None else psi),
                                                                        1e3 * (time.time() - t_w0)))
     except KeyboardInterrupt:
         print('\n  Ctrl-C')
@@ -568,6 +682,18 @@ def main():
     p.add_argument('--load-toggle', action='store_true', help='write LOAD_MATRIX 0 then 1 each frame '
                    '(use if F1 sees only ~1 step: the record may act only on a 0 -> 1 edge)')
     p.add_argument('--log', default=os.path.expanduser('~/stator_detent/feedback_%d.csv' % int(time.time() - GPS_UNIX_OFF)))
+    p.add_argument('--f3', action='store_true', help='gate F3: energy-regulated spin-up, hold, brake (SpeedController)')
+    p.add_argument('--target-rev', type=float, default=0.5, help='F3: mean rotation rate to hold, rev/s')
+    p.add_argument('--band', type=float, default=0.2, help='F3: +- fraction of the target rate')
+    p.add_argument('--push-pos', type=float, default=-88.0, help='F3: field-rotor angle (elec deg) accelerating + motion (F2 fit)')
+    p.add_argument('--push-neg', type=float, default=167.0, help='F3: field-rotor angle accelerating - motion (F2 fit)')
+    p.add_argument('--push-max', type=float, default=0.3, help='F3: push only below this |speed|, rev/s (0 = always)')
+    p.add_argument('--trap-w0sq', type=float, default=4.94, help='F3: 1x trap, rad/s^2 (F2 measured)')
+    p.add_argument('--mtramp', type=float, default=0.0, help='DRVMTRX_TRAMP, s (0 = steps, as F1/F2; 0.0625 = ramp over one 16 Hz tick)')
+    p.add_argument('--rest-deg', type=float, default=None, help='F3: rotor rest angle, tracker deg (default: the first angle, so start from rest)')
+    p.add_argument('--spinup', type=float, default=180.0, help='F3: s allowed to get over the top (then brake)')
+    p.add_argument('--hold', type=float, default=60.0, help='F3: s of hold after 20 s of steady rotation')
+    p.add_argument('--brake', type=float, default=90.0, help='F3: s of braking at the end')
     p.add_argument('--live', action='store_true')
     p.add_argument('--enable-outputs', action='store_true')
     args = p.parse_args()
