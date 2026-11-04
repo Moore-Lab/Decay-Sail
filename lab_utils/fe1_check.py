@@ -114,7 +114,18 @@ def score(t_true, th_true, h0, fe0, t_log, lead_log, dq, sign=-1, m=8, amp=5000.
         if not quiet:
             print('! no overlap between the truth and the output')
         return False, {}
-    for d in np.arange(best[1] - 0.004, best[1] + 0.004, 0.0001):
+    # refine d, and fit the clock-rate excess kappa too (a wrong kappa tilts the error across the run: 0.1e-3 over
+    # 100 s is 10 ms, ~35 deg at 1.2 rev/s); kappa grid +-0.8e-3 around the given value
+    k0, kbest = kappa, kappa
+    for kk in np.arange(k0 - 0.8e-3, k0 + 0.8e-3 + 1e-9, 0.05e-3):
+        kappa = kk
+        for d in np.arange(best[1] - 0.02, best[1] + 0.02, 0.0005):
+            e, _, _ = err_at(d, sub)
+            q = np.mean(np.cos(np.radians(e)))
+            if q > best[0]:
+                best = (q, d); kbest = kk
+    kappa = kbest
+    for d in np.arange(best[1] - 0.001, best[1] + 0.001, 0.00005):
         e, _, _ = err_at(d, sub)
         q = np.mean(np.cos(np.radians(e)))
         if q > best[0]:
@@ -135,11 +146,14 @@ def score(t_true, th_true, h0, fe0, t_log, lead_log, dq, sign=-1, m=8, amp=5000.
     jumps = np.mean((np.abs(dpm - dpt) > 2.0)[contig])
     a_med = np.median(A[on])
     ok = abs(a_med / amp - 1) <= 0.01 and p95 < 30 and static < 0.01 and jumps < 0.03
-    res = dict(d=d, p50=p50, p95=p95, static=static, jumps=jumps, A=a_med, n=e.size)
+    e_first = e[th_h < th_h[0] + 5.0] if e.size else e
+    res = dict(d=d, kappa=kappa, p50=p50, p95=p95, static=static, jumps=jumps, A=a_med, n=e.size,
+               p95_first5=np.percentile(np.abs(e_first), 95) if e_first.size else np.nan)
     if not quiet:
         print(f'FE1: {e.size} samples scored ({on.sum() / fs:.1f} s of output), {len(flips)} direction flips excluded (+-0.2 s)')
         print(f'  field size       median {a_med:.1f} counts vs amp {amp:g} ({100 * (a_med / amp - 1):+.2f}%)')
-        print(f'  tracking error   median {p50:.1f} deg, 95th percentile {p95:.1f} deg  (at best clock shift d = {d:+.4f} s)')
+        print(f'  tracking error   median {p50:.1f} deg, 95th percentile {p95:.1f} deg  (best clock shift d = {d:+.4f} s, '
+              f'clock-rate excess {1e3 * kappa:+.2f} ms/s); first 5 s scored: 95th percentile {res["p95_first5"]:.1f} deg')
         print(f'  smoothness       static {100 * static:.2f}% of moving samples; jumps > 2 deg {100 * jumps:.2f}% of samples')
         print(f'  FE1 (proposed marks): {"PASS" if ok else "not met"}')
     return ok, res
@@ -219,6 +233,11 @@ def selftest():
             good = abs(r['d'] - 0.37) < 0.01
             print(f'   clock shift recovered ({r["d"]:+.4f} vs +0.37 s): {good}')
             allok &= good
+    print('-- front-end clock rate 1.6e-3 in the simulation, scorer started at 1.23e-3: expect PASS (kappa fitted)')
+    ok, r = score(*simulate('profile', timestamp=True, kappa=1.6e-3))
+    good = ok and abs(r['kappa'] - 1.6e-3) < 0.15e-3
+    print(f'   kappa recovered ({1e3 * r["kappa"]:.2f} vs 1.60 ms/s): {good}')
+    allok &= good
     print('-- wrong field size (amp 5000 scored as 5200): expect not met')
     ok, _ = score(*simulate('spin', timestamp=True), amp=5200.0)
     allok &= not ok

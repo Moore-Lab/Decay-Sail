@@ -461,6 +461,16 @@ def run_frontend(args):
             for kk, vv in (('TFRAME', ctrl.hist[-1][0]), ('THETA', ctrl.th), ('OMEGA', ctrl.w), ('ALPHA', ctrl.a), ('SEQ', seq)):
                 put(f'{C}_{kk}', vv, echo=False)
         send()
+        # Pre-roll ~2 s of updates (32 ticks) before enabling, so the block's learned TFRAME offset has settled to
+        # the fastest arrival (commutate.c; review 2026-11-03).
+        t_pre = time.time()
+        while time.time() - t_pre < 2.0:
+            try:
+                k, ht, ang, ncc = sock.recv(256).decode().split(',')
+            except socket.timeout:
+                continue
+            if time.time() - float(ht) < 0.1:
+                ctrl.update(float(ht), float(ang)); send()
         put(f'{PREFIX}_COMMSEL', 1); put(f'{C}_AMP', args.amp)
         put(f'{C}_ENABLE', 0); put(f'{C}_ENABLE', 1)
         fe0, h0 = fe_gps(), time.time()

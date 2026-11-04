@@ -85,7 +85,7 @@ fresh.n = 0
 
 def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, lat_frame=0.03, latency_param=0.06,
         stop_seq_at=None, reenable_at=None, true_sign=-1, m=8, seed=0, use_acc=True, amp_cmd=6400.0, tframe=True,
-        log_err=None):
+        log_err=None, clock_step_at=None, clock_step=0.0):
     rng = np.random.default_rng(seed)
     L = fresh()
     ain = (ctypes.c_double * NIN)(); aout = (ctypes.c_double * NOUT)()
@@ -103,7 +103,8 @@ def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, l
         if i % fr == 0:                                       # camera frame
             meas = math.degrees(th) + rng.normal(0, 0.1)
             ctrl.update(t, meas)
-            frames.append((t + lat_frame, ctrl.th, ctrl.w, ctrl.a, H0 + t / (1 + KAPPA)))   # ready after the frame delay; TFRAME in worker2's clock
+            hstep = clock_step if (clock_step_at is not None and t >= clock_step_at) else 0.0
+            frames.append((t + lat_frame, ctrl.th, ctrl.w, ctrl.a, H0 + t / (1 + KAPPA) + hstep))   # ready after the frame delay; TFRAME in worker2's clock
             out_t.append(t); out_th.append(math.degrees(th))
         if i % tick == 0:                                     # EPICS 16 Hz tick: latest ready frame lands
             ready = [f for f in frames if f[0] <= t]
@@ -182,5 +183,12 @@ check('TFRAME: field-angle error while turning, 95% < 30 deg', np.percentile(e_n
       'with TFRAME median %.1f, 95%% %.1f; without %.1f, %.1f deg' % (np.median(e_new), np.percentile(e_new, 95),
                                                                      np.median(e_old), np.percentile(e_old, 95)))
 check('TFRAME = 0 keeps the 2026-11-02 behaviour (bounded, runs)', len(e_old) > 0, '%d samples' % len(e_old))
+# worker2's clock steps (NTP) by +1 s and by -0.3 s mid-run: the learned offset must restart, not extrapolate seconds ahead
+for step in (1.0, -0.3):
+    e_s = []
+    run(T=200, A0=10, lead=45, trap='pendulum', latency_param=0.03, tframe=True, log_err=e_s, clock_step_at=120.0, clock_step=step)
+    e_s = np.array(e_s); n = len(e_s); after = e_s[int(n * 0.65):]      # from ~130 s on (10 s after the step)
+    check('worker2 clock step %+.1f s at 120 s: recovered (95%% < 30 deg after 130 s)' % step, np.percentile(after, 95) < 30,
+          'median %.1f, 95%% %.1f deg' % (np.median(after), np.percentile(after, 95)))
 print('TESTS %s' % ('PASSED' if ok_all else 'FAILED'))
 sys.exit(0 if ok_all else 1)

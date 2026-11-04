@@ -38,6 +38,7 @@
 // dir = sign of the predicted velocity OMEGA + ALPHA*tau, with hysteresis.
 // No libm: sincos() is provided by the RCG build (inlineMath); the test harness supplies its own.
 #define TF_LEAK 2.0e-3   /* s per s: the learned offset creeps up so it can follow clock drift; a fresh minimum resets it */
+#define TF_MAXAGE 0.125  /* s: two 16 Hz ticks; an arrival later than this above the floor restarts the offset */
 void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
 {
     static double t_now = 0.0;         // s since model start (cycle count / FE_RATE)
@@ -75,8 +76,8 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
         tf_last = tframe;
         if (tframe > 0.0) {
             raw = t_now - tframe;
-            if (tf_init == 0 || raw < tf_off || raw - tf_off > 10.0) {
-                tf_off = raw;          // earliest arrival so far (or a clock jump: start again)
+            if (tf_init == 0 || raw < tf_off || raw - tf_off > TF_MAXAGE) {
+                tf_off = raw;          // earliest arrival so far; or > 2 ticks late (a clock step, a hiccup): start again
                 tf_init = 1;
             }
         }
@@ -105,8 +106,10 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     }
     tau = dt + lat;
     if (tf_last > 0.0 && tf_init == 1) {
-        tau = (t_upd - tf_last - tf_off) + dt + lat;  // frame age at arrival + time since arrival + LATENCY
-        if (tau < 0.0) tau = 0.0;
+        raw = t_upd - tf_last - tf_off;               // arrival delay above the fastest seen: 0..62.5 ms normally
+        if (raw < 0.0) raw = 0.0;
+        if (raw > TF_MAXAGE) raw = TF_MAXAGE;
+        tau = raw + dt + lat;                         // frame age at arrival + time since arrival + LATENCY
     }
     w_p = omega + alpha * tau;         // predicted velocity now
     if (w_p > vmin) {
