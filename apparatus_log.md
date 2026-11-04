@@ -14,6 +14,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-03 (evening) — Feedback drive, model-change prep (Mac only, no runs)
+
+Branch `feedback-drive` (main merged in).
+- `fake_rotor.py`: sends a known rotor angle (spin, swing, replay, profile) in the tracker's UDP format, so FE1 can run with no camera and no rotor.
+- `fe1_check.py`: scores the front end's field angle, smoothness and size against that truth; selftest passes.
+- **`commutate.c` change (Molly OK):** a new input `COMM_TFRAME` (the frame's timestamp, 13 inputs now), so the block predicts from the frame's true age, not the 16 Hz arrival time.
+  - Simulation, with an assumed constant 3 ms transport: spinning-rotor field-angle error p95 ~69° → ~23°.
+  - FE1 measures the real value. Clock steps recover (tested); worker2 pre-rolls 2 s before enabling.
+- Build steps: `lab_utils/rcg/SIMULINK_EDITS.md`; spec `y1rds_model_change_commutation.md`.
+
 ### 2026-11-03 — Problem 1 (arbitrary waveforms): scope on USB; W0 AWG stream test, outputs off (worker2 agent; Molly approved)
 
 Branch `waveform-test`. Split agreed with the PI (Molly): first show arbitrary signals on V2–V4 up to ~10 Hz,
