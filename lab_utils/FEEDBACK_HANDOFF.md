@@ -219,6 +219,14 @@ On the Mac: swing amplitude per 10 s step from `blob_live` against the lead in t
 
 **Tracker match at speed (F2, measured):** median ncc 0.87–0.95 up to 1.17 rev/s, never more than 2 frames in a row below 0.8.
 
+**Pre-flight 1 (2026-11-04, outputs off, fake rotor; Molly's go; Dropbox `data/feedback/f3/preflight/`), measured:**
+- The whole EPICS path ran: spin-up, over the top at 17 s, hold, brake, end, clean stop.
+- **The matrix ramp works:** each update moves the field linearly over ~1/16 s. Outputs stayed in 2400..10400, with no sample step above 200 counts. F2's out-of-range transients are absent.
+- **But at 10 updates/s the field held still ~40% of the time** (a ramped staircase).
+- The field went to 0 smoothly whenever the fake speed exceeded 0.3 rev/s.
+- **Braking a resting rotor held a constant field.**
+- Fixed in a77c6a3: F3 writes 20/s, so each tick's ramp joins the next; the field turns off once braked below ~3°.
+
 Steps (worker2; each `--live` needs Molly's go):
 0. `cd ~/wt_wave && git checkout feedback-drive && git pull` (or a fresh worktree), then `cd lab_utils`.
 1. **Pre-flight, outputs OFF (rotor untouched): the whole EPICS path with a known rotor.**
