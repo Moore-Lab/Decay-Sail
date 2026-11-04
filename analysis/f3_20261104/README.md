@@ -56,3 +56,30 @@ Simulation, with the trap barrier 9.36 vs the controller's 9.88 and loads every 
 - the old settings never brake from 0.55 rev/s, as seen live;
 - the new settings stop the rotation in ~3 s, to a ±12° swing;
 - the full F3 passes.
+
+## Brake-only 1 (21:01Z): `--f3 --brake-only --brake 120` (push_max 0.4, brake_wmin 40)
+
+Loop FE 1477876900–1477877024. Measured:
+- **The rotor had already fallen back into a large swing** before the run: 263° span, near the top of the trap. It had been coasting since live 2.
+- **Pushes:** the field was on for only 44 log rows, all in the first ~3 s, at −88 and 167.
+- **By 5 s it was rotating at −0.54 rev/s.** It reached −0.61 to −0.65 rev/s, then coasted with the field off: |speed| above 0.4 rev/s everywhere.
+- **Still turning at the end:** −0.58 rev/s (LES 1.16 Hz). The brake failed again.
+
+## Push angles measured from today's data (`push_angles.py`, live 2 + brake 1)
+
+Method:
+- Residual angular acceleration = tracker acceleration minus the trap's. The trap's comes from the live-2 coasting, with harmonics 1–4.
+- That residual is fitted against the field–rotor angle Δ = ψ_commanded + 8θ, with 1× and 2× terms, scanning the command-to-field delay.
+- 1097 field-on frames. With the field off, the residual is 0.00 ± 0.55 rad/s², which validates the trap model.
+
+| Delay, s | R² | Best + push | Best − push | At −88 | At +167 |
+|---|---|---|---|---|---|
+| 0.07 | 0.60 | −50° (+2.9 rad/s²) | +154° (−3.2) | +1.8 | −3.1 |
+| **0.10** | **0.63** | **−54° (+2.8)** | **+170° (−3.4)** | **+1.9** | **−3.4** |
+| 0.15 | 0.40 | −33° | +176° | +0.3 | −2.8 |
+
+- **The push angles in use (−88 / +167) have the right signs:** −88 accelerates + motion, 167 accelerates − motion.
+  The measured best values are −54 / +170, at an effective delay of ~0.10 s.
+- (Interpretation, not approved) So the brake did not fail because of wrong angles. Two more likely causes:
+  - **near a swing's turning point,** a brake push acts ~0.1 s later, after the rotor has reversed, so it pumps;
+  - **while rotating faster than 0.4 rev/s,** the field is off, so the brake never acts.

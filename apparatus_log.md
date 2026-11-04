@@ -14,6 +14,13 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 (evening) — F3 brake-only 1 (worker2 agent, Molly's go): brake failed again
+
+- The rotor had fallen back to a large swing by 20:59:48Z (Molly). `run --f3 --brake-only --brake 120` (dea18f0), loop FE 1477876900–1477877024.
+- It went over the top within ~5 s and was left turning −0.6 rev/s, drive off.
+- Push angles measured from today's data: −54 / +170 at 0.10 s effective delay (R² 0.63); the angles in use have the right signs.
+- Analysis: `analysis/f3_20261104/README.md`. Data: `data/feedback/f3/brake1/`.
+
 ### 2026-11-04 (evening) — F3 live 2 (worker2 agent, Molly's go): rotation at ~0.53 rev/s; brake failed
 
 - Settings: tracker exposure 15 ms, second light adjusted, `--ncc-min 0.7`, rest 229.8. Loop FE 1477875691–1477875870.
