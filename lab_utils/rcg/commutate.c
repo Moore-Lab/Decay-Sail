@@ -18,6 +18,12 @@
 //   argin[9]  VMIN     deg/s hysteresis for the motion direction
 //   argin[10] ALPHA    rotor angular acceleration at that frame, deg/s^2 (worker2's quadratic fit)
 //   argin[11] AMP      drive amplitude, counts (clamped to 0..6400 here: amp + 6400 pedestal <= 12800)
+//   argin[12] TFRAME   worker2 host time (s) when the camera frame behind THETA was taken; 0 = not sent.
+//                      Added 2026-11-03: EPICS values land only on 16 Hz ticks, so the time since a value
+//                      landed is not the frame's age (it varies by up to 62.5 ms). The block learns the fixed
+//                      offset between worker2's clock and its own cycle clock from the earliest-arriving
+//                      updates (a minimum that leaks upward by TF_LEAK s/s, which also follows the front-end
+//                      clock running ~1.2 ms/s fast) and predicts from the frame's true age.
 // Outputs (DEMUX order):
 //   argout[0] SIN      gain * AMP * sin(psi)  -> DRVMTRX input 1 (in place of the oscillator SIN)
 //   argout[1] COS      gain * AMP * cos(psi)  -> DRVMTRX input 2 (in place of the oscillator COS)
@@ -26,9 +32,12 @@
 // SIN/COS carry the amplitude like the oscillator's SINGAIN/COSGAIN do, so DRVMTRX and the V{n}
 // modules are used unchanged (forward matrix, V{n}_LIMIT 12800, pedestal on V{n}_OFFSET).
 // Law (same as lab_utils/feedback_drive.py Controller): psi = SIGN*M*theta_pred + dir*LEAD,
-// theta_pred = THETA + OMEGA*tau + ALPHA*tau^2/2, tau = time since THETA or SEQ last changed + LATENCY;
+// theta_pred = THETA + OMEGA*tau + ALPHA*tau^2/2, tau = age of the frame + LATENCY when TFRAME is sent
+// (age = t_now - TFRAME - learned offset, so LATENCY is then the camera-to-timestamp delay plus the fastest
+// transport), else time since THETA or SEQ last changed + LATENCY (the 2026-11-02 behaviour);
 // dir = sign of the predicted velocity OMEGA + ALPHA*tau, with hysteresis.
 // No libm: sincos() is provided by the RCG build (inlineMath); the test harness supplies its own.
+#define TF_LEAK 2.0e-3   /* s per s: the learned offset creeps up so it can follow clock drift; a fresh minimum resets it */
 void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
 {
     static double t_now = 0.0;         // s since model start (cycle count / FE_RATE)
@@ -40,6 +49,9 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     static double dir = 1.0;
     static double en_prev = 0.0;
     static int tripped = 0;
+    static double tf_off = 0.0;        // learned (t_now - TFRAME) at the fastest arrival
+    static int tf_init = 0;
+    static double tf_last = 0.0;       // TFRAME latched when THETA/SEQ last changed (worker2 writes TFRAME first)
     double theta = argin[0];
     double omega = argin[1];
     double seq = argin[2];
@@ -52,14 +64,24 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
     double vmin = argin[9];
     double alpha = argin[10];
     double amp = argin[11];
-    double dt, tau, w_p, th_p, psi, turns, s, c, target, step;
+    double tframe = argin[12];
+    double dt, tau, w_p, th_p, psi, turns, s, c, target, step, raw;
 
     t_now += 1.0 / (double) FE_RATE;
     // A new camera update: THETA or SEQ changed. worker2 writes them as separate EPICS records, so
     // they can land on different 16 Hz ticks; the prediction restarts at whichever arrives first.
     if (seq != seq_prev || theta != theta_prev) {
         t_upd = t_now;
+        tf_last = tframe;
+        if (tframe > 0.0) {
+            raw = t_now - tframe;
+            if (tf_init == 0 || raw < tf_off || raw - tf_off > 10.0) {
+                tf_off = raw;          // earliest arrival so far (or a clock jump: start again)
+                tf_init = 1;
+            }
+        }
     }
+    tf_off += TF_LEAK / (double) FE_RATE;
     if (seq != seq_prev) {
         t_seq = t_now;                 // the watchdog follows SEQ only
     }
@@ -82,6 +104,10 @@ void COMMUTATE(double *argin, int nargin, double *argout, int nargout)
         tripped = 1;                   // no watchdog set: refuse to drive
     }
     tau = dt + lat;
+    if (tf_last > 0.0 && tf_init == 1) {
+        tau = (t_upd - tf_last - tf_off) + dt + lat;  // frame age at arrival + time since arrival + LATENCY
+        if (tau < 0.0) tau = 0.0;
+    }
     w_p = omega + alpha * tau;         // predicted velocity now
     if (w_p > vmin) {
         dir = 1.0;

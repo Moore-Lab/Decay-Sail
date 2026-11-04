@@ -32,13 +32,14 @@ COMM_OMEGA │
 COMM_SEQ   │
 COMM_M     │
 COMM_SIGN  │
-COMM_LEAD  ├─► COMM_MUX (12) ─► COMM (cdsFunctionCall) ─► COMM_DEMUX (4) ─ 1 SIN ─► SELS (in1)
+COMM_LEAD  ├─► COMM_MUX (13) ─► COMM (cdsFunctionCall) ─► COMM_DEMUX (4) ─ 1 SIN ─► SELS (in1)
 COMM_LATENCY                                                              ├ 2 COS ─► SELC (in1)
 COMM_ENABLE│                                                              ├ 3 PSI ─► COMM_PSI (cdsEpicsOutput)
 COMM_WDOG  │                                                              └ 4 GAIN ► COMM_GAIN (cdsEpicsOutput)
 COMM_VMIN  │
 COMM_ALPHA │
-COMM_AMP   ┘
+COMM_AMP   │
+COMM_TFRAME┘
 DRV port 2 (SIN) ─► SELS (in3)      Ground ─► COMMSEL (cdsEpicsBinIn) ─► SELS (in2), SELC (in2)
 DRV port 3 (COS) ─► SELC (in3)
 SELS ─► Choice (in1)      SELC ─► Choice1 (in1)      (rest unchanged)
@@ -50,12 +51,14 @@ SELS ─► Choice (in1)      SELC ─► Choice1 (in1)      (rest unchanged)
    `cp lab_utils/rcg/commutate.c /opt/rtcds/userapps/mastqg/src/commutate.c` (make `src/` if needed).
    `/opt/rtcds` on worker2 is cymac1's share, so the path is the same on cymac1.
 2. **Open the model:** start MATLAB, run `open_system('y1rds')`, then double-click **`OUTS`**.
-3. **Add the 12 inputs, in this order** (the order is the C function's `argin[0..11]`). From the CDS_PARTS
+3. **Add the 13 inputs, in this order** (the order is the C function's `argin[0..12]`). From the CDS_PARTS
    library, **`cdsEpicsIn`**, named exactly:
-   `COMM_THETA, COMM_OMEGA, COMM_SEQ, COMM_M, COMM_SIGN, COMM_LEAD, COMM_LATENCY, COMM_ENABLE, COMM_WDOG, COMM_VMIN, COMM_ALPHA, COMM_AMP`
+   `COMM_THETA, COMM_OMEGA, COMM_SEQ, COMM_M, COMM_SIGN, COMM_LEAD, COMM_LATENCY, COMM_ENABLE, COMM_WDOG, COMM_VMIN, COMM_ALPHA, COMM_AMP, COMM_TFRAME`
+   (`COMM_TFRAME` added 2026-11-03: the frame's timestamp, so the block predicts from the frame's true age, not from
+   when the value happened to land on a 16 Hz tick. `test_commutate.py`: spinning-rotor field error p95 69° → 23°.)
    The channels become `Y1:RDS-OUTS_COMM_THETA` and so on.
-4. **Mux:** a Simulink **Mux** named `COMM_MUX` with **Number of inputs = 12**. Wire the 12 inputs to its
-   ports 1–12 in the order above.
+4. **Mux:** a Simulink **Mux** named `COMM_MUX` with **Number of inputs = 13**. Wire the 13 inputs to its
+   ports 1–13 in the order above.
 5. **Function block:** a **`cdsFunctionCall`** named `COMM`. Right-click → Properties → **Description**:
    `inline COMMUTATE /opt/rtcds/userapps/mastqg/src/commutate.c`
    That is exactly three fields separated by spaces; FunctionCall.pm rejects anything else.
@@ -72,7 +75,7 @@ SELS ─► Choice (in1)      SELC ─► Choice1 (in1)      (rest unchanged)
 11. **Check before saving:** Ctrl+D (Update Diagram) should show no unconnected ports. Save.
 12. **Build, install and restart on cymac1** as for the 2026-09-08 DRVMTRX change.
     - If the build reports *"C function has wrong number of inputs/outputs"*, the Mux size or the input order
-      doesn't match the 12 inputs above.
+      doesn't match the 13 inputs above.
     - If it reports *"needs three fields in Description"*, check step 5.
 
 ## Defaults and safety after the restart
@@ -83,6 +86,7 @@ SELS ─► Choice (in1)      SELC ─► Choice1 (in1)      (rest unchanged)
 | `COMM_ENABLE` | 0 | commutation output gain ramps to 0 |
 | `COMM_WDOG` | 0 | the C refuses to drive (trips) until a watchdog time is set |
 | `COMM_AMP` | 0 | zero amplitude (the C clamps it to 0..6400 anyway) |
+| `COMM_TFRAME` | 0 | no timestamp: the block falls back to predicting from the arrival time (the 2026-11-02 behaviour) |
 
 - To use the commutation path, worker2 sets the settings, starts sending THETA/OMEGA/ALPHA/SEQ, sets
   `COMMSEL` 1, then `COMM_ENABLE` 0 → 1 (the edge re-arms the watchdog). The pedestal and output switches
@@ -91,6 +95,10 @@ SELS ─► Choice (in1)      SELC ─► Choice1 (in1)      (rest unchanged)
   until `COMM_ENABLE` is toggled again.
 
 ## Not checked on the Mac
+
+- **`COMM_TFRAME` precision.** It carries a GPS-scale time (~1.8e9 s). It needs double precision end to end (EPICS
+  record → `cdsEpicsIn` → the C); a float would round it to ~100 s. FE1 shows this directly: with a float, the
+  tracking error would be no better than without TFRAME.
 
 - **The build itself.** The C was compiled as a plain function with clang. The RCG `#include`s it inside the
   model's cycle code, which makes it a GCC nested function. GCC accepts that and clang does not, so only the

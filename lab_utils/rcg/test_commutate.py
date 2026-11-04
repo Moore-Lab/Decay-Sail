@@ -5,7 +5,7 @@
 
 1. RCG build check, emulated: FunctionCall.pm's own parse of the C file (signature on one line,
    literal argin[k]/argout[k] indices, function ends at a column-0 '}', no 'void ' inside) must
-   find 10 inputs and 4 outputs, all used. The real check is the build on cymac1.
+   find 13 inputs and 4 outputs, all used. The real check is the build on cymac1.
 2. Compile commutate.c as plain C (FE_RATE 2048, sincos from libm via a shim) and call it each
    model cycle from a closed-loop simulation:
    - rotor in a trap (harmonic or pendulum), drive torque from the applied field, V^2 coupling;
@@ -25,7 +25,9 @@ from feedback_drive import Controller          # worker2-side line fit (same cod
 
 SRC = os.path.join(HERE, 'commutate.c')
 FE_RATE = 2048
-NIN, NOUT = 12, 4
+NIN, NOUT = 13, 4
+KAPPA = 1.23e-3          # front-end clock runs fast of worker2's (scope, 2026-11-03)
+H0 = 1793750000.0        # worker2 host-clock epoch for TFRAME
 ok_all = True
 
 
@@ -56,7 +58,7 @@ def rcg_parse(path, func):
 
 ins, outs, inv, outv = rcg_parse(SRC, 'COMMUTATE')
 print('commutate.c tests')
-check('RCG parse: 12 inputs used, literal indices 0..11', ins == set(range(NIN)), 'vars %s/%s, in %s' % (inv, outv, sorted(ins)))
+check('RCG parse: 13 inputs used, literal indices 0..12', ins == set(range(NIN)), 'vars %s/%s, in %s' % (inv, outv, sorted(ins)))
 check('RCG parse: 4 outputs used, literal indices 0..3', outs == set(range(NOUT)), 'out %s' % sorted(outs))
 
 # ------------------------------------------------------------------ 2. compile
@@ -82,7 +84,8 @@ fresh.n = 0
 
 
 def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, lat_frame=0.03, latency_param=0.06,
-        stop_seq_at=None, reenable_at=None, true_sign=-1, m=8, seed=0, use_acc=True, amp_cmd=6400.0):
+        stop_seq_at=None, reenable_at=None, true_sign=-1, m=8, seed=0, use_acc=True, amp_cmd=6400.0, tframe=True,
+        log_err=None):
     rng = np.random.default_rng(seed)
     L = fresh()
     ain = (ctypes.c_double * NIN)(); aout = (ctypes.c_double * NOUT)()
@@ -100,13 +103,14 @@ def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, l
         if i % fr == 0:                                       # camera frame
             meas = math.degrees(th) + rng.normal(0, 0.1)
             ctrl.update(t, meas)
-            frames.append((t + lat_frame, ctrl.th, ctrl.w, ctrl.a))   # ready for EPICS after the frame delay
+            frames.append((t + lat_frame, ctrl.th, ctrl.w, ctrl.a, H0 + t / (1 + KAPPA)))   # ready after the frame delay; TFRAME in worker2's clock
             out_t.append(t); out_th.append(math.degrees(th))
         if i % tick == 0:                                     # EPICS 16 Hz tick: latest ready frame lands
             ready = [f for f in frames if f[0] <= t]
             if ready and (stop_seq_at is None or t < stop_seq_at):
-                _, th_f, w_f, a_f = ready[-1]; frames = [f for f in frames if f[0] > t]
+                _, th_f, w_f, a_f, tf_f = ready[-1]; frames = [f for f in frames if f[0] > t]
                 seq += 1; ain[0], ain[1], ain[2], ain[10] = th_f, w_f, seq, (a_f if use_acc else 0.0)
+                ain[12] = tf_f if tframe else 0.0
         if reenable_at is not None and abs(t - reenable_at) < dt / 2:
             ain[7] = 0.0
         if reenable_at is not None and abs(t - reenable_at - 0.01) < dt / 2:
@@ -115,6 +119,9 @@ def run(T=120.0, A0=5.0, lead=45.0, trap='harmonic', acc=0.14, f0=0.33, Q=1e4, l
         s, c, psi, g = aout[0] / 6400.0, aout[1] / 6400.0, aout[2], aout[3]   # field in units of full amplitude
         outmax = max(outmax, abs(aout[0]), abs(aout[1]))
         psis.append(psi); gains.append(g)
+        if log_err is not None and abs(om) > math.radians(6):
+            want = (true_sign * m * math.degrees(th) + (lead if om * true_sign * -1 > 0 else -lead))
+            log_err.append(abs((psi - want + 180) % 360 - 180))
         # phases: cos(psi + phi_n) = c cos(phi) - s sin(phi), AC-coupled
         z = 0j
         for k in range(3):
@@ -164,5 +171,16 @@ check('watchdog: SEQ stops at 4 s -> gain 0 by 4 s + WDOG 0.5 + ramp 0.5', gi(3.
 t, th, psi, g, om = run(T=12, A0=10, lead=45, stop_seq_at=4.0, reenable_at=8.0)
 check('watchdog latches; ENABLE edge re-arms (but SEQ still stale -> trips again)', gi(7.9) == 0.0 and gi(9.9) == 0.0,
       'gain %.2f at 7.9 s, %.2f at 9.9 s' % (gi(7.9), gi(9.9)))
+# Prediction from the frame's true age (TFRAME, added 2026-11-03) vs from the arrival time (TFRAME = 0, the
+# 2026-11-02 behaviour), on a rotor spinning over the top in the pendulum trap. Field angle vs the ideal
+# -8*theta +- lead at the same instant; frame delay 30 ms; LATENCY = that delay (TFRAME) or 60 ms (old).
+e_new, e_old = [], []
+run(T=200, A0=10, lead=45, trap='pendulum', latency_param=0.03, tframe=True, log_err=e_new)
+run(T=200, A0=10, lead=45, trap='pendulum', latency_param=0.06, tframe=False, log_err=e_old)
+e_new, e_old = np.array(e_new[len(e_new) // 2:]), np.array(e_old[len(e_old) // 2:])
+check('TFRAME: field-angle error while turning, 95% < 30 deg', np.percentile(e_new, 95) < 30,
+      'with TFRAME median %.1f, 95%% %.1f; without %.1f, %.1f deg' % (np.median(e_new), np.percentile(e_new, 95),
+                                                                     np.median(e_old), np.percentile(e_old, 95)))
+check('TFRAME = 0 keeps the 2026-11-02 behaviour (bounded, runs)', len(e_old) > 0, '%d samples' % len(e_old))
 print('TESTS %s' % ('PASSED' if ok_all else 'FAILED'))
 sys.exit(0 if ok_all else 1)

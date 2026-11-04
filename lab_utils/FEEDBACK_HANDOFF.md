@@ -205,7 +205,12 @@ Preconditions: the model is rebuilt and restarted with the edits in `rcg/SIMULIN
    - `cd lab_utils && python3 stator_osc_drive.py status` (forward matrix, gains 0).
    - `caget Y1:RDS-OUTS_COMMSEL Y1:RDS-OUTS_COMM_ENABLE Y1:RDS-OUTS_COMM_WDOG Y1:RDS-OUTS_COMM_AMP` → all 0.
    - Clean-start hold, outputs off: `python3 stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`.
-2. **Replay tracker** (no camera), as in F1:
+2. **Known-angle source (no camera, no rotor):** `python3 fake_rotor.py profile --duration 100` (also `spin --rev-s 1.2`,
+   `swing --amp-deg 80`). It sends a known angle in the tracker's UDP format and writes the truth to `~/fe1/`.
+   With it, the front end's field can be scored against the truth with `fe1_check.py` (step 5).
+   With TFRAME, `--latency` is the delay from the frame's timestamp to the fastest arrival: use `--latency 0.003` with
+   `fake_rotor.py`, whose timestamps are exact. For the camera, use ~exposure/2 + readout (~0.015, assumed; FE1/FE2 measure it).
+   Alternatively, a replayed video, as in F1:
    `cd camera_utils/tracking && python3 live_blob_track.py --replay /home/controls/stator_detent/output_basler_gps1477428272.avi --replay-realtime --centre 132.3,180.6 --outdir /tmp/fe1 --snapshot "" --publish 127.0.0.1:5005`
 3. **Commutation, outputs off:**
    `cd lab_utils && python3 feedback_drive.py frontend --lead 45 --duration 60 --latency 0.06 --live`
@@ -213,7 +218,9 @@ Preconditions: the model is rebuilt and restarted with the edits in `rcg/SIMULIN
    `python3 feedback_drive.py frontend --lead 45 --duration 15 --freeze-at 8 --live`
    It stops sending at 8 s and leaves ENABLE at 1. Pass: the printed `COMM_GAIN` falls to 0 within ~1 s
    (WDOG 0.5 s + 0.5 s ramp) and stays 0.
-5. Stop the tracker. Fetch `OUTS_V2,V3,V4_OUT_DQ` over steps 1–4. rclone them with the `feedback_*.csv` logs to
+5. Stop the tracker. Fetch `OUTS_V2,V3,V4_OUT_DQ` over steps 1–4 (npz as `awg_waveform_drive.fetch_dq` writes).
+   Score each fake-rotor run on the Mac: `python3 fe1_check.py ~/fe1/truth_<...>.csv <feedback log> <out_dq.npz>`
+   (`selftest` passes: it passes a timestamped block and fails the EPICS staircase and the arrival-time prediction). rclone them with the `feedback_*.csv` logs to
    `dropbox:Microspheres/TFINER/data/feedback/fe1/`, with a raw report. Then `git checkout main`.
 
 Pass marks (Mac, proposed):

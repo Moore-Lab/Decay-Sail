@@ -372,8 +372,8 @@ def run(args):
 
 def run_frontend(args):
     """Mode 'frontend': the y1rds commutation block (lab_utils/rcg/commutate.c, after the model change)
-    points the field; worker2 only reports the camera angle. Each frame it writes THETA (unwrapped deg),
-    OMEGA (deg/s), ALPHA (deg/s^2) and SEQ to Y1:RDS-OUTS_COMM_*. Settings: M, SIGN, LEAD, LATENCY, WDOG,
+    points the field; worker2 only reports the camera angle. Each frame it writes TFRAME (host time of the frame),
+    THETA (unwrapped deg), OMEGA (deg/s), ALPHA (deg/s^2) and SEQ to Y1:RDS-OUTS_COMM_*. Settings: M, SIGN, LEAD, LATENCY, WDOG,
     VMIN, AMP. Start: pedestal (back-to-back), outputs (if --enable-outputs), DRVON 1, first fresh angle,
     COMMSEL 1, AMP, ENABLE 0 -> 1 (re-arms the front-end watchdog). Stop: ENABLE 0 (the block ramps its gain
     to 0 in 0.5 s), COMMSEL 0, AMP 0, DRVON 0, pedestal down, then outputs restored. Oscillator gains are
@@ -456,7 +456,9 @@ def run_frontend(args):
         def send():
             nonlocal seq
             seq += 1
-            for kk, vv in (('THETA', ctrl.th), ('OMEGA', ctrl.w), ('ALPHA', ctrl.a), ('SEQ', seq)):
+            # TFRAME: worker2 host time of the frame behind THETA (commutate.c argin[12], 2026-11-03), written
+            # before THETA/SEQ so it has landed when the new update is detected.
+            for kk, vv in (('TFRAME', ctrl.hist[-1][0]), ('THETA', ctrl.th), ('OMEGA', ctrl.w), ('ALPHA', ctrl.a), ('SEQ', seq)):
                 put(f'{C}_{kk}', vv, echo=False)
         send()
         put(f'{PREFIX}_COMMSEL', 1); put(f'{C}_AMP', args.amp)
