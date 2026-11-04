@@ -32,11 +32,17 @@ Inputs, written by worker2 each camera frame:
 | `OUTS_COMM_THETA` | rotor angle at the frame time, deg (unwrapped) |
 | `OUTS_COMM_OMEGA` | angular velocity, deg/s (from the tracker's line fit) |
 | `OUTS_COMM_SEQ` | frame counter, for the watchdog |
+| `OUTS_COMM_TFRAME` | worker2 time of the frame (added 2026-11-03; see below) |
 
 Settings (EPICS): `OUTS_COMM_M` (8), `_SIGN` (±1), `_LEAD` (electrical deg), `_LATENCY` (s), `_ENABLE`,
 `_WDOG_S` (s).
 
-Per cycle: `theta_pred = THETA + OMEGA · (time since THETA last changed + LATENCY)`;
+Per cycle: `theta_pred = THETA + OMEGA · τ (+ ½ ALPHA · τ²)`, with τ the frame's age + LATENCY.
+The age comes from TFRAME and an offset the block learns from the fastest-arriving updates. Without TFRAME, τ would be
+the time since the value landed, which varies by up to 62.5 ms because EPICS values land only on 16 Hz ticks.
+That costs p95 ~69° of field angle on a spinning rotor, against ~23° with TFRAME (simulation, `lab_utils/rcg/test_commutate.py`
+on branch `feedback-drive`). The full input list and the build steps are in `lab_utils/rcg/SIMULINK_EDITS.md` on that branch.
+Then:
 `dir` = sign of OMEGA with hysteresis; `psi = SIGN·M·theta_pred + dir·LEAD`; outputs `sin psi`, `cos psi`.
 This is the law in `feedback_drive.py` (selftest-validated in simulation), moved into the model.
 The prediction runs every cycle, so between camera updates the field turns smoothly with the
