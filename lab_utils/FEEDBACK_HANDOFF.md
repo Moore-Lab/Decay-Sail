@@ -197,6 +197,45 @@ one lead grows the swing and its opposite shrinks it, in two scans.
 
 On the Mac: swing amplitude per 10 s step from `blob_live` against the lead in the log (growth − decay per pair).
 
+## F3 runbook (EPICS route, Molly OK 2026-11-04): spin up from rest, hold 0.5 rev/s mean, brake
+
+**Target (Molly):**
+1. Go over the top from rest.
+2. Then for 60 s, every full turn at 0.4–0.6 rev/s, no reversal.
+3. Then brake to a swing under 30°.
+
+**Why a mean rate (derived, F2's 1× trap only):** the 4.94 rad/s² once-per-turn trap means going over the top needs ≥0.71 rev/s at the bottom. A slow mean rate is set by the energy, not the speed.
+
+**Controller:** `feedback_drive.py run --f3` (SpeedController).
+- It regulates the energy: push along the motion below the band, brake above it.
+- It pushes only while |ω| < 0.3 rev/s, with the field off through the fast bottom, so the 16 Hz updates keep up.
+- Push angles −88 / +167 come from F2's fit (R² 0.165).
+- The camera rotated ~1.9° on 11-03, which shifts the push angles by ~15° electrical (derived, sign not checked).
+
+**Simulation (`f3_check.py sim`; the controller logic only, push angles exact by construction there):**
+- Over the top in ~40 s; per-turn 0.43–0.54 rev/s; brake to ±5°.
+- Robust to: the staircase (no ramp), +50 ms latency, amp 3000, a trap of 4.0 or 6.0 vs 4.94, and push angles off by 30°.
+- **Braking fails if the push angles are off by 60°.** The rotor would then be left turning ~0.5 rev/s for hours (Q ~ 10⁴).
+
+**Tracker match at speed (F2, measured):** median ncc 0.87–0.95 up to 1.17 rev/s, never more than 2 frames in a row below 0.8.
+
+Steps (worker2; each `--live` needs Molly's go):
+0. `cd ~/wt_wave && git checkout feedback-drive && git pull` (or a fresh worktree), then `cd lab_utils`.
+1. **Pre-flight, outputs OFF (rotor untouched): the whole EPICS path with a known rotor.**
+   - `python3 fake_rotor.py profile --duration 200 &`
+   - `python3 feedback_drive.py run --f3 --amp 4000 --pedestal 6400 --mtramp 0.0625 --rest-deg 227 --live`
+     (no `--enable-outputs`; the fake rotor's rest is 227).
+   - Fetch `OUTS_V2–V4_OUT_DQ`. Check that the field turns piecewise-linearly between updates, with no 1/16 s staircase and no out-of-range transients, and that it goes to 0 while the fake speed exceeds 0.3 rev/s. That's the first look at how the matrix ramp behaves when an update arrives mid-ramp.
+2. **Tracker re-pin (a gate).**
+   - A candidate centre from board features is (122.8, 179.6). Check it by replay on a still video: median ncc ≳ 0.9.
+   - If that fails: run the F2 prep swing (`stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 30 --enable-outputs --live`) while recording, then `camera_utils/tracking/centre_from_swing.py`, then replay check again.
+   - **The rest angle for `--rest-deg` comes from the tracker** (its angle at rest), not from `centre_from_swing`.
+3. **F3 live, starting from rest:**
+   - tracker: `live_blob_track.py --centre X,Y --outdir ~/stator_detent --publish 127.0.0.1:5005 --show`
+   - drive: `python3 feedback_drive.py run --f3 --amp 4000 --pedestal 6400 --mtramp 0.0625 --rest-deg R --enable-outputs --live`
+   - It brakes by itself after the hold, or if it never gets over the top within 180 s. Ctrl-C ramps down safely, but may leave the rotor turning.
+4. **Score:** `python3 f3_check.py score <blob_live csv> <feedback log> --rest-deg R`. Upload both, with the OUT_DQ, to Dropbox `data/feedback/f3/`.
+
 ## FE1 runbook: after the y1rds model change, outputs off (nothing reaches the chamber)
 
 Preconditions: the model is rebuilt and restarted with the edits in `rcg/SIMULINK_EDITS.md`, and

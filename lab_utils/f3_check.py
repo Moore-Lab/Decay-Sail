@@ -2,7 +2,7 @@
 """Gate F3 (Molly OK 2026-11-04): spin up from rest, hold a mean rotation rate, brake to rest. Simulator + scorer.
 
     python3 f3_check.py sim [--push-max 0.3] [--target 0.5] [--amp 4000] [--mtramp 0.0625]   # one simulated run
-    python3 f3_check.py score BLOB_LIVE.csv FEEDBACK_LOG.csv                                  # a real run
+    python3 f3_check.py score BLOB_LIVE.csv FEEDBACK_LOG.csv [--rest-deg R]                   # a real run
     python3 f3_check.py selftest
 
 Pass mark (Molly 2026-11-04): the rotor goes over the top from rest; then for 60 s every full turn's mean rate
@@ -181,7 +181,13 @@ def main():
     if len(sys.argv) > 3 and sys.argv[1] == 'score':
         t, a = read_blob(sys.argv[2])
         ph = read_phases(sys.argv[3], t)
-        rest = np.median(a[:50])
+        # rest angle: --rest-deg (the tracker's angle at rest, same value given to feedback_drive), else the first
+        # 50 frames (only right if the run started from rest)
+        if '--rest-deg' in sys.argv:
+            r0 = float(sys.argv[sys.argv.index('--rest-deg') + 1])
+            rest = r0 + 360.0 * np.round((np.median(a[:50]) - r0) / 360.0)
+        else:
+            rest = np.median(a[:50])
         ok, _ = score(t, a - rest, ph)
         sys.exit(0 if ok else 1)
     sys.exit(__doc__)
