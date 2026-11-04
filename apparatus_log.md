@@ -14,6 +14,14 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 (evening) — F3 live 2 (worker2 agent, Molly's go): rotation at ~0.53 rev/s; brake failed
+
+- Settings: tracker exposure 15 ms, second light adjusted, `--ncc-min 0.7`, rest 229.8. Loop FE 1477875691–1477875870.
+- Over the top 4.6 s in. 33 turns at 0.52–0.55 rev/s in the "hold", **with the field off**, i.e. coasting.
+- The brake reversed the rotor. It was left turning **−0.55 rev/s** with the drive off.
+- The trap was measured over the full circle from the coasting.
+- Analysis: `analysis/f3_20261104/README.md`. Brake fix on `feedback-drive`. Data: Dropbox `data/feedback/f3/live2/`.
+
 ### 2026-11-04 (afternoon) — F3 live 1 (worker2 agent, Molly's go): watchdog stop after 4 s
 
 Branch `feedback-drive` fe5c17f.
