@@ -177,8 +177,8 @@ class SpeedController(Controller):
         self.on = self.push_max is None or abs(self.w) / 360.0 < self.push_max
         # Braking to rest: once the swing is below ~3 deg there is nothing to brake, and a held brake field would
         # push a resting rotor one way (pre-flight 2026-11-04: constant field at rest). Field off.
-        if self.target_rev <= 0 and self.E < self.w0sq * (1 - np.cos(np.radians(3.0))):
-            self.on = False
+        if self.target_rev <= 0 and (self.E < self.w0sq * (1 - np.cos(np.radians(3.0))) or abs(self.w) < self.vmin):
+            self.on = False                   # (|w| < vmin too: stopped away from the assumed rest angle, pre-flight 2)
         d = self.dir * self.action            # which way to push: along the motion, or against it
         delta = self.push_pos if d > 0 else self.push_neg
         self.lead = delta                     # logged in the 'lead' column
