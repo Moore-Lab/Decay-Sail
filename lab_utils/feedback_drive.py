@@ -108,7 +108,8 @@ def pendulum_rate(E, w0sq):
         return 0.0
     th = np.linspace(0, 2 * np.pi, 4001)
     v = np.sqrt(2 * (E - w0sq * (1 - np.cos(th))))
-    return 1.0 / np.trapz(1.0 / v, th)
+    f = 1.0 / v                               # trapezoid rule by hand (np.trapz is gone in numpy 2.x, np.trapezoid absent in 1.x)
+    return 1.0 / float(np.sum(0.5 * (f[1:] + f[:-1]) * np.diff(th)))
 
 
 def energy_for_rate(rate, w0sq):
