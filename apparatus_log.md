@@ -14,6 +14,22 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 (afternoon) — F3 live 1 (worker2 agent, Molly's go): watchdog stop after 4 s
+
+Branch `feedback-drive` fe5c17f.
+- **Tracker setup:** new light (the old flashlight had dimmed: ncc 0.80), exposure 8 ms, centre (122.8, 179.6).
+- **Run:** `feedback_drive.py run --f3 --amp 4000 --pedestal 6400 --mtramp 0.0625 --rest-deg 229.9 --enable-outputs --live`, loop FE 1477874241–1477874250.
+- **Saw:**
+  - From rest, the swing grew to ~±90° within ~4 s (the simulation needed ~40 s to go over the top).
+  - Tracker ncc fell with angle away from rest, to 0.75 at 320–340°, which tripped the ncc < 0.8 watchdog. Clean ramp-down.
+  - The rotor was left swinging ~±90° (period ~3.6 s).
+- **Centre check (replay of this video):**
+  - The derived centre (122.8, 179.6) gives a constant spot radius of 23.5–24.4 px over ±90° and ncc 0.951.
+  - A circle fit to the spot's brightest pixels gave (125.0, 180.9) and is worse: ncc 0.892, radius 22.5–26.4 px. That fit is biased by the one-sided light.
+  - Relative to the board (spoke convergence), the rotation centre is where it was in F2 to ~1 px. The camera moved, not the rotor.
+- 60 s swing video for later fits: FE 1477874636–696.
+- Data: Dropbox `data/feedback/f3/live1/`, `.../centre_fit/`. Runbook: `lab_utils/FEEDBACK_HANDOFF.md` (branch).
+
 ### 2026-11-04 — ND 0.5 back in the LES beam; light-push test (worker2 agent, read-only)
 
 - **Camera moved slightly** (Molly, 2026-11-03), so the tracker's registration fails. Recalibrate before F3.
