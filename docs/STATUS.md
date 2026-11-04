@@ -65,7 +65,8 @@ The goal these serve is in `measurement_objective.md`.
 - **Trap / libration frequency:** small-amplitude f₀ ~ 0.31 Hz (stopwatch 09-09 0.310 Hz and
   video 10-30 0.311 Hz agree); how it depends on amplitude and time is open (`analysis/ringdown_20261102/README.md`). Current value:
   `docs/DECISIONS.md`. The older LES-based 0.12–0.16 Hz values predate the comb rule and
-  are unexplained. Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the
+  are unexplained. f₀ matched before and after the 10-15 → 10-26 rebuild (log 2026-11-04).
+  Planned (Molly): tilt-stage check, f₀ and rest angle at small tilt steps, to test whether tilt sets the trap. Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the
   time domain (cusp spacing, not a peak finder).
 - **Rotation direction:** which way A→B→C turns the rotor has not been observed. No lock
   yet; on the sweep the camera-to-board sign mapping is not established.
@@ -77,8 +78,8 @@ The goal these serve is in `measurement_objective.md`.
 - **Capture bracket:** detent runs at 4000 / 4800 / 5600 counts, recording the
   pre-drive rms each time.
 - **Measure `I` directly** from the high-frequency asymptote of χ(f).
-- **Free spindown (laser off) with the tilt stage in:** the replacement stage is installed
-  on 2026-10-15 (Molly, 2026-11-01; alignment not recorded here). Re-measure τ to get
+- **Free spindown (laser off) with the tilt stage in:** the replacement stage went in
+  on 2026-10-26, when the chamber went back on the table (Molly, 2026-11-04; alignment not recorded here). Re-measure τ to get
   the current γ (drag row in `docs/DECISIONS.md`).
 - **PD / pickoff:** measure the pickoff ratio; find why the PD lost ~28% response when
   the PBS went in; replace the PBS251 with a wedged window or characterise its drift.

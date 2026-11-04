@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 — Setup history 09-09 → 10-30 recorded (Molly, recalled; no runs)
+
+- 09-09: chamber on the optical table, no tilt stage (the old stage broke ~August).
+- 10-15: chamber taken off the table. Rebuild: shims, screw stands removed, PCB and magnet centred, board grounded.
+  The 10-21/22 centring was done in this period, off the table.
+- 10-26: chamber back on the optical table on the new tilt stage.
+- f₀ measured: 0.310 Hz on 09-09 (stopwatch) and 0.311 Hz on 10-30 (video), so the same across the rebuild.
+- Corrected `docs/STATUS.md`, which had the tilt stage in on 10-15.
+
 ### 2026-11-04 (late) — F3 simulator checked against brake 1 (Mac, analysis only, no hardware)
 
 - Ran `analysis/f3_20261104/outdq_replay.py` and `f3_check.py repro` (branch `feedback-drive`, uncommitted).
