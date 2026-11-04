@@ -24,6 +24,7 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 - **Saw:** ND 0.5 transmits 37%. No rest-position shift with the ND (step 0.05 ± 0.3 px). LES noise is electronic,
   so SNR drops ~2.5× with the ND. The "still" rotor moves ±2° at 0.735 Hz.
 - Analysis: `analysis/nd_test_20261104/README.md`. Data: Dropbox `data/nd_test_2026-11-04/`.
+- Lab mate's system pressure changed again at 18:19:15Z (Molly). No run in progress.
 
 ### 2026-11-03 (evening) — Feedback drive, model-change prep (Mac only, no runs)
 
