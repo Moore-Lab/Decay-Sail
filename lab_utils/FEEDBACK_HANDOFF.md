@@ -29,21 +29,37 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   - new light plus the adjusted second light, exposure 15 ms; ncc 0.79–0.98 over 360°;
   - rest angle ~229.8.
 
-**Next (gate: no drive runs until step 1 passes):**
-1. **Make `f3_check.py simulate` reproduce brake-only 1** (it passed before both failures, so it is not yet a gate):
-   - start from a ~263° swing (energy ≈ 0.85 of the barrier);
-   - coupling ~3 rad/s² at amp 4000 (fitted);
-   - actuation delay 0.10 s against the controller's 0.07 s prediction;
-   - the measured trap harmonics (`push_angles.py` `cU`);
-   - loads every 2nd tick, ~17 writes/s.
-   It must go over the top as brake 1 did.
-2. **Fix against that model:**
-   - prediction horizon 0.10 s, measured (`--latency 0.07` with `--mtramp 0.0625`);
-   - push angles −54 / +170;
+**Step 1 (sim vs brake 1), worked 2026-11-04 late, Mac only. Results: `../analysis/f3_20261104/README.md`,
+"Simulator check":**
+- **Plant model:**
+  - `f3_check.TRAP_CU`: joint trap fit, barrier 9.61 at −160°;
+  - `COUPLING_HOLD`: per-hold fit against the measured OUT_DQ field; held out on brake 1, R² 0.38; no constant term;
+  - `simulate_measured()`, `repro_brake1()`, CLI `python3 f3_check.py repro [--coupling hold|010]`.
+- **Open loop** (measured field replayed, `outdq_replay.py` on main): the pumping is reproduced.
+  Over the top negative at 5.4–6.0 s (live 5.57 s), of 9 cells each:
+  - `COUPLING_HOLD`: 2/9 (and 3/9 positive);
+  - with c0 = −0.79 ± 0.51 (undetermined): 3/9;
+  - `COUPLING_010`: 3/9.
+- **Closed loop:** the failure to brake is reproduced; the swing stays at 0.8–1.0 of the barrier for 20 s. **The 5.6 s tip-over is not**
+  (hold coupling 0/12; commanded-fit coupling 5/12 at 10–22 s).
+- **Needs Molly:** is "reproduces the failure to brake" enough to gate step 2? The alternative is to require the tip-over time,
+  which may not be reachable (the rotor was at 0.82 of the barrier).
+- **Also measured:**
+  - OUT_DQ timestamps sit 3.3–4.2 s later than LES's (cause unknown);
+  - about every second matrix write lands (8 Hz);
+  - why closed loop (0/12) is worse than open loop (2/9): not found. Next check: compare the sim's applied field with OUT_DQ
+    in window 3 (4.83–5.63 s), where live gained the energy to tip.
+
+**Next (gate: no drive runs until step 2 passes in the measured-model sim):**
+1. (Once Molly OKs the step-1 mark.) Score each fix with `simulate_measured` using both couplings, and the tick phase scanned:
+   - prediction horizon: the effective delay is known only from the rotor response (fits peak at 0.10 s on commands);
+     OUT_DQ can't give an absolute write-to-field delay (timestamp offset). Scan the latency in the sim;
+   - not the push angles: −88 / +167 are within 6% / 0.5% of `COUPLING_HOLD`'s best (−76 / +170);
    - brake only mid-swing, with the predicted velocity keeping its sign;
    - a lower brake amplitude, so one mistimed push can't tip the rotor over the top.
+   Pass: from brake 1's start, the swing is below 30° within 60 s in every cell.
    Braking from rotation above ~0.45 rev/s is out of reach on this route: the loads (~8 Hz) are too slow for ~3.6 Hz electrical.
-3. **Then a brake-only run** from a coasted-down swing, with Molly's go typed in the worker2 session.
+2. Then a brake-only run from a coasted-down swing, with Molly's go typed in the worker2 session.
 
 ## Earlier state (end of 2026-11-02)
 
