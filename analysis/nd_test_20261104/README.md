@@ -33,8 +33,8 @@ The ND was out/in/out/in, as cued.
 - **The position does not alternate with the ND.** It drifts steadily, by about 1.4 px over 10 min.
 - **Fitted ND step:** x +0.05 ± 0.28 px, y −0.08 ± 0.34 px. The ± is rough: residuals averaged in 10 s blocks.
 - **No light-driven shift is detected.**
-- (Derived, rough.) The spot is ~25–30 px from the rotation centre (not measured since the camera moved), so 1 px ≈ 2°.
-  The 2σ bound of ~0.6 px is a rest-angle change below ~1.3°. With I = 1.1e-11 kg m² and the 1× trap of
+- (Derived.) The spot is 23.8 px from the rotation centre (tracker re-pinned at (122.8, 179.6), see Open), so 1 px ≈ 2.4°.
+  The 2σ bound of ~0.6 px is a rest-angle change below ~1.4°. With I = 1.1e-11 kg m² and the 1× trap of
   4.94 rad/s² (F2), the change in light torque between full and 37% light is below ~1.3e-12 N·m. That bounds
   the full-beam torque at ≲ 2e-12 N·m, a few percent of the trap.
 
@@ -60,5 +60,8 @@ The ND was out/in/out/in, as cued.
 
 - The 0.735 Hz motion of the "still" rotor.
 - The slow drift: 1.4 px in 10 min.
-- The rotor rest angle moved ~20° since F2 (worker2's pinned-centre reading 207° vs 227°).
-- The tracker needs recalibrating after the camera move before F3.
+- **Tracker re-pinned after the camera move (measured, replay of this video):**
+  - Board-feature matching against the F2 video gives a camera rotation of 1.90° and maps the old centre to (122.8, 179.6).
+  - Pinned there, the tracker reads ncc 0.929 median (old centre: 0.588), r 23.8 px, and rest angle 229.0° ± 0.2°.
+  - So the earlier "rest angle moved ~20°" (207° with the old centre) was an artifact of the wrong centre. The rest angle is close to F2's 227°.
+  - Files: `data/nd_test_2026-11-04/tracker_check/`.
