@@ -14,6 +14,10 @@ The goal these serve is in `measurement_objective.md`.
   via the runbook in `lab_utils/DRIVE_LOCK_HANDOFF.md`. The old `rotor_angle_loop.py` 83% recorded / 31% live gap is unexplained but
   belongs to the old detector. State: `camera_utils/tracking/HANDOFF.md`.
 
+- **DQ timestamps disagree:** in the F3 runs of 2026-11-04, OUT_DQ (V2–V4) and LES DQ timestamps from the same
+  front end differ by 3.3 s (brake 1) and 4.2 s (live 2), with OUT_DQ later; which is off is undetermined. Measured by
+  matching OUT_DQ to the logged writes and LES to the tracker (`analysis/f3_20261104/README.md`). It matters for any
+  analysis that aligns these channels with each other or with host time. F1's "~2.6 s late" may be the same thing.
 - **LES channel choice:** look at both `LES_PIT` and `LES_YAW` and use the better one
   (Molly, 2026-11-01). `track_spindown.py:30` and both `noise_budget_20260911*` notebooks
   still hardcode YAW (`monitor_libration.py` already reads both).

@@ -83,3 +83,58 @@ Method:
 - (Interpretation, not approved) So the brake did not fail because of wrong angles. Two more likely causes:
   - **near a swing's turning point,** a brake push acts ~0.1 s later, after the rotor has reversed, so it pumps;
   - **while rotating faster than 0.4 rev/s,** the field is off, so the brake never acts.
+
+## Simulator check against brake 1 (handoff step 1; Mac only, 2026-11-04 late)
+
+Scripts: `outdq_replay.py` (here; imports `f3_check.py` from the `feedback-drive` worktree) and `f3_check.py repro`
+(branch `feedback-drive`). Full output of `python3 outdq_replay.py` is reproduced by running it (~25 s).
+
+**Measured:**
+- **Trap refit.** Joint fit of the two field-off sets (live-2 coasting and brake 1's 11 s free swing before its loop):
+  - the free-swing energy spread falls from ~0.35 to 0.11 rad²/s²;
+  - live-2 bins rms 0.27;
+  - barrier 9.61 at −160°.
+  - With the live-2-only fit, brake 1's swing turned ~10° past its measured +144°.
+  - Brake 1 started at 7.92 rad²/s², 0.82 of the barrier.
+- **Clock.** LES against the tracker angle puts host = fe + nominal −1.395 s for brake 1 (±0.05 s) and −0.82 s for live 2 (±0.16 s).
+- **OUT_DQ and LES timestamps disagree by 3.26 s (brake 1) and 4.16 s (live 2)** (OUT_DQ later; which is off is undetermined), from matching the measured field angle to the
+  logged writes (match fraction 0.75 / 0.61 against ≤ 0.28 at any other lag). Both are front-end DQ channels, and the cause is unknown.
+  F1's "~2.6 s late" is probably the same offset (not checked).
+- **About every second write lands.** In brake 1's window 1 the writes 325.9, 7.2, 34.8, 60.2, 78.7, 99.6, 113.6 appear in OUT_DQ as 7, 60, 100.
+- **Coupling per constant-field hold** (~125 ms each; Δω − ∫trap dt fitted against ∫coupling dt along the tracked angle, with the measured field):
+  - the fit peaks with the field 0.075 s after the command-matched position;
+  - live 2: 146 holds, R² 0.41; **held-out brake 1: 20 holds, R² 0.38**;
+  - [E cos D, E sin D, E² cos 2D, E² sin 2D] = [2.42, −1.05, −1.73, 0.25] rad/s² (`f3_check.COUPLING_HOLD`);
+  - **The constant term is undetermined:** with it, c0 = −0.79 ± 0.51 rad/s² (1.5σ). The commanded fit gave −0.53, and a
+    per-frame fit against the measured field gave −0.94. The method itself has no bias: field-off 125 ms control intervals
+    at the same speeds give −0.02 ± 0.03 (live 2) and −0.04 ± 0.02 (brake 1). `COUPLING_HOLD` leaves it out.
+  - The 2× term is 3× the commanded fit's.
+  - Fits against the 0.42 s-smoothed acceleration, per frame or per burst, did not converge, so they are not used.
+- **Push angles from `COUPLING_HOLD`** (E = 1):
+  - best +76° short of zero, i.e. −76° (+3.01 rad/s²), and +170° (−4.28);
+  - the angles in use (−88 / +167) give +2.84 / −4.26, within 6% and 0.5% of those. **So the push angles are not what fails.**
+  - Accelerating + motion is ~⅔ as strong as accelerating − motion.
+- **Write-to-field delay:** not measurable in absolute terms from OUT_DQ, because its timestamps carry the unknown offset above.
+  - The rotor-response shift (+0.075 s after command matching) is what fixes the field's timing.
+  - Landed-step spacing (median 86–94 ms) does not cleanly separate one tick from two.
+  - Field-on 10–90% rise time: 37 ms.
+- **Open-loop replay of brake 1 with the measured field,** from the last free turning point (−0.97 s):
+  - live: −118.5 / +156.8, then over the top negative at 5.57 s;
+  - field off, the model gives −115 / +145;
+  - with any coupling the field adds energy as live (+ turning point +135 to +175 in most cells);
+  - over the top negative at 5.4–6.0 s, 9 cells each (shift ±0.025 s × coupling ×0.8–1.25):
+    - `COUPLING_HOLD`: 2/9, plus 3/9 positive;
+    - `COUPLING_HOLD` + c0: 3/9, none positive;
+    - `COUPLING_010`: 3/9.
+  - Best rms 8–9° over 0–5.5 s.
+- **Closed loop** (`f3_check.py repro`: the live controller, sim loads every 2nd tick, tick phase scanned):
+  - with `COUPLING_HOLD`, the swing stays at ±115–160° (0.8–1.0 of the barrier) for 20 s with the field on ~40% of frames,
+    and 0/12 go over in the brake-1 manner (1 at 14 s, −0.38 rev/s);
+  - with `COUPLING_010`, 5/12 go over negative, at 10–22 s;
+  - live tipped over at 5.6 s;
+  - the sim at the old settings braked the same controller to ±12° in ~3 s.
+
+(Interpretation, not approved)
+- The brake fails because its pushes add energy as often as they remove it. The measured-model plant shows this, open and closed loop.
+- Brake 1 then tipped over because it started at 0.82 of the barrier. With the rotor that close, the direction and moment it goes
+  over depend on ±25 ms and ±25% in the model, so no simulator can be expected to reproduce *when* it tipped, only that it doesn't brake.

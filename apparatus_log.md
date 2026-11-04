@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-04 (late) — F3 simulator checked against brake 1 (Mac, analysis only, no hardware)
+
+- Ran `analysis/f3_20261104/outdq_replay.py` and `f3_check.py repro` (branch `feedback-drive`, uncommitted).
+- Measured from the saved data:
+  - OUT_DQ and LES timestamps disagree by 3.3 s (brake 1) and 4.2 s (live 2);
+  - about every second matrix write lands;
+  - a per-hold coupling fit holds out on brake 1 (R² 0.38).
+- The measured-field replay reproduces brake 1's pumping. Over the top negative at 5.4–6.0 s in 2–3 of 9 cells per coupling.
+- The push angles are within 6% of optimal, so they are not the fault.
+- The closed-loop sim reproduces the failure to brake, but not the tip-over time.
+- Analysis: `analysis/f3_20261104/README.md` (simulator check).
+
 ### 2026-11-04 (evening) — F3 brake-only 1 (worker2 agent, Molly's go): brake failed again
 
 - The rotor had fallen back to a large swing by 20:59:48Z (Molly). `run --f3 --brake-only --brake 120` (dea18f0), loop FE 1477876900–1477877024.
