@@ -175,6 +175,10 @@ class SpeedController(Controller):
         elif self.E < self.E_lo:
             self.action = 1
         self.on = self.push_max is None or abs(self.w) / 360.0 < self.push_max
+        # Braking to rest: once the swing is below ~3 deg there is nothing to brake, and a held brake field would
+        # push a resting rotor one way (pre-flight 2026-11-04: constant field at rest). Field off.
+        if self.target_rev <= 0 and self.E < self.w0sq * (1 - np.cos(np.radians(3.0))):
+            self.on = False
         d = self.dir * self.action            # which way to push: along the motion, or against it
         delta = self.push_pos if d > 0 else self.push_neg
         self.lead = delta                     # logged in the 'lead' column
@@ -703,7 +707,9 @@ def main():
     if args.freeze_at and args.enable_outputs:
         sys.exit('! --freeze-at is for the outputs-off watchdog test only')
     if args.rate is None:
-        args.rate = 25.0 if args.mode == 'frontend' else 10.0
+        # F3: 20/s so every 16 Hz tick carries a fresh value and the 1/16 s matrix ramps join up (pre-flight
+        # 2026-11-04: at 10/s the field ramped then held ~40 % of the time)
+        args.rate = 25.0 if args.mode == 'frontend' else (20.0 if args.f3 else 10.0)
     run_frontend(args) if args.mode == 'frontend' else run(args)
 
 
