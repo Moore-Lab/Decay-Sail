@@ -7,7 +7,45 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   if it fails, the next step is a front-end model change.
 - **Background:** the C2 results it builds on are in `../analysis/c2_20261102/README.md`.
 
-## Current state (end of 2026-11-02): read this first
+## Current state (end of 2026-11-04): read this first
+
+**Where we are:**
+- **Model change paused (Molly):** Problem 1 passed (`WAVEFORM_HANDOFF.md`). The EPICS route is being pushed as far as it goes first.
+  `commutate.c` now has a `COMM_TFRAME` input (13 inputs), with `fake_rotor.py` + `fe1_check.py` for FE1.
+- **F3 on the EPICS route** (runbook below; results in `../analysis/f3_20261104/README.md`):
+  - **Spin-up works,** strongly: over the top in ~5 s.
+  - **0.53 rev/s was reached and coasted in band, but the controller never acted.** The field stayed off above push_max.
+  - **Braking failed twice** (live 2, brake-only 1). The rotor was left turning −0.6 rev/s, drive off, at ~21:05Z on 11-04.
+- **Measured today:**
+  - push angles −54 / +170 at an effective command-to-field delay of **0.10 s** (`../analysis/f3_20261104/push_angles.py`);
+  - trap barrier 9.4 rad²/s² at ~−165° from rest, from the coasting;
+  - matrix loads land only every ~2nd 16 Hz tick, whatever `--mtramp` is (pre-flights 2 and 3).
+- **Brake mechanism** (interpretation, not approved, from the per-push energy table):
+  - the controller predicts 0.07 s ahead but the field acts ~0.10 s later;
+  - at 60–150°/s that misplaces the field by ~48°;
+  - for negative motion, 84–88% of the "brake" pushes then add energy.
+- **Tracker setup now** (log 2026-11-04):
+  - the camera moved on 11-03; the derived centre (122.8, 179.6) is confirmed;
+  - new light plus the adjusted second light, exposure 15 ms; ncc 0.79–0.98 over 360°;
+  - rest angle ~229.8.
+
+**Next (gate: no drive runs until step 1 passes):**
+1. **Make `f3_check.py simulate` reproduce brake-only 1** (it passed before both failures, so it is not yet a gate):
+   - start from a ~263° swing (energy ≈ 0.85 of the barrier);
+   - coupling ~3 rad/s² at amp 4000 (fitted);
+   - actuation delay 0.10 s against the controller's 0.07 s prediction;
+   - the measured trap harmonics (`push_angles.py` `cU`);
+   - loads every 2nd tick, ~17 writes/s.
+   It must go over the top as brake 1 did.
+2. **Fix against that model:**
+   - prediction horizon 0.10 s, measured (`--latency 0.07` with `--mtramp 0.0625`);
+   - push angles −54 / +170;
+   - brake only mid-swing, with the predicted velocity keeping its sign;
+   - a lower brake amplitude, so one mistimed push can't tip the rotor over the top.
+   Braking from rotation above ~0.45 rev/s is out of reach on this route: the loads (~8 Hz) are too slow for ~3.6 Hz electrical.
+3. **Then a brake-only run** from a coasted-down swing, with Molly's go typed in the worker2 session.
+
+## Earlier state (end of 2026-11-02)
 
 - **EPICS matrix route:**
   - F0 built; F1 and F1b ran on worker2 with outputs off.
