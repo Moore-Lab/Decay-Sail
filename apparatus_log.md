@@ -14,6 +14,77 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-03 — Problem 1 (arbitrary waveforms): scope on USB; W0 AWG stream test, outputs off (worker2 agent; Molly approved)
+
+Branch `waveform-test`. Split agreed with the PI (Molly): first show arbitrary signals on V2–V4 up to ~10 Hz,
+verified on the scope; the model change is paused until then.
+- Scope RTB2004 on worker2 USB-TMC `/dev/usbtmc1` (udev rule by Molly); `*IDN?` answered twice, but later queries
+  wedged it twice (cause not found). CH1 LES YAW, CH2–4 = V2–V4. LAN: "no cable", unresolved.
+- W0 `awg_waveform_drive.py --wave pulse --amp 5000 --pedestal 6400 --live` (outputs off), start FE 1477788806.
+  Saw: front-end clock − worker2 clock = +15496.6 s; only the first 3.0 s of the waveform played; the stop hung
+  ("awgsendwaveform RPC error = 5") and was killed, leaving the pedestal up (outputs off).
+  Cleanup (Molly OK): `awg_reclaim.py` freed 4 slots, EXCMON 0, offsets ramped to 0, TRAMP 1; all resting.
+- W1 (outputs off, AWG built-ins, FE clock): `awg_waveform_drive.py --wave bburst --amp 5000 --pedestal 6400 --live`,
+  start FE 1477790462; `--wave bchirp` (0.1→12 Hz, 60 s), start FE 1477790695; `--wave bsine`, start FE 1477791083. All three PASS by the proposed mark; clean stops.
+- W2 (outputs ON, electrodes connected, scope CH2–4 by BNC 1×): `--wave bburst --amp 500 --pedestal 1000 --outputs-on --scope --live`,
+  start FE 1477793256 (two earlier attempts: scope stopped, then read too late). Bursts at the electrodes in order, aligned
+  within 0.07 ms; ~0.0125 V/count; AC-coupling τ ≈ 5.6 s on V2/V4. Two unexplained 14 ms ±25 V spikes on all scope
+  channels (21:42:49Z, 21:48:32Z), not in OUT_DQ.
+- **Wiring change (Molly, ~22:05Z):** the ground after the DAQ output was floated on **V4**. All the other channels already
+  had it floated; V4 was the only one that hadn't. Runs before this (including W2 `bburst_1793742522` and `bsine_1793742986`) had V4 grounded.
+- W2 `bchirp` (V4 floated), start FE 1477794662: V2/V3 at the electrodes flat 0.3–10 Hz (±0.15% / ±0.4%), V3–V2 timing
+  < 0.13 ms at 1–10 Hz; **V4 showed no signal at the scope** (OUT_DQ exact). Molly then **restored V4 to its previous
+  grounding** (by ~22:20Z); a retry with a different BNC cable is planned for 2026-11-04.
+- **Wiring change (Molly, by ~22:36Z, on her PI's advice):** V2 and V3 changed to **grounded** after the DAQ output, so all three
+  electrodes are now grounded (the ground only needs floating for a direct DAQ-to-scope connection; here the DAQ feeds the HV amp).
+- W2 grounded (all three): `bburst` start FE 1477796873 and `bchirp` start FE 1477797395 (`--scope`, triggered on the pedestal
+  step). All three electrodes flat 0.3–10 Hz (V2 0.0124, V3 0.0127, V4 0.0127 V/count), within 0.33 ms of each other at 1–10 Hz;
+  τ 5.4–5.7 s with clean fits; no spikes. PASS by the proposed mark.
+- **Wiring change (Molly, by ~23:08Z):** V1 (centre electrode) also grounded after the DAQ output, so V1–V4 all match. No runs since.
+- Results: `lab_utils/WAVEFORM_HANDOFF.md` (branch `waveform-test`). Data: Dropbox `data/feedback/waveform/`.
+
+### 2026-11-03 — F2: first outputs-on feedback run; the rotor made full turns (worker2 agent, Molly watching)
+
+Branch `feedback-drive` (4bb45fc). Live tracker gps1477756297 (0 dropped).
+- Prep hold `stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 30 --enable-outputs --live`,
+  FE 1477771975–2007, from rest → ±25.5°.
+- Scan 1 `feedback_drive.py run --scan default --dwell 10 --amp 5000 --pedestal 6400 --rate 10 --live --enable-outputs`,
+  loop FE 1477772541–625.
+- Saw: from the −90 step on, full turns, up to 1.17 rev/s; −2.7 turns net over the scan. Molly: CCW turns, then a
+  slip and the other way (11:04–11:05 local); the outputs looked boxy (16 Hz staircase).
+- **Recorded outputs left 0–12800** (to −389 / 13198, 13–20 samples per channel). Unresolved whether real or the DQ filter.
+- Scan 2 not run (swing ±155°, Molly); free swing recorded ~13 min afterwards.
+- Analysis: `analysis/f2_20261103/README.md`. Data: Dropbox `data/feedback/f2/`.
+
+### 2026-11-02 — Feedback drive F1 and F1b, outputs off (worker2 agent; Molly approved the --live runs)
+
+Branch `feedback-drive`; replay tracker (video gps1477428272) publishing angles; nothing reached the chamber.
+- Clean-start hold `stator_osc_drive.py hold --felec 0.1 --amp 6400 --duration 20 --live`, FE 1477701639–662:
+  0.1000 Hz from the first second, AC 10→90% in 3.0 s. The 1.1 s fix was then merged to `main` (Molly OK).
+- F1 `feedback_drive.py run --lead 45 --duration 60 --live` (every frame, unpaced): loop FE 1477701705–767.
+- F1b same with `--rate 10` (paced, writes waited): loop FE 1477702657–720.
+- Saw: the field follows the commanded steps, and every output step lands on a 1/16 s grid. The pedestals
+  now ramp together. The outputs ring after each step. The latency is not measured.
+  Analysis and verdict: `lab_utils/FEEDBACK_HANDOFF.md` (branch `feedback-drive`).
+- Data: Dropbox `Microspheres/TFINER/data/feedback/` (F1) and `.../feedback/f1b/`, with the agent's raw reports.
+
+### 2026-11-02 — Feedback drive F0 and clean-start fix (Mac, no hardware)
+
+Did: `feedback-drive` branch: `lab_utils/feedback_drive.py` (it freezes the oscillator at FREQ 0
+and points the field each camera frame through DRVMTRX column 2; no model change), the F1 scorer
+`feedback_f1_check.py`, and `live_blob_track.py --publish`. Self-test (simulated rotor) and
+stub-EPICS runs pass. Also `drive-gps-second`: the clean start now holds DRV_TRAMP 0 for 1.1 s
+(RCG cdsOsc applies FREQ at the next GPS second; LIGO-T080135 §7.6.3); merged into
+`feedback-drive`. Not run on worker2. Plan and F1 steps: `lab_utils/FEEDBACK_HANDOFF.md`
+(on the branch); F1 approved by Molly for the next lab session.
+Later (evening, Mac only):
+- y1rds commutation model change approved (Molly builds; `docs/DECISIONS.md`).
+- `lab_utils/rcg/commutate.c` (RCG cdsFunctionCall) with `test_commutate.py`, which passes.
+- Simulink steps: `rcg/SIMULINK_EDITS.md`.
+- `feedback_drive.py frontend` mode; `--pedestal` now separate from `--amp`; F2 scorer `feedback_f2_check.py`.
+- Runbooks for F2 and for FE1 (after the model change), all on branch `feedback-drive`.
+- Not built or run on hardware.
+
 ### 2026-11-02 — Free-swing recording after C2 (no drive; Molly, worker2 agent)
 
 `live_blob_track.py` (camera only), video `output_basler_gps1477678308` (true GPS), 39.0 min,

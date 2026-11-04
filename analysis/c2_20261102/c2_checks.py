@@ -11,6 +11,9 @@
 3. Swing amplitude (sqrt2 * rms of the linearly detrended angle) before and after each
    drive on/off (drive amplitude crossing 0.5).
 4. Step 0 no-glide: field frequency in V2..V4_OUT_DQ during the outputs-off test.
+5. Pedestal (DC) step vs oscillation: angle in 2 s windows around hold 1 on, hold 4 on, hold 3 off.
+6. Every drive start: pedestal stagger between phases, differential field during the ramp, AC rise time.
+6. Every drive start: pedestal stagger between phases, differential field during the ramp, AC rise time.
 """
 import os, sys
 import numpy as np
@@ -75,3 +78,35 @@ inst = np.diff(pk) * fs / 2 / np.pi
 print('\n4. step 0: drive above half amplitude FE %.2f-%.2f; f over first 2/5/10 s %s Hz; instantaneous f, first 1 s, %.4f-%.4f Hz'
       % (tk[0], tk[-1], '/'.join('%.4f' % (np.polyfit(tk[tk < tk[0] + w], pk[tk < tk[0] + w], 1)[0] / 2 / np.pi) for w in (2, 5, 10)),
          inst[:int(fs)].min(), inst[:int(fs)].max()))
+
+
+# 5. pedestal (DC, common mode) vs oscillation timing at hold 1 on, hold 4 on, hold 3 off:
+#    angle range in 2 s windows, with the pedestal and drive amplitude at each window's centre
+# The video's first-frame true GPS, as drive_coupling.load computes it (its printed value):
+ts_ = np.genfromtxt(a.frames, delimiter=',', names=True)
+cam_ = (ts_['cam_timestamp_ns'] - ts_['cam_timestamp_ns'][0]) * 1e-9; host_ = ts_['host_time'] - ts_['host_time'][0]
+c_, *_ = np.linalg.lstsq(np.c_[np.ones(len(cam_)), cam_], host_, rcond=None)
+t_true0 = ts_['host_time'][0] - dc.GPS_UNIX_OFF + c_[0] + (host_ - c_[0] - c_[1] * cam_).min()
+cm = sum(x[:min(map(len, ph))] for x in ph) / 3
+td = g0 + np.arange(len(cm)) / fs - a.tau - t_true0
+print('\n5. pedestal vs oscillation (2 s windows; angle min..max deg; pedestal counts; drive amplitude fraction)')
+for name, (lo, hi) in (('hold 1 on', (95, 125)), ('hold 4 on', (830, 860)), ('hold 3 off', (745, 775))):
+    m = (td > lo) & (td < hi); up = np.flatnonzero(np.diff((cm[m] > 3200).astype(int)))
+    print('  %s: pedestal crosses half at %s s' % (name, np.round(td[m][up], 2)))
+    for s0 in np.arange(lo, hi, 2.0):
+        k = (t >= s0) & (t < s0 + 2)
+        print('    %6.1f-%6.1f s  %7.2f..%7.2f  pedestal %5.0f  amp %.2f' % (
+            s0, s0 + 2, thd[k].min(), thd[k].max(), np.interp(s0 + 1, td, cm), np.interp(s0 + 1, t, amp)))
+
+# 6. every drive start: do the three pedestals ramp together, how big is the differential field
+#    during the ramp, and does the AC ramp in (DRV_TRAMP) or step?
+n6 = min(map(len, ph)); A6 = np.abs(sum(x[:n6] * np.exp(2j * np.pi * k / 3) for k, x in enumerate(ph)) * 2 / 3)
+cm6 = sum(x[:n6] for x in ph) / 3; t6 = g0 + np.arange(n6) / fs
+print('\n6. drive starts (0 = step-0 outputs-off test, 1-7 = holds); phases V2, V4, V3')
+for j, i in enumerate(np.flatnonzero(np.diff((cm6 > 3200).astype(int)) == 1)):
+    tc = t6[i]; m = (t6 > tc - 2) & (t6 < tc + 20); tt, aa = t6[m], A6[m]
+    cr = [t6[np.flatnonzero((x[:n6] > 3200) & (t6 > tc - 2))[0]] - tc for x in ph]
+    aft = tt > tc + 1.0
+    i10 = np.flatnonzero((aa > 640) & aft)[0]; i90 = np.flatnonzero((aa > 5760) & aft)[0]
+    print('  %d FE %.2f: pedestal half-crossings %s s; differential |z| max in ramp %4.0f counts; AC 10->90%% rise %.2f s'
+          % (j, tc, ' '.join('%+.3f' % c for c in cr), aa[tt < tc + 1.0].max(), tt[i90] - tt[i10]))
