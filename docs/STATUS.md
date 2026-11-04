@@ -78,8 +78,8 @@ The goal these serve is in `measurement_objective.md`.
 - **Capture bracket:** detent runs at 4000 / 4800 / 5600 counts, recording the
   pre-drive rms each time.
 - **Measure `I` directly** from the high-frequency asymptote of χ(f).
-- **Free spindown (laser off) with the tilt stage in:** the replacement stage went in
-  on 2026-10-26, when the chamber went back on the table (Molly, 2026-11-04; alignment not recorded here). Re-measure τ to get
+- **Free spindown (laser off) with the tilt stage in:** the replacement stage was put on the table
+  on 2026-10-15 and the chamber on it on 2026-10-26 (Molly, 2026-11-04; alignment not recorded here). Re-measure τ to get
   the current γ (drag row in `docs/DECISIONS.md`).
 - **PD / pickoff:** measure the pickoff ratio; find why the PD lost ~28% response when
   the PBS went in; replace the PBS251 with a wedged window or characterise its drift.
