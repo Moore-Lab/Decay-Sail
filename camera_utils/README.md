@@ -24,6 +24,7 @@ The 6–12 mm varifocal lens does not help.
 |---|---|
 | `grab_basler.py` | Headless Basler capture: `/dev/shm` JPEG snapshot (default), MJPEG stream to a browser (`--mjpeg`), GPS-named recording (`--record`), live window (`--show`, needs a display). |
 | `rotor_angle_loop.py` | Rotor angle at frame rate from the white mark, in-process (pypylon → numpy). Measures only, commands nothing. Holds the camera exclusively, so it cannot run alongside `grab_basler.py`. |
+| `centre_overlay.py` | Rotor-centring aid for the tilt stage: click a board circle and the rotor (or its white dot's orbit), read dx, dy of rotor vs board. Reads the `/dev/shm` snapshot, `--url`, `--image` or `--video`; never opens the camera, so it runs alongside `grab_basler.py`. Untested on worker2 (2026-11-06). |
 | `analyze_detent_video.py` | Scores a `--phase` sweep video by capture. |
 | `record_ueye_video.py` | Capture for the old Thorlabs uEye camera, no longer used (script left for Molly to prune). |
 

@@ -23,6 +23,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 - f₀ measured: 0.310 Hz on 09-09 (stopwatch) and 0.311 Hz on 10-30 (video), so the same across the rebuild.
 - `docs/STATUS.md` now gives both dates (stage on the table 10-15, chamber on it 10-26).
 
+### 2026-11-06 — Rotor-centring overlay for the tilt stage (Mac, no hardware)
+
+- New `camera_utils/centre_overlay.py`: click circles on a board feature and on the rotor (or its white dot's orbit) to read rotor-minus-board dx, dy. Reads snapshots/files only and never opens the camera.
+- Tested headless on the Mac only, with a frame from gps1477678308 and a synthetic fit. Not yet run on worker2.
+
 ### 2026-11-04 (late) — F3 simulator checked against brake 1 (Mac, analysis only, no hardware)
 
 - Ran `analysis/f3_20261104/outdq_replay.py` and `f3_check.py repro` (branch `feedback-drive`, uncommitted).
