@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-09 (late) — Voltage steps S0 on worker2, outputs off (live)
+
+- Ran (worker2, `~/wt_vs`, branch `voltage-steps` at e5bf8d2, Molly's go): `python3 voltage_steps.py run --live --shape stair
+  --outdir ~/voltage_steps_runs`, then `fetch`. FE GPS 1478304227–1478304642. Outputs never on. Offsets 0 and TRAMP 1.0 at
+  the end.
+- Data: Dropbox `Microspheres/TFINER/data/voltage_steps/2026-11-09/vsteps_1794252897/`.
+- Saw: OFFSET writes applied at 8 Hz; OUT_DQ edges ring (assumed to be the recording filter). Results:
+  `analysis/voltage_steps_20261109/README.md`.
+
 ### 2026-11-09 (evening) — Voltage-steps scripts built and mock-tested (Mac, no hardware)
 
 - Branch `voltage-steps` (900a654): `lab_utils/voltage_steps.py` (plan / run / fetch) and `voltage_steps_score.py`.

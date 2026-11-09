@@ -1,8 +1,8 @@
 # Fast DC voltages on the electrodes: handoff
 
-**Status (2026-11-09, evening): built and mock-tested on the Mac; not run on hardware.** Branch `voltage-steps`
-(commits 900a654, e5bf8d2): `lab_utils/voltage_steps.py` (plan / run / fetch / selftest) and `lab_utils/voltage_steps_score.py`
-(scorer and plots). Next: step 3 below (worker2 dry run, then S0 on Molly's go). Every live run needs Molly's go.
+**Status (2026-11-09, late): S0 done (worker2, outputs off, stair). Results: `analysis/voltage_steps_20261109/README.md`.**
+S1 not started. Branch `voltage-steps` at 275d152 (scorer handles the ringing OUT_DQ edges found in S0; teardown fix).
+Every live run needs Molly's go.
 
 ## Built (2026-11-09; how it differs from the plan below)
 
@@ -136,13 +136,15 @@ against ~3.8 rad/s² per radian of trap stiffness near rest), a held step may mo
 ### Afterwards
 - A one-page summary of the measured constraints (rate, same-tick, delay, V/count, droop) for the PI and Alma.
 - **Questions for Alma:**
-  - Can the 16 Hz EPICS intake be raised, or is there a faster input path without a model change?
-  - Can several values be applied in the same tick?
+  - Can the EPICS intake be raised, or is there a faster input path without a model change? (S0: OFFSET writes are
+    applied at 8 Hz on a grid locked to the FE GPS second; see the S0 README.)
+  - Can several values be applied in the same tick? (S0: 0 of 987 multi-channel steps split; consistent with yes, not proof.)
   - Can the front-end clock offset (4.3 h, 0.12 % fast) be fixed? That would also unblock streamed AWG waveforms.
+    (S0: FE runs +1.21 ms/s against worker2.)
 
 ## Expected ceiling (derived; for the discussion, not a pass mark)
 
-At ~8–16 updates/s, a 15°-per-step stepper reaches at most 120–240°/s = ~0.33–0.67 rev/s, and only if the rotor keeps
+S0 measured 8 updates/s (it had been estimated at 8–16). So a 15°-per-step stepper reaches at most 120°/s ≈ 0.33 rev/s, and only if the rotor keeps
 up with every step (which the trap may not allow at low speed). That's enough for the stage-1/2 targets in
 `measurement_objective.md` (0.01–0.2 rev/s), not for 1 rev/s or fast reversals.
 
@@ -158,16 +160,18 @@ up with every step (which the trap may not allow at low speed). That's enough fo
 ## Next (exact)
 
 1. ~~Molly reviews the plan~~ (go given 2026-11-09). ~~Build on `voltage-steps`~~ (done, 900a654 + e5bf8d2, mock-tested).
-2. Molly decides: square (default) or `--shape stair` for the single-electrode pattern; level 3200 for S0.
+2. ~~Square or stair~~ (stair, 3200). ~~S0~~ (done 2026-11-09, FE 1478304227–1478304642; results in the S0 README).
 3. worker2 (repo `~/rds-code/Decay-Sail`; its main checkout may be on another branch with local changes, so
    don't touch it; use a worktree, never stash):
    - `cd ~/rds-code/Decay-Sail && git fetch && git worktree add ~/wt_vs voltage-steps && cd ~/wt_vs/lab_utils`
    - `python3 voltage_steps.py selftest` (should PASS; scoring runs on the Mac)
    - `python3 voltage_steps.py run` (dry: prints the blocks, writes nothing)
-   - **on Molly's typed go**, outputs off: `python3 voltage_steps.py run --live --outdir ~/voltage_steps_runs`
+   - (as run for S0) **on Molly's typed go**, outputs off: `python3 voltage_steps.py run --live --outdir ~/voltage_steps_runs`
      (~7.5 min; Ctrl-C ramps down safely). Keep the `date +%s.%N; caget -f0 Y1:DAQ-DC0_GPS` pair before and after.
    - after ~2 min: `python3 voltage_steps.py fetch ~/voltage_steps_runs/vsteps_<stamp>`
    - copy the run dir to `dropbox:Microspheres/TFINER/data/voltage_steps/<YYYY-MM-DD>/`
-4. Mac: `python3 lab_utils/voltage_steps_score.py <rundir> --outdir analysis/voltage_steps_<date>`, then look at
+4. Mac: `python3 lab_utils/voltage_steps_score.py <rundir> --outdir analysis/voltage_steps_<date>/plots`, then look at
    `summary.md`, `summary.png` and the per-block plots before writing anything up.
-5. S1, on Molly's go per run.
+5. **Next:** Molly reads the S0 README, then decides on S1 (outputs on, ≤ 3200 counts, scope CH2–CH4 DC-coupled
+   with a zero-line check, Basler video), on her go per run. S1 scoring (scope V/count, edge shape, droop vs τ, rotor
+   panel) is not built; agree its form first. One S1 question S0 raised: does the electrode edge ring like OUT_DQ?
