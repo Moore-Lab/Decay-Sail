@@ -123,6 +123,9 @@ def fit_mapping(R, L, fit_max_rate=8.0, win=0.2):
         if n >= 0.5 * len(ws):
             pts.append((np.mean([w['h'] for w in ws]) - h0, c))
     pts = np.array(pts)
+    if not len(pts):
+        sys.exit('! no low-rate block had half its writes matched by OUT_DQ landings: check the fetch window '
+                 '(out_dq.npz gps0, length) against fe_gps in blocks.csv, and that OUT_DQ moved at all')
     if len(pts) >= 2:
         r1, c1 = np.polyfit(pts[:, 0], pts[:, 1], 1)
     else:
@@ -174,6 +177,8 @@ def score(R, fit_max_rate=8.0):
     assign(R, L, M, tol=0.03)                     # pass 1, loose: the low-rate minimum delay overestimates the
     d = [w['land'] - w['m'] for w in R['W']       # true one (few writes); re-zero on all blocks <= 8/s, where a
          if w['land'] is not None and R['rate'][w['block']] <= 8]   # repeated value is >= 250 ms away (no ambiguity)
+    if not d:
+        sys.exit('! no write at <= 8/s matched an OUT_DQ landing after mapping')
     M['a'] += min(d); M['rezero_ms'] = 1e3 * min(d)
     stray = assign(R, L, M)
     ph = np.array([e[0] % per for e in L])

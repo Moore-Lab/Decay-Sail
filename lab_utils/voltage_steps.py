@@ -146,7 +146,7 @@ class Epics:
         self.mons = []
 
     def get(self, pv):
-        return self.e.caget(pv, timeout=3.0)
+        return self.e.caget(pv, timeout=3.0, use_monitor=False)   # fresh read, not a monitor cache
 
     def put(self, pv, val, wait=True):
         self.e.caput(pv, float(val), wait=wait, timeout=3.0)
@@ -346,7 +346,10 @@ def cmd_run(a, ep=None):
 def cmd_fetch(a):
     """OUT_DQ of V2, V3, V4 over the run (FE GPS from blocks.csv, padded 30 s) -> RUNDIR/out_dq.npz."""
     import nds2
-    g = [float(r['fe_gps']) for r in csv.DictReader(open(os.path.join(a.rundir, 'blocks.csv'))) if r['fe_gps']]
+    g = [float(r['fe_gps']) for r in csv.DictReader(open(os.path.join(a.rundir, 'blocks.csv')))
+         if r['fe_gps'] not in ('', 'None')]
+    if not g:
+        sys.exit('! no front-end GPS readings in blocks.csv: read Y1:DAQ-DC0_GPS by hand and fetch over the run')
     s, e = int(min(g)) - 30, int(max(g)) + 30
     conn = nds2.connection('cymac1', 8088)
     conn.set_parameter('ALLOW_DATA_ON_TAPE', '1')
