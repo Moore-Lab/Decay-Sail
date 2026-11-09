@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-09 — Drive briefing for the PI; voltage-steps plan; offset-path V/count from existing scope data (Mac, no hardware)
+
+- Briefing for the PI (drives tried, why a faster field update is needed): https://claude.ai/artifact/G1gMdFrWZ5W9PVX1MRt7xD
+- PI's plan (Molly): fast DC voltage steps on the electrodes through the offsets, no model change; then talk to Alma.
+  Plan, stages and plots: `lab_utils/VOLTAGE_STEPS_HANDOFF.md` (not started).
+- Ran `analysis/voltage_steps/offset_gain_refit.py` on the 11-03 W2 scope records.
+  - Offset-path gain ≈ 0.0118–0.0122 V/count (derived).
+  - That's 4–5 % below the AWG burst gain in the same records; unexplained, and S1 checks it.
+
 ### 2026-11-04 — Setup history 09-09 → 10-30 recorded (Molly, recalled; no runs)
 
 - 09-09: chamber on the optical table, no tilt stage (the old stage broke ~August).
