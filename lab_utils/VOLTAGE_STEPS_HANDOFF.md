@@ -1,6 +1,36 @@
 # Fast DC voltages on the electrodes: handoff
 
-**Status: plan, not started (2026-11-09).** Nothing below is built or run. Every live run needs Molly's go.
+**Status (2026-11-09, evening): built and mock-tested on the Mac; not run on hardware.** Branch `voltage-steps`
+(commit 900a654): `lab_utils/voltage_steps.py` (plan / run / fetch / selftest) and `lab_utils/voltage_steps_score.py`
+(scorer and plots). Next: step 3 below (worker2 dry run, then S0 on Molly's go). Every live run needs Molly's go.
+
+## Built (2026-11-09; how it differs from the plan below)
+
+- **Writes:** the channels a step changes go out as one `caput(wait=False)` burst plus a flush. Host time before
+  and after is logged, and the scorer compares the measured split rate with burst length / 62.5 ms.
+- **Dither:** steps at ≤ 8/s are moved later by a random 0–125 ms (fixed seed). With a regular schedule the
+  writes keep one phase against the 16 Hz ticks for a whole block, which in the mock biased the delay spread, the
+  drift fit and the split rate.
+- **OUTMON** is logged with EPICS monitors, not polling. Whether OUTMON follows the offset with outputs **off**
+  is unknown. If it stays at 0, the host-side delay can only be measured in S1.
+- **FE GPS** is read before and after each block, not each write (it has only 1 s resolution). The host→FE
+  mapping is fitted from the OUT_DQ steps themselves, and it includes a drift term: at ~1 ms/s the offset moves
+  ~0.4 s over a 6.6 min run.
+- **Checks added:** SW1R input (4) and OFFSET (8) bits, `V{n}_LIMIT`, LES/MON isolation. TRAMP is set to 0 and
+  read back at every block start, and the value found there is logged.
+- **`--shape stair`** (single electrode, levels 0, L/4 … L) is an option, not the default. With the default
+  square 0 ↔ L at 16–32/s, two writes can land in one tick, the last wins, and nothing changes. The square then
+  shows only that steps were lost; stair shows **which** write landed. Molly to choose for S0.
+- **Default plan:** 3 patterns × 6 rates × 20 s at 3200 counts = 6.6 min of stepping. Dry run:
+  `python3 voltage_steps.py run`.
+- **Mock tests (Mac):** both selftests pass. Over 9 full-length mock runs (front end applying every tick,
+  every 2nd tick, or V3 one tick late; 3 seeds each), the scorer recovered the injected behaviour in all of them:
+  - no landings unexplained by a write;
+  - writes at ≤ 4/s 100 % landed;
+  - delay spread 0–63 ms (every tick) against 0–125 ms (every 2nd);
+  - in the V3-late case, 240/240 multi-channel steps split exactly when V3 was among them;
+  - clock drift recovered to 0.01 ms/s in 8 of 9 runs and 0.1 ms/s in 1 (≈ ±20 ms smear in relative delays).
+- **Not tested:** pyepics and NDS calls (Mac has neither), and real OUTMON behaviour.
 
 ## Goal (Molly's PI, as Molly relayed it, 2026-11-09)
 
@@ -119,9 +149,17 @@ up with every step (which the trap may not allow at low speed). That's enough fo
 
 ## Next (exact)
 
-1. Molly reviews and edits this plan.
-2. Mac session: `git worktree add ../decay_sail_wt_vs -b voltage-steps main`. Build the script, generator and
-   scorer/plots with selftests; commit to the branch; push.
-3. worker2 (repo `~/rds-code/Decay-Sail`; use a worktree, never stash): dry run, then S0 with outputs off, on
-   Molly's typed go.
-4. S1, on Molly's go per run.
+1. ~~Molly reviews the plan~~ (go given 2026-11-09). ~~Build on `voltage-steps`~~ (done, 900a654, mock-tested).
+2. Molly decides: square (default) or `--shape stair` for the single-electrode pattern; level 3200 for S0.
+3. worker2 (repo `~/rds-code/Decay-Sail`; its main checkout may be on another branch with local changes, so
+   don't touch it; use a worktree, never stash):
+   - `cd ~/rds-code/Decay-Sail && git fetch && git worktree add ~/wt_vs voltage-steps && cd ~/wt_vs/lab_utils`
+   - `python3 voltage_steps.py selftest` and `python3 voltage_steps_score.py selftest` (both should PASS)
+   - `python3 voltage_steps.py run` (dry: prints the blocks, writes nothing)
+   - **on Molly's typed go**, outputs off: `python3 voltage_steps.py run --live --outdir ~/voltage_steps_runs`
+     (~7.5 min; Ctrl-C ramps down safely). Keep the `date +%s.%N; caget -f0 Y1:DAQ-DC0_GPS` pair before and after.
+   - after ~2 min: `python3 voltage_steps.py fetch ~/voltage_steps_runs/vsteps_<stamp>`
+   - copy the run dir to `dropbox:Microspheres/TFINER/data/voltage_steps/<YYYY-MM-DD>/`
+4. Mac: `python3 lab_utils/voltage_steps_score.py <rundir> --outdir analysis/voltage_steps_<date>`, then look at
+   `summary.md`, `summary.png` and the per-block plots before writing anything up.
+5. S1, on Molly's go per run.

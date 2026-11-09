@@ -14,6 +14,13 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-09 (evening) — Voltage-steps scripts built and mock-tested (Mac, no hardware)
+
+- Branch `voltage-steps` (900a654): `lab_utils/voltage_steps.py` (plan / run / fetch) and `voltage_steps_score.py`.
+- Tested against a mock front end only (16 Hz ticks; every tick, every 2nd tick, V3 a tick late). The scorer recovered
+  each injected behaviour; details and what is untested are in `lab_utils/VOLTAGE_STEPS_HANDOFF.md` (Built).
+- Next: worker2 dry run, then S0 with outputs off on Molly's go.
+
 ### 2026-11-09 — Drive briefing for the PI; voltage-steps plan; offset-path V/count from existing scope data (Mac, no hardware)
 
 - Briefing for the PI (drives tried, why a faster field update is needed): https://claude.ai/artifact/G1gMdFrWZ5W9PVX1MRt7xD
