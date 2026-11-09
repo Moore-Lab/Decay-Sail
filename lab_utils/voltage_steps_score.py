@@ -62,16 +62,46 @@ def load(rd):
     return dict(plan=plan, rate=rate, pat=pat, W=W, bursts=bursts, om=om, bl=bl, dq=dq)
 
 
-def landings(dq, thr=0.5):
-    """(sample index, FE time, chan, new value) of every step in OUT_DQ."""
+def onsets(x, big=5.0, quiet=1.0):
+    """Samples where a step starts from a settled level (OUT_DQ edges ring for ~45 samples: 11-09 S0)."""
+    d = np.abs(np.diff(x))
+    i = np.nonzero(d > big)[0]
+    i = i[i >= 4]
+    ok = np.array([d[j - 4:j].max() < quiet for j in i], bool) if len(i) else np.zeros(0, bool)
+    return i[ok] + 1
+
+
+def landings(dq, levels=None, per=None, snap=3.0, thr=3.0):
+    """(tick-start sample, FE time, chan, new level) for each tick whose settled level changed.
+
+    OUT_DQ does not step cleanly: each edge overshoots ~18 % and rings for ~45 samples (measured, S0 2026-11-09;
+    the DQ decimation filter is the assumed cause). So: (1) edge onsets from a settled level give the tick phase
+    (the earliest phase of the onset cluster); (2) each tick's level is the median of samples 40..62 after its
+    start, settled to ~0.5 count; (3) a landing is a tick whose level differs from the previous one by > thr
+    counts, snapped to the nearest commanded level of that channel within `snap` counts."""
+    per = per or int(round(dq['fs'] * TICK))
+    allon = np.concatenate([onsets(dq[f'V{c}']) for c in CHANS])
+    h = np.bincount(allon % per, minlength=per)
+    top = np.argsort(h)[::-1]
+    clus = [p for p in top[:4] if h[p] > 0.05 * h.max()]
+    # earliest phase of the (circular) cluster
+    p0 = min(clus, key=lambda p: min((p - q) % per for q in clus) * 0 + ((p - top[0] + per // 2) % per))
     out = []
     for c in CHANS:
         x = dq[f'V{c}']
-        d = np.diff(x)
-        for i in np.nonzero(np.isfinite(d) & (np.abs(d) > thr))[0] + 1:
-            out.append((int(i), dq['gps0'] + i / dq['fs'], c, float(x[i])))
+        s = np.arange(p0, len(x) - per, per)
+        lev = np.array([np.median(x[k + 40:k + per - 1]) for k in s])
+        lv = np.array(sorted(levels[c])) if levels and levels.get(c) else None
+        for j in range(1, len(s)):
+            if np.isfinite(lev[j]) and np.isfinite(lev[j - 1]) and abs(lev[j] - lev[j - 1]) > thr:
+                v = float(lev[j])
+                if lv is not None:
+                    k = np.argmin(np.abs(lv - v))
+                    if abs(lv[k] - v) <= snap:
+                        v = float(lv[k])
+                out.append((int(s[j]), dq['gps0'] + s[j] / dq['fs'], c, v))
     out.sort(key=lambda e: (e[0], e[2]))
-    return out
+    return out, h, p0
 
 
 def fit_mapping(R, L, fit_max_rate=8.0, win=0.2):
@@ -172,7 +202,8 @@ def assign(R, L, M, back=0.6, tol=0.010):
 
 def score(R, fit_max_rate=8.0):
     dq = R['dq']; fs = dq['fs']; per = int(round(fs * TICK))
-    L = landings(dq)
+    levels = {c: sorted({w['v'] for w in R['W'] if w['chan'] == c} | {0.0}) for c in CHANS}
+    L, onset_hist, p0 = landings(dq, levels, per)
     M = fit_mapping(R, L, fit_max_rate)
     assign(R, L, M, tol=0.03)                     # pass 1, loose: the low-rate minimum delay overestimates the
     d = [w['land'] - w['m'] for w in R['W']       # true one (few writes); re-zero on all blocks <= 8/s, where a
@@ -181,10 +212,9 @@ def score(R, fit_max_rate=8.0):
         sys.exit('! no write at <= 8/s matched an OUT_DQ landing after mapping')
     M['a'] += min(d); M['rezero_ms'] = 1e3 * min(d)
     stray = assign(R, L, M)
-    ph = np.array([e[0] % per for e in L])
-    hist = np.bincount(ph, minlength=per)
+    hist = onset_hist                              # raw edge onsets mod one tick (filter spreads them ~3 samples)
     blocks = sorted(R['rate'])
-    res = dict(M=M, L=L, ph_hist=hist, per=per, stray=stray, blocks=[])
+    res = dict(M=M, L=L, ph_hist=hist, per=per, p0=p0, stray=stray, blocks=[])
     found = {int(r['block']): [r[f'tramp_found_V{c}'] for c in CHANS] for r in R['bl'] if r['edge'] == 'start'}
     by_burst = {}
     for w in R['W']:
@@ -246,18 +276,20 @@ def score(R, fit_max_rate=8.0):
 def table(res):
     M = res['M']; h = res['ph_hist']
     lines = ['# voltage steps: measured numbers', '',
-             f'- OUT_DQ landings: {len(res["L"])}; on the most common sample phase (mod {res["per"]}): '
-             f'{h.max() / max(h.sum(), 1):.1%} (phase {int(h.argmax())}); landings not explained by any write: {res["stray"]}',
+             f'- OUT_DQ landings (ticks whose settled level changed): {len(res["L"])}; not explained by any write: {res["stray"]}',
+             f'- edge onsets (mod {res["per"]} samples): {h.sum()} total; {h[np.argsort(h)[::-1][:3]].sum() / max(h.sum(), 1):.1%} '
+             f'on the 3 most common phases {sorted(int(p) for p in np.argsort(h)[::-1][:3])}; tick start taken at phase {res["p0"]}',
              f'- host -> FE mapping from {M["n_fit"]}/{M["n_low"]} low-rate writes: drift {1e3 * (M["b"] - 1):+.3f} ms/s; '
              f'(first estimate from {M["n_blocks"]} block offsets {1e3 * M["block_drift"]:+.3f} ms/s, scatter about the line '
              f'{M["block_resid_ms"]:.0f} ms); offset not interpreted (clock offset + latency); re-zeroed by {M.get("rezero_ms", 0):+.0f} ms', '',
              '| block | pattern | req/s | steps | writes landed | steps landed | achieved landings/s | spacing = 1 tick | '
              'min spacing (ticks) | rel. delay p5-p95 (ms) | multi-ch split | chance (if every tick applies) | OUTMON delay med / p95 (ms) | '
              'host lateness max (ms) | TRAMP found |',
-             '|' + '---|' * 15, '',
-             'Writes landed: the value appeared in OUT_DQ before a later write replaced it. Relative delay: landing minus '
+             '|' + '---|' * 15]
+    tail = ['', 'Writes landed: the value appeared in OUT_DQ before a later write replaced it. Relative delay: landing minus '
              'mapped write, zero at the earliest landing (absolute latency is in the OUTMON column, host side). '
-             'Spacing: between successive landings in the block, in ticks. Chance: mean write-burst length / 62.5 ms.']
+             'Spacing: between successive landings in the block, in ticks. Chance: mean write-burst length / 62.5 ms. '
+            'OUTMON delay counts only matches before the next same-value write, so at high rates it is biased short.']
     for r in res['blocks']:
         lines.append(
             f'| {r["block"]} | {r["pattern"]} | {r["rate"]:g} | {r["n_steps"]} | {r["landed"]:.1%} | {r["steps_landed"]:.1%} | '
@@ -266,7 +298,7 @@ def table(res):
             + (f'{r["chance"]:.1%}' if r['n_multi'] else '-') + ' | '
             + (f'{r["om_med"]:.0f} / {r["om_p95"]:.0f} (n {r["om_n"]})' if r['om_n'] else 'no OUTMON match') + ' | '
             f'{r["late_max"]:.1f} | {",".join(r["tramp_found"] or [])} |')
-    return '\n'.join(lines)
+    return '\n'.join(lines + tail)
 
 
 # ------------------------------------------------------------------------------------------- plots
@@ -366,13 +398,13 @@ def selftest():
             out[mode] = (R, res)
             by = {(r['pattern'], r['rate']): r for r in res['blocks']}
             print(f'\n== mock {mode}: drift fitted {1e3 * (res["M"]["b"] - 1):+.3f} ms/s (true +1.100), '
-                  f'grid phase share {res["ph_hist"].max() / res["ph_hist"].sum():.0%}, stray {res["stray"]}')
+                  f'onsets on top-3 phases {np.sort(res["ph_hist"])[::-1][:3].sum() / res["ph_hist"].sum():.0%}, stray {res["stray"]}')
             for p in ('single', 'all3', 'stepper'):
                 print('   %-8s' % p + '  '.join('%g/s: %3.0f%% sp1 %3.0f%% split %s d95 %3.0f om %3.0f' % (
                     r, 100 * by[p, r]['landed'], 100 * by[p, r]['sp1'],
                     '-' if not by[p, r]['n_multi'] else '%3.0f%%' % (100 * by[p, r]['split']), by[p, r]['d_p95'],
                     by[p, r]['om_med']) for r in (1, 4, 16, 32)))
-            ok &= chk(abs(1e3 * (res['M']['b'] - 1) - 1.1) < 0.1 and res['ph_hist'].max() == res['ph_hist'].sum(), "abs(1e3 * (res['M']['b'] - 1) - 1.1) < 0.1 and res['ph_hist'].max() == res['ph_hist'].sum()")
+            ok &= chk(abs(1e3 * (res['M']['b'] - 1) - 1.1) < 0.1 and np.sort(res['ph_hist'])[::-1][:3].sum() == res['ph_hist'].sum(), 'drift within 0.1 ms/s and all edge onsets within 3 phases')
             ok &= chk(res['stray'] == 0, "res['stray'] == 0")
             low = [r for r in res['blocks'] if r['rate'] <= 4]
             ok &= chk(all(r['landed'] == 1.0 for r in low), "all(r['landed'] == 1.0 for r in low)")

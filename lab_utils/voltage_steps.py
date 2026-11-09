@@ -300,6 +300,9 @@ def cmd_run(a, ep=None):
         print('\n  interrupted: tearing down.')
     finally:
         print('\n  teardown:')
+        # let the last writes be applied before any TRAMP change: S0 (11-09) showed writes applied on an 8 Hz grid,
+        # and a TRAMP restore landing in the same applied tick as the final 0-write turned that step into a 1 s ramp
+        ep.sleep(0.5)
         live = {n: ep.get(f'{PREFIX}_V{n}_OFFSET') for n in CHANS}
         t_rel = -1e18
         if any(abs(v or 0) > 0 for v in live.values()):
@@ -377,9 +380,9 @@ class MockFE:
     GPS_UNIX = 315964800 - 18
 
     def __init__(self, mode='tick', seed=0, offset=15380.9, drift=1.1e-3, latency=0.004, put_ms=0.35,
-                 jitter_ms=1.5, epics_ms=3.0):
+                 jitter_ms=1.5, epics_ms=3.0, ring=True):
         self.rng = np.random.default_rng(seed)
-        self.mode, self.offset, self.drift, self.lat = mode, offset, drift, latency
+        self.mode, self.offset, self.drift, self.lat, self.ring = mode, offset, drift, latency, ring
         self.put_s, self.jit, self.ep_s = put_ms * 1e-3, jitter_ms * 1e-3, epics_ms * 1e-3
         self.t = 1793650000.0 + self.rng.random()
         self.h0 = self.t
@@ -465,8 +468,18 @@ class MockFE:
             x = np.zeros(n)
             for f, v in ap:
                 x[tf >= f - 1e-9] = v
-            d[f'V{c}'] = x
+            d[f'V{c}'] = np.convolve(x, np.diff(self.step_resp(), prepend=0.0))[:n] if self.ring else x
         return dict(gps0=f0, fs=fs, **d)
+
+    @staticmethod
+    def step_resp():
+        """OUT_DQ step response measured 2026-11-09 (S0, V2's first 0 -> 800 edge, normalised): ~18 % overshoot,
+        alternating ringing, settled to < 0.1 % after ~35 samples. Assumed to be the DQ decimation filter, i.e. a
+        recording artefact: whether the DAC/electrode edge rings is for the S1 scope to show."""
+        return np.array([0.0272, 0.4596, 1.1806, 1.0174, 0.9521, 1.0710, 0.9298, 1.0549, 0.9606, 1.0266, 0.9833, 1.0088,
+                         0.9976, 0.9969, 1.0072, 0.9898, 1.0117, 0.9879, 1.0113, 0.9901, 1.0078, 0.9943, 1.0035, 0.9984,
+                         0.9998, 1.0014, 0.9976, 1.0029, 0.9969, 1.0029, 0.9973, 1.0022, 0.9983, 1.0011, 0.9994, 1.0001,
+                         1.0002, 0.9994, 1.0007, 0.9992, 1.0007, 0.9993, 1.0006, 0.9995, 1.0003, 0.9998] + [1.0] * 18)
 
 
 def mock_run(rundir, mode='tick', patterns='single,all3,stepper', rates='1,2,4,8,16,32', dur=8.0, shape='square',
