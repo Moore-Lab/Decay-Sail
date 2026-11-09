@@ -58,7 +58,7 @@ that glides down with it can stay in step (autoresonance). Derived; not demonstr
    changes: don't touch it). Use a worktree: `cd ~/rds-code/Decay-Sail && git fetch && git worktree add ~/wt_chirp osc-chirp`
    (or `cd ~/wt_chirp && git pull` if it exists). Never stash. Stop `grab_basler.py` if running. `python3 lab_utils/stator_osc_drive.py status`:
    gains 0, DRVON 0, outputs off.
-1. **Tracker** (both lights on, as F3 live 2):
+1. **Tracker** (both lights on, as F3 live 2). **Stale centre (2026-11-06):** the camera was moved and the tilt stage adjusted after this run, so `--centre 122.8,179.6` no longer fits. Re-derive it (replay check, median ncc ≳ 0.9) and note the rest angle before the next tracked run; candidates from 11-06: (117.5, 165.1) clicked, (119.1, 167.7) automatic, both rotor-body centres (`analysis/rotor_centering/README.md`, "Final state", on `main`; see `docs/STATUS.md`).
    `cd camera_utils/tracking && /home/controls/.conda/envs/ueye/bin/python live_blob_track.py --exposure 15 --centre 122.8,179.6 --outdir ~/stator_detent --show`
    Leave it recording through all runs. Check the rotor is **at rest**: angle span < 2° over 60 s, ncc ≥ 0.9.
    Note the rest angle (229.8 on 11-04). If the spot or centre looks moved, stop and call Molly.

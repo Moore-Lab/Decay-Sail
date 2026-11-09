@@ -6,6 +6,8 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Open
 
+- **Tracker centre stale** after the 11-06 camera move and tilt-stage changes. Before the next tracked run: re-derive it by replay (median ncc ≳ 0.9) and note the rest angle. Candidates from 11-06: (117.5, 165.1) clicked and (119.1, 167.7) automatic. Both are rotor-body centres, not measured rotation centres. Source: `analysis/rotor_centering/README.md`, "Final state".
+
 - **Angle tracking (white blob):** gates 1–6 passed on recorded video
   (2026-10-30, `blob_track.py`, new lighting): 100% of 200 hand labels within 5°, rms 1.0°.
   LES vs video: ÷2 when rotating; while swinging LES shows a comb, no fixed divisor.
