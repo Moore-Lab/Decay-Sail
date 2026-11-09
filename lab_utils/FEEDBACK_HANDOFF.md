@@ -26,6 +26,7 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   - for negative motion, 84–88% of the "brake" pushes then add energy.
 - **Tracker setup now** (log 2026-11-04):
   - the camera moved on 11-03; the derived centre (122.8, 179.6) is confirmed;
+  - **Stale centre (2026-11-06):** the camera was moved and the tilt stage adjusted after this run, so `--centre 122.8,179.6` no longer fits. Re-derive it (replay check, median ncc ≳ 0.9) and note the rest angle before the next tracked run; candidates from 11-06: (117.5, 165.1) clicked, (119.1, 167.7) automatic, both rotor-body centres (`analysis/rotor_centering/README.md`, "Final state", on `main`; see `docs/STATUS.md`).
   - new light plus the adjusted second light, exposure 15 ms; ncc 0.79–0.98 over 360°;
   - rest angle ~229.8.
 
@@ -292,6 +293,7 @@ On the Mac: swing amplitude per 10 s step from `blob_live` against the lead in t
 - At 15 ms: ncc 0.97, but the spot saturates.
 - **At 8 ms: ncc 0.958, no saturation, rest angle 229.9°** (std 0.14).
 - **F3 uses `--exposure 8 --centre 122.8,179.6` and `--rest-deg 229.9`.**
+- **Stale centre (2026-11-06):** the camera was moved and the tilt stage adjusted after this run, so `--centre 122.8,179.6` no longer fits. Re-derive it (replay check, median ncc ≳ 0.9) and note the rest angle before the next tracked run; candidates from 11-06: (117.5, 165.1) clicked, (119.1, 167.7) automatic, both rotor-body centres (`analysis/rotor_centering/README.md`, "Final state", on `main`; see `docs/STATUS.md`).
 
 Steps (worker2; each `--live` needs Molly's go):
 0. `cd ~/wt_wave && git checkout feedback-drive && git pull` (or a fresh worktree), then `cd lab_utils`.
