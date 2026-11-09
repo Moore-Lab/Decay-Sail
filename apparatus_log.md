@@ -38,6 +38,22 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 - New `camera_utils/centre_overlay.py`: click circles on a board feature and on the rotor (or its white dot's orbit) to read rotor-minus-board dx, dy. Reads snapshots/files only and never opens the camera.
 - Tested headless on the Mac only, with a frame from gps1477678308 and a synthetic fit. Not yet run on worker2.
 
+### 2026-11-06 — Oscillator chirp through f₀ from rest (worker2 agent, Molly's go): large swing, no over-the-top
+
+- Branch `osc-chirp` (2ba3ad4), runbook `lab_utils/OSC_CHIRP_RUNBOOK.md`; worker2 worktree `~/wt_chirp`.
+- G0, outputs off: `sweep --felec 0.40 --to-felec 0.15 --step 0.01 --dwell 4 --drvtramp 3.5 --amp 6400 --pedestal-ramp 10 --live`,
+  FE 1478047513–658. `osc_chirp_check.py`: G0 PASS (phase continuous, glide 0.40 → 0.15 Hz).
+- R1, the same with `--enable-outputs`, from rest (rest angle 229.6), FE 1478047773–918.
+  - The swing grew to 137° (0.74 of the barrier) by ~45 s, then held 0.45–0.75 of the barrier to the end.
+  - Left swinging −104/+130°.
+- R2 skipped (Molly). Free swing, drive off, 10 min, FE 1478048134–734: 108° → 91°.
+- Analysis (Mac): `analysis/osc_chirp/README.md`.
+  - No lock: the swing stayed at ~0.25–0.30 Hz while the drive went down.
+  - The linear part of the drive scales with amplitude to 6400; the 2× part is undetermined.
+  - The trap is unchanged since 11-04 (0.15 rad²/s² rms).
+  - Damping time τ ≈ 32–35 min (derived).
+- Data: Dropbox `data/osc_chirp/2026-11-06/`.
+
 ### 2026-11-04 (late) — F3 simulator checked against brake 1 (Mac, analysis only, no hardware)
 
 - Ran `analysis/f3_20261104/outdq_replay.py` and `f3_check.py repro` (branch `feedback-drive`, uncommitted).
