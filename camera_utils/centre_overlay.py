@@ -23,7 +23,11 @@ HOW TO USE (keys act in the image window)
     space    freeze / unfreeze the live image (freeze before clicking)
     m        toggle a max-projection of the live frames since pressed: a moving white dot
              draws its orbit as a bright arc, whose centre is the rotor centre
-    s        log the current offset to the CSV (and print it)
+    s        log the current offset to the CSV (and print it), and save a record of it:
+             <log stem>_<YYYYmmdd-HHMMSS>.png   the overlay as shown (circles, clicked points)
+             <log stem>_<YYYYmmdd-HHMMSS>_raw.png  the unprocessed frame
+             <log stem>_<YYYYmmdd-HHMMSS>.json  source, frame, both fits, all clicked points
+             The timestamp matches the CSV row's time, so names sort in click order.
     q / Esc  quit
     The board circle is saved to --ref (JSON) and reloaded next time. The rotor circle
     is not saved: after each tilt step, unfreeze, freeze, and click the rotor again.
@@ -139,11 +143,16 @@ def main():
 
     S = args.scale
     st = {'mode': 'b', 'pts': {'b': [], 'r': []}, 'circ': {'b': None, 'r': None},
-          'frozen': not live, 'frame': frame, 'max': None}
+          'frozen': not live, 'frame': frame, 'max': None,
+          'fitpts': {'b': [], 'r': []}, 'shown': None}
+    source = (f'video {args.video} frame {args.frame}' if args.video else
+              f'image {args.image}' if args.image else f'url {args.url}' if args.url
+              else f'snapshot {args.snapshot}')
     if os.path.exists(args.ref):
         with open(args.ref) as f:
             d = json.load(f)
         st['circ']['b'] = (d['cx'], d['cy'], d['R'], d.get('rms', 0.0))
+        st['fitpts']['b'] = [tuple(q) for q in d.get('points', [])]
         print(f"board circle loaded from {args.ref} (fitted {d.get('time', '?')}): "
               f"centre ({d['cx']:.1f}, {d['cy']:.1f}) R {d['R']:.1f} px")
 
@@ -179,7 +188,9 @@ def main():
         colours = {'b': (0, 220, 255), 'r': (255, 120, 255)}   # board yellow, rotor magenta
         for k in 'br':
             col = colours[k]
-            for (px, py) in st['pts'][k]:
+            for (px, py) in st['fitpts'][k]:     # points behind the current fit
+                cv2.circle(img, (int(px * S), int(py * S)), 4, col, 1, cv2.LINE_AA)
+            for (px, py) in st['pts'][k]:        # points not yet fitted
                 cv2.drawMarker(img, (int(px * S), int(py * S)), col, cv2.MARKER_CROSS, 12, 1)
             c = st['circ'][k]
             if c:
@@ -209,6 +220,7 @@ def main():
             y = 18 + 18 * i
             cv2.putText(img, t, (6, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 3, cv2.LINE_AA)
             cv2.putText(img, t, (6, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+        st['shown'] = img
         cv2.imshow(win, img)
 
     def do_fit():
@@ -231,6 +243,7 @@ def main():
                            'time': datetime.now().isoformat(timespec='seconds')},
                           f, indent=1)
             print('  saved to', args.ref)
+        st['fitpts'][k] = list(pts)
         st['pts'][k] = []
 
     def do_log():
@@ -240,7 +253,8 @@ def main():
         b, r = st['circ']['b'], st['circ']['r']
         mm, lab = scale_mm()
         new = not os.path.exists(args.log)
-        row = [datetime.now().isoformat(timespec='seconds'), *(f'{v:.2f}' for v in b[:3]),
+        now = datetime.now()
+        row = [now.isoformat(timespec='seconds'), *(f'{v:.2f}' for v in b[:3]),
                *(f'{v:.2f}' for v in r[:3]), f'{off[0]:.2f}', f'{off[1]:.2f}',
                f'{mm:.5f}' if mm else '', lab or '']
         with open(args.log, 'a', newline='') as f:
@@ -250,6 +264,21 @@ def main():
                             'rotor_R', 'dx_px', 'dy_px', 'mm_per_px', 'scale_source'])
             w.writerow(row)
         print('logged:', ', '.join(row))
+        base = f"{os.path.splitext(args.log)[0]}_{now:%Y%m%d-%H%M%S}"
+        if st['shown'] is not None:
+            img = st['shown'].copy()
+            short = source.split(' ', 1)[0] + ' ' + os.path.basename(source.split(' ', 1)[1])
+            cv2.putText(img, f"{short}  {row[0]}", (6, img.shape[0] - 8),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.imwrite(base + '.png', img)
+        cv2.imwrite(base + '_raw.png', st['frame'])
+        with open(base + '.json', 'w') as f:
+            json.dump({'time': row[0], 'source': source,
+                       'board': dict(zip(('cx', 'cy', 'R', 'rms'), b)), 'board_points': st['fitpts']['b'],
+                       'rotor': dict(zip(('cx', 'cy', 'R', 'rms'), r)), 'rotor_points': st['fitpts']['r'],
+                       'dx_px': off[0], 'dy_px': off[1], 'mm_per_px': mm, 'scale_source': lab,
+                       'display': 'max-projection' if st['max'] is not None else 'frame'}, f, indent=1)
+        print(f'  saved {base}.png, _raw.png, .json')
 
     last = 0.0
     while True:
@@ -274,7 +303,7 @@ def main():
             if st['pts'][st['mode']]:
                 st['pts'][st['mode']].pop()
         elif k == ord('c'):
-            st['pts'][st['mode']] = []; st['circ'][st['mode']] = None
+            st['pts'][st['mode']] = []; st['circ'][st['mode']] = None; st['fitpts'][st['mode']] = []
         elif k == ord(' '):
             st['frozen'] = not st['frozen'] if live else True
         elif k == ord('s'):

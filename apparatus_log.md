@@ -23,6 +23,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 - f₀ measured: 0.310 Hz on 09-09 (stopwatch) and 0.311 Hz on 10-30 (video), so the same across the rebuild.
 - `docs/STATUS.md` now gives both dates (stage on the table 10-15, chamber on it 10-26).
 
+### 2026-11-06 — Rotor centring checked on video after the tilt-stage adjustment (Mac, analysis only)
+
+- Between the pre-chirp video gps1478031606 (20:19Z) and this check, Molly moved the camera and adjusted the tilt stage (order not recorded). She then recorded `output_basler_gps1478037739.avi` on worker2 (`grab_basler.py --record`, 120 s, no drive).
+- Ran `analysis/rotor_centering/basler_centre.py` on it and on gps1477678308 (11-02) and gps1477428272 (10-30): rotor rim vs spoke convergence in the same frames.
+- Saw: the rim is centred to within ~1 px (~2 px uncertainty) today; the method does not show 11-02 further off. Numbers and caveats: `analysis/rotor_centering/README.md` (2026-11-06 section).
+- Molly's click checks in `centre_overlay.py` on worker2 (frame 3000 of each video) agree within the ≈ 2 px uncertainty. Before → after: (+0.25, −0.58) → (+0.51, −2.04) px, so it was already centred to ≲ 2 px before. Same README.
+- The F3 tracker centre (122.8, 179.6) is stale for the new camera framing.
+- Molly then walked the tilt stage back towards its earlier setting, without moving the camera, and recorded `output_basler_gps1478039512.avi` (22:31:34Z, 120 s). Clicked and automatic rotor − board both changed by ≤ 1.2 px (≈ the click repeatability). Same README.
+- One more stage adjustment, camera not moved; Molly stopped adjusting there. Clip `output_basler_gps1478040383.avi` (22:46:05Z, 120 s). Rotor − board: clicked (−0.23, −1.17) px, automatic (+2.1, +0.9) px. Through all four states the rotor stays within ≈ 2–2.5 px (≈ 50–100 µm) of the board centre, with no change resolved. Tracker centre for the new framing ≈ (117.5, 165.1) clicked; confirm by replay before use. Same README.
+
 ### 2026-11-06 — Rotor-centring overlay for the tilt stage (Mac, no hardware)
 
 - New `camera_utils/centre_overlay.py`: click circles on a board feature and on the rotor (or its white dot's orbit) to read rotor-minus-board dx, dy. Reads snapshots/files only and never opens the camera.
