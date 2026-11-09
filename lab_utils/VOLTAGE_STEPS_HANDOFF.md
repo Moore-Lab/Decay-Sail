@@ -1,7 +1,7 @@
 # Fast DC voltages on the electrodes: handoff
 
 **Status (2026-11-09, evening): built and mock-tested on the Mac; not run on hardware.** Branch `voltage-steps`
-(commit 900a654): `lab_utils/voltage_steps.py` (plan / run / fetch / selftest) and `lab_utils/voltage_steps_score.py`
+(commits 900a654, e5bf8d2): `lab_utils/voltage_steps.py` (plan / run / fetch / selftest) and `lab_utils/voltage_steps_score.py`
 (scorer and plots). Next: step 3 below (worker2 dry run, then S0 on Molly's go). Every live run needs Molly's go.
 
 ## Built (2026-11-09; how it differs from the plan below)
@@ -31,6 +31,14 @@
   - in the V3-late case, 240/240 multi-channel steps split exactly when V3 was among them;
   - clock drift recovered to 0.01 ms/s in 8 of 9 runs and 0.1 ms/s in 1 (≈ ±20 ms smear in relative delays).
 - **Not tested:** pyepics and NDS calls (Mac has neither), and real OUTMON behaviour.
+- **Not built:** S1 scoring (scope V/count, rise and droop against τ, rotor-angle panel). Its form gets decided
+  with Molly after S0. The scorer above is the S0 scorer.
+- **Reading the result:** to tell whether every tick or every 2nd tick applies, use the relative-delay spread at
+  ≤ 8/s (0–63 vs 0–125 ms) and the minimum landing spacing. Don't use the 16/s row: it isn't dithered, so its
+  write phase against the ticks is fixed for the whole block, and an unlucky phase gives ~50 % landed even if
+  every tick applies.
+- **SW1 bits 4 (input) and 8 (OFFSET):** assumed from the resting SW1R = 12 and the standard CDS filter-module
+  layout (no bit table for SW1 in the repo). If a channel refuses on this check, look before overriding.
 
 ## Goal (Molly's PI, as Molly relayed it, 2026-11-09)
 
@@ -149,12 +157,12 @@ up with every step (which the trap may not allow at low speed). That's enough fo
 
 ## Next (exact)
 
-1. ~~Molly reviews the plan~~ (go given 2026-11-09). ~~Build on `voltage-steps`~~ (done, 900a654, mock-tested).
+1. ~~Molly reviews the plan~~ (go given 2026-11-09). ~~Build on `voltage-steps`~~ (done, 900a654 + e5bf8d2, mock-tested).
 2. Molly decides: square (default) or `--shape stair` for the single-electrode pattern; level 3200 for S0.
 3. worker2 (repo `~/rds-code/Decay-Sail`; its main checkout may be on another branch with local changes, so
    don't touch it; use a worktree, never stash):
    - `cd ~/rds-code/Decay-Sail && git fetch && git worktree add ~/wt_vs voltage-steps && cd ~/wt_vs/lab_utils`
-   - `python3 voltage_steps.py selftest` and `python3 voltage_steps_score.py selftest` (both should PASS)
+   - `python3 voltage_steps.py selftest` (should PASS; scoring runs on the Mac)
    - `python3 voltage_steps.py run` (dry: prints the blocks, writes nothing)
    - **on Molly's typed go**, outputs off: `python3 voltage_steps.py run --live --outdir ~/voltage_steps_runs`
      (~7.5 min; Ctrl-C ramps down safely). Keep the `date +%s.%N; caget -f0 Y1:DAQ-DC0_GPS` pair before and after.
