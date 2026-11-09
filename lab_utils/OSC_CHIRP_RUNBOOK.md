@@ -1,5 +1,10 @@
 # Oscillator chirp through the natural frequency: runbook (branch `osc-chirp`)
 
+**Run 2026-11-06** (G0 PASS, R1 done, R2 skipped): results in `analysis/osc_chirp/README.md` on `main`.
+The runs used `stator_osc_drive.py` from `drive-clean-start` (e466653), whose clean start waits 0.5 s after the
+frequency jump; `main` now waits 1.1 s (the jump lands at the next front-end GPS second). G0 checked the start
+(0.400 Hz, no glide), so it made no difference here.
+
 **Question (Molly, 2026-11-06):** with the fixed-rate oscillator, can a field that starts above the trap frequency
 f₀ (~0.31 Hz) and glides **down** through it pump the swing in step until the rotor goes over the top? Data first,
 before the y1rds model change. A clean down-glide from rest has not been run before: 10-29 run 1 stepped
@@ -28,7 +33,7 @@ that glides down with it can stay in step (autoresonance). Derived; not demonstr
   `DRV_TRAMP` is documented as phase-continuous; G0 checks it. It also sets the gain ramp-in (3.5 s).
 - **Amplitude 6400** (full range; pedestal = amp), forward matrix.
 - **`--pedestal-ramp 10`**: ramps the DC pedestal over 10 s so its step doesn't kick the rotor through the
-  AC-coupled amp. **Untested on hardware**; G0 checks it with outputs off.
+  AC-coupled amp. Tested on hardware 2026-11-06 (G0 and R1: the pedestals rose together over ~10 s).
 - Never `--leave-running`.
 
 ## Rules for the worker2 session
@@ -43,14 +48,15 @@ that glides down with it can stay in step (autoresonance). Derived; not demonstr
   mkdir -p ~/osc_chirp
   python3 -u stator_osc_drive.py <args> 2>&1 | while IFS= read -r l; do printf '%s %s\n' "$(date +%s.%N)" "$l"; done | tee ~/osc_chirp/<run>.log
   ```
-  and immediately before and after each one run `date +%s.%N; caget Y1:DAQ-DC0_GPS` and keep the output. The host
+  and immediately before and after each one run `date +%s.%N; caget -f0 Y1:DAQ-DC0_GPS` and keep the output. The host
   time of the `DRV_FREQ readback` line pins the AC start in OUT_DQ to host time (OUT_DQ's own timestamps were
   3–4 s off on 11-04).
 
 ## Steps
 
-0. **Start.** `cd ~/decay_sail && git fetch && git checkout osc-chirp && git pull`. If the checkout refuses because
-   of local changes, stop and tell Molly. Stop `grab_basler.py` if running. `python3 lab_utils/stator_osc_drive.py status`:
+0. **Start.** On worker2 the repo is `~/rds-code/Decay-Sail` (its main checkout may be on another branch with local
+   changes: don't touch it). Use a worktree: `cd ~/rds-code/Decay-Sail && git fetch && git worktree add ~/wt_chirp osc-chirp`
+   (or `cd ~/wt_chirp && git pull` if it exists). Never stash. Stop `grab_basler.py` if running. `python3 lab_utils/stator_osc_drive.py status`:
    gains 0, DRVON 0, outputs off.
 1. **Tracker** (both lights on, as F3 live 2):
    `cd camera_utils/tracking && /home/controls/.conda/envs/ueye/bin/python live_blob_track.py --exposure 15 --centre 122.8,179.6 --outdir ~/stator_detent --show`
