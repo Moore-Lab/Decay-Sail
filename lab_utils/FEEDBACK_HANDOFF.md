@@ -43,8 +43,9 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
   - `COUPLING_010`: 3/9.
 - **Closed loop:** the failure to brake is reproduced; the swing stays at 0.8–1.0 of the barrier for 20 s. **The 5.6 s tip-over is not**
   (hold coupling 0/12; commanded-fit coupling 5/12 at 10–22 s).
-- **Needs Molly:** is "reproduces the failure to brake" enough to gate step 2? The alternative is to require the tip-over time,
-  which may not be reachable (the rotor was at 0.82 of the barrier).
+- **Step-1 mark (Molly, 2026-11-10):** "reproduces the failure to brake" is enough to go to step 2; the tip-over time is
+  not required (the rotor was at 0.82 of the barrier, so its timing is not reproducible). Guard: a fix counts only if it
+  brakes in every cell of the scan (both couplings, all tick phases and latencies), with margin.
 - **Also measured:**
   - OUT_DQ timestamps sit 3.3–4.2 s later than LES's (cause unknown);
   - about every second matrix write lands (8 Hz);
@@ -52,7 +53,7 @@ instead of rotating it at a fixed rate. Serves the spin-up directive (`../measur
     in window 3 (4.83–5.63 s), where live gained the energy to tip.
 
 **Next (gate: no drive runs until step 2 passes in the measured-model sim):**
-1. (Once Molly OKs the step-1 mark.) Score each fix with `simulate_measured` using both couplings, and the tick phase scanned:
+1. (Step-1 mark OK'd 2026-11-10.) Score each fix with `simulate_measured` using both couplings, and the tick phase scanned:
    - prediction horizon: the effective delay is known only from the rotor response (fits peak at 0.10 s on commands);
      OUT_DQ can't give an absolute write-to-field delay (timestamp offset). Scan the latency in the sim;
    - not the push angles: −88 / +167 are within 6% / 0.5% of `COUPLING_HOLD`'s best (−76 / +170);
