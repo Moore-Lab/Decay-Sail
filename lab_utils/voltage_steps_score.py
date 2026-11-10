@@ -362,6 +362,21 @@ def plots(R, res, outdir, zoom=2.0):
     col = {2: 'C0', 4: 'C1', 3: 'C2'}
     name = {2: 'V2 (A)', 4: 'V4 (B)', 3: 'V3 (C)'}
     files = []
+    G, g0 = res['grid']
+
+    first_land = {}
+    for w in R['W']:
+        if w['land'] is not None:
+            first_land[w['burst']] = min(first_land.get(w['burst'], np.inf), w['land'])
+
+    def applied_at(w):
+        """When the front end should apply a write: when the first channel of its step landed (all channels of a step
+        should land together), else the first intake after its mapped time. Comparing OUT_DQ against this shows only
+        real misses (a lost step, or a mixed one where some channels landed an intake late), not the normal wait."""
+        if w['burst'] in first_land:
+            return first_land[w['burst']]
+        k = math.ceil(((w['m'] - dq['gps0']) * dq['fs'] - g0) / G)
+        return dq['gps0'] + (g0 + k * G) / dq['fs']
     for r in res['blocks']:
         b = r['block']; ws = sorted([w for w in R['W'] if w['block'] == b], key=lambda w: w['m'])
         t_a, t_b = ws[0]['m'] - 0.5, ws[-1]['m'] + 0.5
@@ -373,18 +388,31 @@ def plots(R, res, outdir, zoom=2.0):
             mt = np.array([w['m'] for w in wc]); mv = np.array([w['v'] for w in wc])
             j = np.searchsorted(mt, tf[sel], side='right') - 1
             cmd = np.where(j >= 0, mv[np.clip(j, 0, None)], 0.0) if len(mt) else np.zeros(sel.sum())
+            # expected applied value: each write from when it should be applied; same intake -> last written wins
+            wa = sorted(((applied_at(w), w['m'], w['v']) for w in wc))
+            at = np.array([x[0] for x in wa]); av = np.array([x[2] for x in wa])
+            j = np.searchsorted(at, tf[sel] + 0.5 / dq['fs'], side='right') - 1
+            exp = np.where(j >= 0, av[np.clip(j, 0, None)], 0.0) if len(at) else np.zeros(sel.sum())
+            res_c = dq[f'V{c}'][sel] - exp
+            # mask each edge (-4..+45 samples): the OUT_DQ ringing and a 1-2 sample edge offset would otherwise show as
+            # full-height spikes; a missed or mixed update still shows as a whole intake period off zero
+            ch = np.nonzero(np.diff(exp) != 0)[0] + 1
+            ch = np.concatenate([ch, np.nonzero(np.abs(np.diff(dq[f'V{c}'][sel])) > 5.0)[0] + 1])
+            for i in ch:
+                res_c[max(i - 4, 0):i + 46] = np.nan
             for col_i, xl in enumerate([(t[0], t[-1]), (-0.2, zoom)]):
                 a = ax[k, col_i]
                 a.step(t, cmd, where='post', color='k', lw=1, label='commanded (write time, mapped to FE)')
                 a.plot(t, dq[f'V{c}'][sel], color=col[c], lw=1.2, label='OUT_DQ (front end)')
                 a.set_xlim(*xl); a.set_ylabel(f'{name[c]}\ncounts')
-                ax[3, col_i].plot(t, dq[f'V{c}'][sel] - cmd, color=col[c], lw=1, label=name[c])
+                ax[3, col_i].plot(t, res_c, color=col[c], lw=1.5 if col_i else 2.5, label=name[c])
         for col_i in (0, 1):
-            ax[3, col_i].set_ylabel('OUT_DQ - cmd\ncounts'); ax[3, col_i].set_xlabel('s from first write (FE time)')
+            ax[3, col_i].set_ylabel('OUT_DQ - expected\napplied (counts)'); ax[3, col_i].set_xlabel('s from first write (FE time)')
         ax[0, 0].legend(loc='upper right', fontsize=8); ax[3, 1].legend(fontsize=8, ncol=3)
         ax[0, 1].set_title(f'first {zoom:g} s')
-        fig.suptitle(f'block {b}: {r["pattern"]}, {r["rate"]:g} steps/s requested; {r["landed"]:.0%} of writes landed '
-                     f'(OUT_DQ is upstream of the output switch)', fontsize=11)
+        fig.suptitle(f'block {b}: {r["pattern"]}, {r["rate"]:g} steps/s requested; {r["landed"]:.1%} of writes landed '
+                     f'(OUT_DQ is upstream of the output switch)\nbottom: OUT_DQ minus each write from when the front end '
+                     f'should apply it (when its step first landed, else the next intake); 45 ms after each edge masked (ringing)', fontsize=11)
         fig.tight_layout()
         f = os.path.join(outdir, f'block{b:02d}_{r["pattern"]}_{r["rate"]:g}.png'); fig.savefig(f, dpi=110); plt.close(fig)
         files.append(f)
