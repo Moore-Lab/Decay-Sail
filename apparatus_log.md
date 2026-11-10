@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-10 (afternoon) — Voltage steps S1 on worker2, outputs ON, scope + video (live)
+
+- Ran (worker2, `~/wt_vs`, branch `voltage-steps` at 70cf217, Molly's go, Molly not at the bench):
+  `python3 voltage_steps.py run --preset s1 --level 1200 --field-level 1200 --live --enable-outputs`, with the RTB2004
+  armed by hand (SING) and read after; Basler `grab_basler.py --record --duration 420 --exposure 15`. FE GPS
+  1478396766–1478396867. Offsets 0, outputs off and TRAMP 1.0 at the end.
+- Scope set remotely before the run: 20 s/div, CH2–4 5 V/div (20 V/div refused with 1x BNC), offsets 0. Plain STOP/read
+  at these timebases returned stale records (marker test); single acquisition worked.
+- Data: Dropbox `Microspheres/TFINER/data/voltage_steps/2026-11-10/vsteps_1794345310/` (scope, OUT_DQ, video).
+- Saw: every update reached the amplifier outputs, 8/s included, all three electrodes together; ~0.0124 V/count; τ ~5.6 s;
+  rising edges overshoot ~35 % for ~1 ms. Results: `analysis/voltage_steps_20261110_s1/README.md`.
+
 ### 2026-11-10 — Clean 8/s field test on worker2, outputs off (live)
 
 - Ran (worker2, `~/wt_vs`, branch `voltage-steps` at 96519e1, Molly's go): `python3 voltage_steps.py run --preset field8

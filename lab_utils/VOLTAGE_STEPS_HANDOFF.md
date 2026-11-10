@@ -197,7 +197,11 @@ up with every step (which the trap may not allow at low speed). That's enough fo
      `python3 voltage_steps.py run --preset field8`, then **on Molly's typed go**, outputs off:
      `python3 voltage_steps.py run --preset field8 --live --outdir ~/voltage_steps_runs` (~6.7 min), then fetch and
      copy as in step 3. Score as in step 4 into `analysis/voltage_steps_<date>/plots`.
-6. **S1 runbook** (built on `voltage-steps` at 70cf217, mock-tested only; not run). Outputs **on**. Each live run on Molly's typed go.
+6. **S1 runbook** (built on `voltage-steps` at 70cf217). **Run 2026-11-10 at 1200 counts, remotely; results in
+   `analysis/voltage_steps_20261110_s1/README.md`.** Lessons for the next run: with 1x BNC the scope stops at 5 V/div
+   (±20 V), so 3200 counts needs 10× probes; at slow timebases use a single acquisition (SING, trigger on CH2 rising),
+   not STOP/read; `ACQ:SRAT?` is not the sampling rate, so `--scope`'s rate check refuses wrongly (arm and read by hand,
+   as in the log). Runbook as written before the run: Outputs **on**. Each live run on Molly's typed go.
    - **Molly, at the bench:**
      - Scope CH2 = V2, CH3 = V3, CH4 = V4 at the amplifier outputs, DC coupled; zero-line check first. Cabling (Molly, 2026-11-10):
        plain BNC, 1x, as in W2 (`scope_rtb.py`).
