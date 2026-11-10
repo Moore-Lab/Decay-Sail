@@ -1,7 +1,7 @@
 # Fast DC voltages on the electrodes: handoff
 
 **Status (2026-11-09, late): S0 done (worker2, outputs off, stair). Results: `analysis/voltage_steps_20261109/README.md`.**
-S1 not started. Branch `voltage-steps` at 275d152 (scorer handles the ringing OUT_DQ edges found in S0; teardown fix).
+S1 not started. Branch `voltage-steps` at 96519e1 (adds the clean 8/s field test, `--preset field8`; not run yet).
 Every live run needs Molly's go.
 
 ## Built (2026-11-09; how it differs from the plan below)
@@ -172,6 +172,18 @@ up with every step (which the trap may not allow at low speed). That's enough fo
    - copy the run dir to `dropbox:Microspheres/TFINER/data/voltage_steps/<YYYY-MM-DD>/`
 4. Mac: `python3 lab_utils/voltage_steps_score.py <rundir> --outdir analysis/voltage_steps_<date>/plots`, then look at
    `summary.md`, `summary.png` and the per-block plots before writing anything up.
-5. **Next:** Molly reads the S0 README, then decides on S1 (outputs on, ≤ 3200 counts, scope CH2–CH4 DC-coupled
+5. **Next: clean 8/s field test** (Molly asked 2026-11-10; built and mock-tested, 96519e1, not run). Is 8 updates/s a
+   real operating rate for feedback, i.e. does every update of all three electrodes land?
+   - One 4-min block at exactly 8/s, no dither: each step a random field direction written as feedback would
+     (A, B, C = L/2 + L/2 cos(θ − 0, 120, 240°), L = 3200, θ on a 15° grid, every electrode changing ≥ 320 counts).
+     Dithered all3 blocks at 2 and 4/s (30 s each, before and after) fit the host → FE clock for the scorer.
+   - The ~1.2 ms/s clock drift slides the writes through the whole 125 ms intake window ~2 times, so every timing a
+     camera-triggered write could have is covered. The scorer gives the landed fraction and each write's position
+     before the next intake (`field_timing_blockNN.png`). Not measured: absolute write → field latency.
+   - worker2: `cd ~/wt_vs/lab_utils && git pull`, `python3 voltage_steps.py selftest`, dry run
+     `python3 voltage_steps.py run --preset field8`, then **on Molly's typed go**, outputs off:
+     `python3 voltage_steps.py run --preset field8 --live --outdir ~/voltage_steps_runs` (~6.7 min), then fetch and
+     copy as in step 3. Score as in step 4 into `analysis/voltage_steps_<date>/plots`.
+6. **Then:** Molly reads the S0 README, then decides on S1 (outputs on, ≤ 3200 counts, scope CH2–CH4 DC-coupled
    with a zero-line check, Basler video), on her go per run. S1 scoring (scope V/count, edge shape, droop vs τ, rotor
    panel) is not built; agree its form first. One S1 question S0 raised: does the electrode edge ring like OUT_DQ?
