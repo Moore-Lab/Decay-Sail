@@ -6,7 +6,7 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Open
 
-- **Tracker centre stale** after the 11-06 camera move and tilt-stage changes. Before the next tracked run: re-derive it by replay (median ncc ≳ 0.9) and note the rest angle. Candidates from 11-06: (117.5, 165.1) clicked and (119.1, 167.7) automatic. Both are rotor-body centres, not measured rotation centres. Source: `analysis/rotor_centering/README.md`, "Final state".
+- **Tracker centre re-derived 2026-11-10:** (117.5, 165.1), the 11-06 clicked centre, passes the replay check on the S1 video (median ncc 0.965; checked over a ~63° arc only) and Molly confirmed it on a still. Rest angle 208.6° (F3 had 229.8°; cause unknown). Source: `analysis/voltage_steps_20261110_s1/README.md`, "Rotor".
 
 - **Angle tracking (white blob):** gates 1–6 passed on recorded video
   (2026-10-30, `blob_track.py`, new lighting): 100% of 200 hand labels within 5°, rms 1.0°.

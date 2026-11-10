@@ -66,10 +66,31 @@ Interpretations are Claude's and marked "(interpretation, not approved)". Everyt
   the front end's own record shows no such spike, only its decimation ringing. It could also be the 1x BNC/scope input;
   a 10× probe would tell.
 
+## Rotor (video, tracked 2026-11-10)
+
+- **Tracker centre (117.5, 165.1)**, the 11-06 clicked rotor-rim centre: replay with `template_gps1477428272.npz` gives ncc
+  median 0.965, p10 0.963, min 0.954 over the video (automatic (119.1, 167.7): 0.915; F3's (122.8, 179.6): 0.456, fails).
+  A 1 px grid scan peaks at (118, 165). Checked over the ~63° the rotor swept, not 360°. Molly confirmed it on a still
+  (`rotor/plots/centre_check_gps1478380390.png`).
+- **Rest angle 208.6°** (std 0.045° over 137 s before the run). F3 (11-04) had 229.8° with the same template zero; cause
+  not determined.
+- **Measured response** (`rotor/plots/rotor_s1.png`, `rotor_s1_holds.png`; angles from `rotor/rotor_angle_s1.csv`):
+  - holds: the first V2 step moved it from rest, starting ~0.15 s after the write (±1 frame; camera and writes on
+    worker2's clock) and reaching −4.7° at 0.95 s. Later hold edges changed the existing swing by a few degrees
+    (peak to peak 3.8–6.6°; swing period 1.4–1.6 s);
+  - the 1/s and 8/s blocks pumped the swing up: angle range 192–236° (all3 1/s), 184–242° (8/s random), 183–246°
+    (all3 2/s);
+  - after the run, with outputs off, it kept swinging ±17.5° at 0.379 Hz about 215.8°, peak to peak 35.5 → 34.6° over
+    180 s.
+- **Not explained (observations):** the post-run swing is centred 7° from the rest angle, and its 0.379 Hz differs from the
+  0.31 Hz noted 10-30 and the 0.61–0.71 Hz seen during the holds.
+- Files: `rotor/` (`centre_replay.py`, `centre_estimate_s1.py`, `plot_rotor_s1.py`, `rotor_angle_s1.csv`,
+  `blob_gps1478380390.csv`, `centre_gps1478380390.json`); plots gitignored.
+
 ## Not done / open
 
-- **Rotor:** the video is recorded but not tracked. The tracker centre must be re-derived from it first (handoff).
-  At 1200 counts the push is ~1/7 of 3200's, so little motion is expected.
+- (derived) Even 1200 counts pumps the swing to ±30° when pushes add up, and the swing barely decays (Q very high), so
+  braking matters before any further drive.
 - Absolute write → field delay: not measured (the scope has no common clock; the OUTMON EPICS timestamps were logged
   but are not analysed).
 - A bench S1 at 3200 counts with 10× probes and the trigger on CH2: not run.

@@ -1,0 +1,6 @@
+{
+  "centre_xy_px": [117.5, 165.1],
+  "video": "output_basler_gps1478380390.avi",
+  "basis": "11-06 clicked rotor-rim centre, confirmed by replay with template_gps1477428272.npz on every 10th frame of this video: ncc median 0.965, p10 0.963, min 0.955, r std 0.15 px (centre_replay.py, 2026-11-10). Only a ~46 deg arc was swept, so the centre is checked over that arc only.",
+  "date": "2026-11-10"
+}
