@@ -1,7 +1,7 @@
 # Fast DC voltages on the electrodes: handoff
 
 **Status (2026-11-09, late): S0 done (worker2, outputs off, stair). Results: `analysis/voltage_steps_20261109/README.md`.**
-S1 not started. Branch `voltage-steps` at 96519e1 (adds the clean 8/s field test, `--preset field8`; not run yet).
+S1 not started. Branch `voltage-steps` at 96519e1 (adds the clean 8/s field test, `--preset field8`; run 2026-11-10, results in `analysis/voltage_steps_20261110/README.md`).
 Every live run needs Molly's go.
 
 ## Built (2026-11-09; how it differs from the plan below)
@@ -172,7 +172,7 @@ up with every step (which the trap may not allow at low speed). That's enough fo
    - copy the run dir to `dropbox:Microspheres/TFINER/data/voltage_steps/<YYYY-MM-DD>/`
 4. Mac: `python3 lab_utils/voltage_steps_score.py <rundir> --outdir analysis/voltage_steps_<date>/plots`, then look at
    `summary.md`, `summary.png` and the per-block plots before writing anything up.
-5. **Next: clean 8/s field test** (Molly asked 2026-11-10; built and mock-tested, 96519e1, not run). Is 8 updates/s a
+5. ~~Clean 8/s field test~~ (done 2026-11-10, FE 1478386135–1478386519; results in `analysis/voltage_steps_20261110/README.md`). Is 8 updates/s a
    real operating rate for feedback, i.e. does every update of all three electrodes land?
    - One 4-min block at exactly 8/s, no dither: each step a random field direction written as feedback would
      (A, B, C = L/2 + L/2 cos(θ − 0, 120, 240°), L = 3200, θ on a 15° grid, every electrode changing ≥ 320 counts).
