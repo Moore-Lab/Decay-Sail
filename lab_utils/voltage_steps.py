@@ -4,6 +4,7 @@
     python3 voltage_steps.py plan  [--patterns single,all3,stepper] [--rates 1,2,4,8,16,32] [--dur 20]
                                    [--level 3200] [--shape square|stair] [--out PLAN.csv]
     python3 voltage_steps.py run   [--plan PLAN.csv | plan options] [--outdir DIR] [--live] [--enable-outputs]
+    python3 voltage_steps.py run   --preset field8 [--field-dur 240] ...   (the clean 8/s test, ~6.2 min + checks)
     python3 voltage_steps.py fetch RUNDIR            (worker2: OUT_DQ of V2, V3, V4 over the run, from NDS)
     python3 voltage_steps.py selftest                (Mac: the run loop against a mock front end)
 
@@ -32,6 +33,10 @@ PATTERNS (plan). Level L (default 3200 counts, ~38-40 V at the electrode with th
   stepper  one electrode at a time, A -> B -> C -> A: (L,0,0) -> (0,L,0) -> (0,0,L); every step
            switches one electrode off as the next goes on (through the AC-coupled amp this pulls
            both ways: stator_detent.py docstring; irrelevant with outputs off).
+  field    (--preset field8 only) a random field direction per step, written the way feedback would point the
+           field: A, B, C = L/2 + L/2 cos(theta - 0, 120, 240 deg), theta on a 15 deg grid, every channel changing
+           by >= L/10 per step. Exactly 8 steps/s for --field-dur s (240), no dither, between dithered all3
+           blocks at 2 and 4/s (30 s each, before and after) that the scorer uses to line up the clocks.
 Each block: --dur s at the requested rate, then back to 0 and --gap s quiet. At <= 8 steps/s each step is
 dithered later by up to 125 ms (make_plan docstring; --no-dither to turn off).
 
@@ -109,6 +114,53 @@ def make_plan(patterns, rates, dur, level, shape='square', gap=2.0, lead=2.0, di
             t += n / r + gap
             b += 1
     return rows
+
+
+def field_states(n, L, rng, step_deg=15.0, min_change=0.1):
+    """n random field directions, as feedback would write them: electrode k (A, B, C) = L/2 + L/2 cos(theta - k 120 deg),
+    so 0..L. theta on a step_deg grid (a short list of values per channel, so the scorer can snap each OUT_DQ level to a
+    commanded one). Every channel changes by >= min_change * L from one state to the next, so each update is visible on
+    all three channels. Returns [(V2, V4, V3)], plus the angles."""
+    grid = np.arange(0.0, 360.0, step_deg)
+    def volts(th):
+        return tuple(float(round(L / 2 + L / 2 * math.cos(math.radians(th - 120.0 * k)))) for k in range(3))
+    out, ang, prev = [], [], None
+    while len(out) < n:
+        th = float(rng.choice(grid))
+        v = volts(th)
+        if prev is not None and min(abs(a - b) for a, b in zip(v, prev)) < min_change * L:
+            continue
+        out.append(v); ang.append(th); prev = v
+    return out, ang
+
+
+def make_field_plan(level, field_dur=240.0, cal_dur=30.0, cal_rates=(2.0, 4.0), gap=2.0, lead=2.0, seed=0):
+    """The clean 8/s test (handoff, "8/s field test"): one block of random field directions on all three electrodes at
+    exactly 8 steps/s, no dither, between dithered all3 calibration blocks at cal_rates (before, and reversed after).
+    The calibration blocks fit host -> FE time (scorer); the host and FE clocks differ by ~1.2 ms/s (S0), so over
+    field_dur = 240 s the writes slide ~0.3 s, i.e. through every position in the 125 ms intake window ~2 times."""
+    rng = np.random.default_rng(seed)
+    rows, t, b = [], lead, 0
+    specs = [('all3', r, cal_dur, True) for r in cal_rates] + [('field', 8.0, field_dur, False)] + \
+            [('all3', r, cal_dur, True) for r in cal_rates[::-1]]
+    for p, r, dur, dith in specs:
+        n = max(2, int(round(dur * r)))
+        seq = field_states(n, level, rng)[0] if p == 'field' else states(p, 'square', level)
+        for k in range(n):
+            v = seq[k % len(seq)]
+            dt = rng.random() * min(2 * TICK, 0.5 / r) if (dith and 0 < k) else 0.0
+            rows.append(dict(block=b, pattern=p, rate=r, step=k, t=round(t + k / r + dt, 6), V2=v[0], V4=v[1], V3=v[2]))
+        rows.append(dict(block=b, pattern=p, rate=r, step=n, t=round(t + n / r, 6), V2=0.0, V4=0.0, V3=0.0))
+        t += n / r + gap
+        b += 1
+    return rows
+
+
+def build_plan(a):
+    if getattr(a, 'preset', None) == 'field8':
+        return make_field_plan(a.level, field_dur=a.field_dur)
+    return make_plan(a.patterns.split(','), [float(x) for x in a.rates.split(',')], a.dur, a.level, a.shape, a.gap,
+                     dither=not a.no_dither)
 
 
 def write_plan(rows, path):
@@ -198,8 +250,7 @@ def preflight(ep, rows):
 
 
 def cmd_run(a, ep=None):
-    rows = read_plan(a.plan) if a.plan else make_plan(a.patterns.split(','), [float(x) for x in a.rates.split(',')],
-                                                      a.dur, a.level, a.shape, a.gap, dither=not a.no_dither)
+    rows = read_plan(a.plan) if a.plan else build_plan(a)
     blocks = sorted({r['block'] for r in rows})
     T = rows[-1]['t']
     print('=' * 72)
@@ -483,11 +534,12 @@ class MockFE:
 
 
 def mock_run(rundir, mode='tick', patterns='single,all3,stepper', rates='1,2,4,8,16,32', dur=8.0, shape='square',
-             seed=0, level=3200.0):
+             seed=0, level=3200.0, preset=None, field_dur=240.0):
     """Run cmd_run against MockFE; write out_dq.npz. Returns the run dir."""
     fe = MockFE(mode, seed)
     a = argparse.Namespace(plan=None, patterns=patterns, rates=rates, dur=dur, level=level, shape=shape, gap=2.0,
-                           outdir=rundir, live=True, enable_outputs=False, release=20.0, no_dither=False)
+                           outdir=rundir, live=True, enable_outputs=False, release=20.0, no_dither=False,
+                           preset=preset, field_dur=field_dur)
     import contextlib, io
     with contextlib.redirect_stdout(io.StringIO()):
         cmd_run(a, ep=fe)
@@ -505,6 +557,13 @@ def selftest():
     print(f'default plan: {len(rows)} steps, {T / 60:.1f} min; check_plan -> {check_plan(rows)}')
     ok &= check_plan(rows) is None and 6 < T / 60 < 8
     ok &= check_plan(make_plan(['single'], [1], 4, 13000)) is not None
+    fr = make_field_plan(3200)
+    fb = [r for r in fr if r['pattern'] == 'field']
+    dts = np.diff([r['t'] for r in fb])
+    chg = min(min(abs(fb[i + 1][f'V{n}'] - fb[i][f'V{n}']) for n in CHANS) for i in range(len(fb) - 2))
+    print(f'field8 plan: {len(fr)} steps, {fr[-1]["t"] / 60:.1f} min; field block {len(fb)} steps, spacing '
+          f'{dts.min() * 1e3:.3f}-{dts.max() * 1e3:.3f} ms, smallest per-channel change {chg:.0f} counts; check_plan -> {check_plan(fr)}')
+    ok &= check_plan(fr) is None and np.allclose(dts, 0.125) and chg >= 320 and len(fb) == 1921
     fe = MockFE()
     fe.pv[f'{PREFIX}_V3_SW1R'] = 4
     fe.pv[f'{PREFIX}_DRVON'] = 1
@@ -542,6 +601,10 @@ def main():
         q.add_argument('--shape', default='square', choices=('square', 'stair'), help='single-electrode pattern')
         q.add_argument('--gap', type=float, default=2.0, help='s at 0 between blocks')
         q.add_argument('--no-dither', action='store_true', help='regular schedule at <= 8 steps/s too')
+        q.add_argument('--preset', choices=('field8',), help='field8: the clean 8/s test (random field directions, '
+                       'all three electrodes, exactly 8/s, between dithered all3 calibration blocks); ignores '
+                       '--patterns/--rates/--dur/--shape/--gap')
+        q.add_argument('--field-dur', type=float, default=240.0, help='s, field8 only: length of the 8/s block')
     q = sp.add_parser('plan'); plan_opts(q); q.add_argument('--out', default='voltage_steps_plan.csv')
     q = sp.add_parser('run'); plan_opts(q)
     q.add_argument('--plan', help='plan CSV (overrides the plan options)')
@@ -553,8 +616,7 @@ def main():
     sp.add_parser('selftest')
     a = p.parse_args()
     if a.cmd == 'plan':
-        rows = make_plan(a.patterns.split(','), [float(x) for x in a.rates.split(',')], a.dur, a.level, a.shape, a.gap,
-                         dither=not a.no_dither)
+        rows = build_plan(a)
         err = check_plan(rows)
         if err:
             sys.exit('! ' + err)

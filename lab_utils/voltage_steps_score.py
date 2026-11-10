@@ -20,7 +20,11 @@ WHAT IT MEASURES (S0 table; there is no pass threshold, the numbers are the resu
   5. host -> FE mapping t_fe = a + b (t_host - t0), fitted from the low-rate blocks: b - 1 is the clock
      drift; a mixes the clock offset with the latency and is not interpreted. Relative delay =
      landing - mapped write - its minimum: ~0..62.5 ms if every tick applies, ~0..125 ms if every 2nd;
-  6. TRAMP found at each block start (the reset).
+  6. TRAMP found at each block start (the reset);
+  7. field blocks (`run --preset field8`: random field directions, all three electrodes, exactly 8/s, no dither):
+     for every write, its time before the next intake on the grid (mapped write time; the mapping is fitted on the
+     other blocks only), landed or lost. Writes clear of the intake should all land; lost writes near 0 or 125 ms
+     mean the intake timing jitters by that much. Plot: field_timing.png.
 OUT_DQ is upstream of the output switch, so with outputs off this is when the front end APPLIES a write.
 """
 import argparse
@@ -112,7 +116,7 @@ def fit_mapping(R, L, fit_max_rate=8.0, win=0.2):
     3. the matched pairs under that line, refitted on their lower envelope (delays are one-sided)."""
     g = [(float(r['host_a']), float(r['fe_gps'])) for r in R['bl'] if r['fe_gps'] not in ('', 'None')]
     base = np.median([f - (h - GPS_UNIX) for h, f in g])
-    low = [w for w in R['W'] if R['rate'][w['block']] <= fit_max_rate]
+    low = [w for w in R['W'] if R['rate'][w['block']] <= fit_max_rate and R['pat'][w['block']] != 'field']
     keys = {}
     for e in L:
         keys.setdefault((e[2], round(e[3], 1)), []).append(e[1])
@@ -207,7 +211,8 @@ def score(R, fit_max_rate=8.0):
     M = fit_mapping(R, L, fit_max_rate)
     assign(R, L, M, tol=0.03)                     # pass 1, loose: the low-rate minimum delay overestimates the
     d = [w['land'] - w['m'] for w in R['W']       # true one (few writes); re-zero on all blocks <= 8/s, where a
-         if w['land'] is not None and R['rate'][w['block']] <= 8]   # repeated value is >= 250 ms away (no ambiguity)
+         if w['land'] is not None and R['rate'][w['block']] <= 8   # repeated value is >= 250 ms away (no ambiguity);
+         and R['pat'][w['block']] != 'field']     # field blocks are scored against this mapping, so kept out of it
     if not d:
         sys.exit('! no write at <= 8/s matched an OUT_DQ landing after mapping')
     M['a'] += min(d); M['rezero_ms'] = 1e3 * min(d)
@@ -215,6 +220,8 @@ def score(R, fit_max_rate=8.0):
     hist = onset_hist                              # raw edge onsets mod one tick (filter spreads them ~3 samples)
     blocks = sorted(R['rate'])
     res = dict(M=M, L=L, ph_hist=hist, per=per, p0=p0, stray=stray, blocks=[])
+    res['grid'] = intake_grid(L, p0, per)
+    res['field'] = field_timing(R, res)
     found = {int(r['block']): [r[f'tramp_found_V{c}'] for c in CHANS] for r in R['bl'] if r['edge'] == 'start'}
     by_burst = {}
     for w in R['W']:
@@ -273,6 +280,44 @@ def score(R, fit_max_rate=8.0):
     return res
 
 
+def intake_grid(L, p0, per):
+    """Applied ticks: every 16 Hz tick, or every 2nd (S0: one parity only). Returns (period in samples, offset)."""
+    j = np.array([(e[0] - p0) // per for e in L])
+    if not len(j):
+        return per, p0
+    odd = np.mean(j % 2)
+    if odd > 0.97 or odd < 0.03:
+        return 2 * per, p0 + per * int(round(odd))
+    return per, p0
+
+
+def field_timing(R, res):
+    """Per field block: each write's time before the next applied tick (ms; 0 = just before an intake, the period
+    = just after one) from its mapped write time, and whether it landed."""
+    dq = R['dq']; fs = dq['fs']; G, g0 = res['grid']
+    out = []
+    for b in sorted(R['rate']):
+        if R['pat'][b] != 'field':
+            continue
+        steps = {}
+        for w in R['W']:
+            if w['block'] == b and w['v'] != 0.0:      # the closing 0-write is not part of the test
+                steps.setdefault(w['burst'], []).append(w)
+        rows = []
+        for bi, ws in sorted(steps.items()):
+            m = ws[0]['m']
+            x = (m - dq['gps0']) * fs - g0
+            tti = ((-x) % G) / fs * 1e3
+            rows.append((m, tti, all(w['land'] is not None for w in ws), sum(w['land'] is not None for w in ws), len(ws)))
+        a = np.array(rows, float)
+        lost = a[a[:, 2] == 0]
+        out.append(dict(block=b, period_ms=G / fs * 1e3, t=a[:, 0] - a[0, 0], tti=a[:, 1], landed=a[:, 2].astype(bool),
+                        n=len(a), n_lost=len(lost), chan_lost=int((a[:, 4] - a[:, 3]).sum()),
+                        lost_edge_ms=float(np.max(np.minimum(lost[:, 1], G / fs * 1e3 - lost[:, 1]))) if len(lost) else np.nan,
+                        span_ms=float(np.ptp(a[:, 1]))))
+    return out
+
+
 def table(res):
     M = res['M']; h = res['ph_hist']
     lines = ['# voltage steps: measured numbers', '',
@@ -290,6 +335,11 @@ def table(res):
              'mapped write, zero at the earliest landing (absolute latency is in the OUTMON column, host side). '
              'Spacing: between successive landings in the block, in ticks. Chance: mean write-burst length / 62.5 ms. '
             'OUTMON delay counts only matches before the next same-value write, so at high rates it is biased short.']
+    for f in res.get('field', []):
+        lines[3:3] = [f'- field block {f["block"]} (random directions, all three electrodes, 8/s, no dither): {f["n"] - f["n_lost"]}/{f["n"]} '
+                      f'steps landed on all three channels ({f["chan_lost"]} channel writes lost); applied ticks every '
+                      f'{f["period_ms"]:.1f} ms; write positions covered {f["span_ms"]:.0f} ms of that window'
+                      + (f'; every lost step was within {f["lost_edge_ms"]:.1f} ms of an intake' if f['n_lost'] else '')]
     for r in res['blocks']:
         lines.append(
             f'| {r["block"]} | {r["pattern"]} | {r["rate"]:g} | {r["n_steps"]} | {r["landed"]:.1%} | {r["steps_landed"]:.1%} | '
@@ -344,7 +394,7 @@ def plots(R, res, outdir, zoom=2.0):
     ax[0, 0].bar(np.arange(h.size) / dq['fs'] * 1e3, h, width=1e3 / dq['fs'], color='C0')
     ax[0, 0].set_xlabel('landing time mod 1/16 s (ms, OUT_DQ sample phase)'); ax[0, 0].set_ylabel('landings')
     ax[0, 0].set_title('landing times on the 16 Hz grid')
-    for pat, mk in zip(('single', 'all3', 'stepper'), 'osD'):
+    for pat, mk in zip(('single', 'all3', 'stepper', 'field'), 'osDv'):
         rr = [r for r in res['blocks'] if r['pattern'] == pat]
         if rr:
             ax[0, 1].loglog([r['req_rate'] for r in rr], [r['ach_rate'] for r in rr], mk + '-', label=f'{pat}: landings/s')
@@ -359,7 +409,7 @@ def plots(R, res, outdir, zoom=2.0):
         ax[1, 0].hist(xd, bins=np.arange(-0.5, max(xd) + 1.5, 1), color='C2', rwidth=0.8)
     ax[1, 0].set_xlabel('channel landing - earliest channel of the same step (ticks)'); ax[1, 0].set_ylabel('channel landings')
     ax[1, 0].set_title('multi-channel steps: same tick or split')
-    for pat, mk in zip(('single', 'all3', 'stepper'), 'osD'):
+    for pat, mk in zip(('single', 'all3', 'stepper', 'field'), 'osDv'):
         rr = [r for r in res['blocks'] if r['pattern'] == pat and r['om_n']]
         if rr:
             ax[1, 1].errorbar([r['rate'] for r in rr], [r['om_med'] for r in rr],
@@ -368,6 +418,22 @@ def plots(R, res, outdir, zoom=2.0):
     ax[1, 1].set_title('host-side delay: median, bar to p95'); ax[1, 1].legend(fontsize=8)
     fig.tight_layout(); f = os.path.join(outdir, 'summary.png'); fig.savefig(f, dpi=110); plt.close(fig)
     files.append(f)
+    for fb in res.get('field', []):
+        P = fb['period_ms']; ok = fb['landed']
+        fig, ax = plt.subplots(1, 2, figsize=(12, 4.5))
+        bins = np.linspace(0, P, 51)
+        ax[0].hist(fb['tti'][ok], bins=bins, color='C0', label=f'landed ({ok.sum()})')
+        ax[0].hist(fb['tti'][~ok], bins=bins, color='C3', label=f'lost ({(~ok).sum()})')
+        ax[0].set_xlabel(f'write time before the next intake (ms; intake every {P:.1f} ms)'); ax[0].set_ylabel('steps')
+        ax[0].set_title('where each write fell in the intake window'); ax[0].legend(fontsize=8)
+        ax[1].plot(fb['t'][ok], fb['tti'][ok], '.', ms=2, color='C0', label='landed')
+        ax[1].plot(fb['t'][~ok], fb['tti'][~ok], 'x', ms=6, color='C3', label='lost')
+        ax[1].set_ylim(0, P); ax[1].set_xlabel('s from first write'); ax[1].set_ylabel('ms before next intake')
+        ax[1].set_title('clock drift slides the writes through the window'); ax[1].legend(fontsize=8)
+        fig.suptitle(f'block {fb["block"]}: random field directions, all three electrodes, 8 steps/s; '
+                     f'{fb["n"] - fb["n_lost"]}/{fb["n"]} steps landed on all three', fontsize=11)
+        fig.tight_layout(); f = os.path.join(outdir, f'field_timing_block{fb["block"]:02d}.png'); fig.savefig(f, dpi=110); plt.close(fig)
+        files.append(f)
     return files
 
 
@@ -430,6 +496,20 @@ def selftest():
         print('\n== mock tick, stair shape: landed', ['%g/s %.0f%%' % (r['rate'], 100 * r['landed']) for r in res['blocks']],
               'stray', res['stray'])
         ok &= chk(res['stray'] == 0 and all(r['landed'] == 1.0 for r in res['blocks'] if r['rate'] <= 8), "res['stray'] == 0 and all(r['landed'] == 1.0 for r in res['blocks'] if r['rate'] <= 8)")
+        for mode, seed in (('every2', 5), ('tick', 6)):
+            rd, fe = vs.mock_run(os.path.join(d, 'field_' + mode), mode=mode, preset='field8', seed=seed)
+            R = load(rd); res = score(R); fb = res['field'][0]
+            print(f'\n== mock {mode}, field8: {fb["n"] - fb["n_lost"]}/{fb["n"]} steps landed on all three, '
+                  f'{fb["chan_lost"]} channel writes lost; intake every {fb["period_ms"]:.1f} ms; positions span {fb["span_ms"]:.0f} ms; '
+                  f'lost steps within {fb["lost_edge_ms"]:.1f} ms of an intake; stray {res["stray"]}; '
+                  f'drift {1e3 * (res["M"]["b"] - 1):+.3f} ms/s')
+            P = 125.0 if mode == 'every2' else 62.5
+            ok &= chk(abs(fb['period_ms'] - P) < 0.1 and fb['span_ms'] > 0.9 * P and res['stray'] == 0, f'{mode}: grid {P} ms found, positions cover the window')
+            ok &= chk(fb['n'] == 1920 and fb['n_lost'] <= 0.02 * fb['n'], f'{mode}: >= 98 % of field steps land')
+            ok &= chk(fb['n_lost'] == 0 or fb['lost_edge_ms'] < 4, f'{mode}: lost steps only at the intake edge (mock jitter 1.5 ms)')
+            if mode == 'every2':
+                ff = plots(R, res, os.path.join(d, 'plots_field'))
+                ok &= chk(any('field_timing' in x for x in ff), 'field timing plot written')
         f = plots(*out['tick'], os.path.join(d, 'plots'))
         print(f'plots: {len(f)} files written')
         ok &= chk(len(f) == 19, 'len(f) == 19')
