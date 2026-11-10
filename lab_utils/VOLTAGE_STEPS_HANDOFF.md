@@ -114,7 +114,7 @@ against ~3.8 rad/s² per radian of trap stiffness near rest), a held step may mo
 
 ### S1: the same with outputs ON, scope on the amplifier outputs, video recorded (Molly's go per run)
 - **Content (Molly, 2026-11-10; replaces "1, 4 and 16 steps/s"):** all at ≤ 3200 counts. Levels: holds and 1/s at
-  3200; the 8/s block at **1600 (Claude's proposal, Molly to confirm)**, because random directions only jostle the
+  3200; the 8/s block at **1600 (Molly, 2026-11-10)**, because random directions only jostle the
   rotor (no net turning) and might tip it over the trap in an unknown direction; the scope measurement does not need 3200.
   1. **Long holds**, one electrode at a time (V2, V4, V3): 0 → 3200, hold ~4 s, → 0, hold ~4 s. For volts per count
      and droop against τ (τ ≈ 5.6 s, so 8/s holds of 125 ms are too short to see it).
@@ -197,6 +197,26 @@ up with every step (which the trap may not allow at low speed). That's enough fo
      `python3 voltage_steps.py run --preset field8`, then **on Molly's typed go**, outputs off:
      `python3 voltage_steps.py run --preset field8 --live --outdir ~/voltage_steps_runs` (~6.7 min), then fetch and
      copy as in step 3. Score as in step 4 into `analysis/voltage_steps_<date>/plots`.
-6. **Then:** Molly reads the S0 README, then decides on S1 (outputs on, ≤ 3200 counts, scope CH2–CH4 DC-coupled
-   with a zero-line check, Basler video), on her go per run. S1 scoring (scope V/count, edge shape, droop vs τ, rotor
-   panel) is not built; agree its form first. One S1 question S0 raised: does the electrode edge ring like OUT_DQ?
+6. **S1 runbook** (built on `voltage-steps` at 70cf217, mock-tested only; not run). Outputs **on**. Each live run on Molly's typed go.
+   - **Molly, at the bench:**
+     - Scope CH2 = V2, CH3 = V3, CH4 = V4 at the amplifier outputs, DC coupled; zero-line check first. Cabling as in
+       W2 (plain BNC, 1x, per `scope_rtb.py`), unless Molly prefers the 10× probes the plan first named.
+     - Timebase **10 s/div** (one screen = 120 s; the run refuses if the screen is shorter than the run + 10 s).
+       Vertical **10 V/div with the zero line ~3 divisions below centre**: the mock expects −22 to +39 V at 3200
+       counts (AC coupling makes each step down go negative). The scorer flags clipping. Record length long enough
+       that the sample rate (`srate` in `scope_rtb.py settings`) is ≥ 20 kS/s at 10 s/div; the run refuses below
+       10 kS/s (edge shape needs it). Leave the scope running.
+     - Start the Basler recording (`camera_utils/grab_basler.py --record`; the .avi is GPS-named) before the run; stop
+       it after.
+   - **worker2:** `cd ~/wt_vs/lab_utils && git pull`; `python3 voltage_steps.py selftest`; `python3 voltage_steps_s1.py
+     selftest` (~2 min); dry run `python3 voltage_steps.py run --preset s1`; read-only `python3 scope_rtb.py settings`
+     (check: `tim_scale` 10, `srate` ≥ 20000, CH2–CH4 DC coupled; the dry run does not look at the scope).
+     Then **on Molly's typed go:** `python3 voltage_steps.py run --preset s1 --live --enable-outputs --scope --outdir
+     ~/voltage_steps_runs` (~100 s of stepping; at the end it reads the scope: STOP, transfer, RUN). GPS pairs before and
+     after; `fetch` after ~2 min; copy the run dir (and the video path) to Dropbox as in step 3.
+   - **Mac:** `python3 lab_utils/voltage_steps_s1.py <rundir> --outdir analysis/voltage_steps_<date>/plots`
+     (`s1_summary.md`, `s1_block*.png`, `s1_edges.png`, `s1_gain.png`, plus the OUT_DQ plots). Then re-derive the tracker
+     centre from the video and track it for the rotor-angle plot.
+   - Open: the scorer has only met mock scope traces; scope cabling (1x BNC or 10× probes) is Molly's choice.
+7. **After S1:** results README (`analysis/voltage_steps_<date>/`), then the one-page summary of measured constraints for
+   the PI and Alma ("Afterwards" above). S1 answers the question S0 raised: does the electrode edge ring like OUT_DQ?
