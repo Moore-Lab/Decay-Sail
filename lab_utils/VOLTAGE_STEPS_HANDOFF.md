@@ -113,11 +113,23 @@ against ~3.8 rad/s² per radian of trap stiffness near rest), a held step may mo
 - **Pass:** a complete dataset and the table of measured numbers. There is no threshold: the numbers are the result.
 
 ### S1: the same with outputs ON, scope on the amplifier outputs, video recorded (Molly's go per run)
-- A subset of S0 (e.g. 1, 4 and 16 steps/s) at moderate level (≤ 3200 counts).
+- **Content (Molly, 2026-11-10; replaces "1, 4 and 16 steps/s"):** all at ≤ 3200 counts. Levels: holds and 1/s at
+  3200; the 8/s block at **1600 (Claude's proposal, Molly to confirm)**, because random directions only jostle the
+  rotor (no net turning) and might tip it over the trap in an unknown direction; the scope measurement does not need 3200.
+  1. **Long holds**, one electrode at a time (V2, V4, V3): 0 → 3200, hold ~4 s, → 0, hold ~4 s. For volts per count
+     and droop against τ (τ ≈ 5.6 s, so 8/s holds of 125 ms are too short to see it).
+  2. **Steps at 1/s**, all three electrodes (all3), ~20 s.
+  3. **8/s random field directions** (the `field8` pattern, 2026-11-10), 30–60 s: the fastest rate the EPICS route
+     gives; shows whether 8 updates/s reach the electrodes. 16/s and 32/s dropped: S0 showed they only drop writes or
+     step the field backwards.
+  - Plus dithered calibration blocks for the host → FE clock, as in field8.
+  - **Passive logging only:** save the EPICS timestamp of each OUTMON update (now discarded). No analysis or claim from
+    it in S1; it may give the write → field delay later (separate run with a scope trigger from worker2 otherwise).
 - RTB2004 on CH2–CH4 = V2, V3, V4 at the amplifier outputs, 10× probes. DC-couple the scope and check the zero line
   first (CLAUDE.md).
 - Record a Basler video: `grab_basler.py --record` (camera free; no live tracking, since the tracker centre is stale,
-  `docs/STATUS.md`).
+  `docs/STATUS.md`). **Afterwards (Molly, 2026-11-10):** re-derive the tracker centre from this video (replay check,
+  median ncc ≳ 0.9) and track it, for the rotor-angle plot.
 - **Measures:**
   1. volts per count on the offset path: a **check** of the refit value, separately for the first instant of a step
      (expect ~0.0124–0.0128, the burst gain) and its slow part (expect ~0.012);
@@ -138,7 +150,8 @@ against ~3.8 rad/s² per radian of trap stiffness near rest), a held step may mo
 - **Questions for Alma:**
   - Can the EPICS intake be raised, or is there a faster input path without a model change? (S0: OFFSET writes are
     applied at 8 Hz on a grid locked to the FE GPS second; see the S0 README.)
-  - Can several values be applied in the same tick? (S0: 0 of 987 multi-channel steps split; consistent with yes, not proof.)
+  - Can several values be applied in the same tick? (8/s test 2026-11-10: no, the channels are taken separately; a write
+    burst that straddles an intake splits. Accepted for now, `docs/DECISIONS.md` 2026-11-10.)
   - Can the front-end clock offset (4.3 h, 0.12 % fast) be fixed? That would also unblock streamed AWG waveforms.
     (S0: FE runs +1.21 ms/s against worker2.)
 
