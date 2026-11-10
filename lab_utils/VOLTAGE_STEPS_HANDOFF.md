@@ -202,16 +202,18 @@ up with every step (which the trap may not allow at low speed). That's enough fo
      - Scope CH2 = V2, CH3 = V3, CH4 = V4 at the amplifier outputs, DC coupled; zero-line check first. Cabling as in
        W2 (plain BNC, 1x, per `scope_rtb.py`), unless Molly prefers the 10× probes the plan first named.
      - Timebase **10 s/div** (one screen = 120 s; the run refuses if the screen is shorter than the run + 10 s).
-       Vertical **10 V/div with the zero line ~3 divisions below centre**: the mock expects −22 to +39 V at 3200
+       Vertical **10 V/div with the zero line 1 division below centre** (screen −30 to +50 V): the mock expects −22 to +39 V at 3200
        counts (AC coupling makes each step down go negative). The scorer flags clipping. Record length long enough
        that the sample rate (`srate` in `scope_rtb.py settings`) is ≥ 20 kS/s at 10 s/div; the run refuses below
        10 kS/s (edge shape needs it). Leave the scope running.
-     - Start the Basler recording (`camera_utils/grab_basler.py --record`; the .avi is GPS-named) before the run; stop
-       it after.
+     - Free the camera (close any viewer). worker2 starts the recording just before the run (below).
    - **worker2:** `cd ~/wt_vs/lab_utils && git pull`; `python3 voltage_steps.py selftest`; `python3 voltage_steps_s1.py
      selftest` (~2 min); dry run `python3 voltage_steps.py run --preset s1`; read-only `python3 scope_rtb.py settings`
      (check: `tim_scale` 10, `srate` ≥ 20000, CH2–CH4 DC coupled; the dry run does not look at the scope).
-     Then **on Molly's typed go:** `python3 voltage_steps.py run --preset s1 --live --enable-outputs --scope --outdir
+     Camera: find the settings of the last tracked recording in `apparatus_log.md` (e.g. exposure 15 ms, 11-04; not
+     `grab_basler.py`'s 2 ms default) and show them to Molly. Then **on Molly's typed go**, once she has freed the camera:
+     `python3 ~/wt_vs/camera_utils/grab_basler.py --record --duration 180 --outdir <dir> <those settings>` in the
+     background (GPS-named .avi, stops by itself), then `python3 voltage_steps.py run --preset s1 --live --enable-outputs --scope --outdir
      ~/voltage_steps_runs` (~100 s of stepping; at the end it reads the scope: STOP, transfer, RUN). GPS pairs before and
      after; `fetch` after ~2 min; copy the run dir (and the video path) to Dropbox as in step 3.
    - **Mac:** `python3 lab_utils/voltage_steps_s1.py <rundir> --outdir analysis/voltage_steps_<date>/plots`
