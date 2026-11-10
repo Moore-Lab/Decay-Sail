@@ -199,8 +199,8 @@ up with every step (which the trap may not allow at low speed). That's enough fo
      copy as in step 3. Score as in step 4 into `analysis/voltage_steps_<date>/plots`.
 6. **S1 runbook** (built on `voltage-steps` at 70cf217, mock-tested only; not run). Outputs **on**. Each live run on Molly's typed go.
    - **Molly, at the bench:**
-     - Scope CH2 = V2, CH3 = V3, CH4 = V4 at the amplifier outputs, DC coupled; zero-line check first. Cabling as in
-       W2 (plain BNC, 1x, per `scope_rtb.py`), unless Molly prefers the 10× probes the plan first named.
+     - Scope CH2 = V2, CH3 = V3, CH4 = V4 at the amplifier outputs, DC coupled; zero-line check first. Cabling (Molly, 2026-11-10):
+       plain BNC, 1x, as in W2 (`scope_rtb.py`).
      - Timebase **10 s/div** (one screen = 120 s; the run refuses if the screen is shorter than the run + 10 s).
        Vertical **10 V/div with the zero line 1 division below centre** (screen −30 to +50 V): the mock expects −22 to +39 V at 3200
        counts (AC coupling makes each step down go negative). The scorer flags clipping. Record length long enough
@@ -219,6 +219,6 @@ up with every step (which the trap may not allow at low speed). That's enough fo
    - **Mac:** `python3 lab_utils/voltage_steps_s1.py <rundir> --outdir analysis/voltage_steps_<date>/plots`
      (`s1_summary.md`, `s1_block*.png`, `s1_edges.png`, `s1_gain.png`, plus the OUT_DQ plots). Then re-derive the tracker
      centre from the video and track it for the rotor-angle plot.
-   - Open: the scorer has only met mock scope traces; scope cabling (1x BNC or 10× probes) is Molly's choice.
+   - Open: the scorer has only met mock scope traces.
 7. **After S1:** results README (`analysis/voltage_steps_<date>/`), then the one-page summary of measured constraints for
    the PI and Alma ("Afterwards" above). S1 answers the question S0 raised: does the electrode edge ring like OUT_DQ?
