@@ -29,7 +29,14 @@ Status: **proposal, nothing built.** Directive and pass marks: `measurement_obje
 - **The brake is the safety net only where the map is measured.** Before the rotor goes over the top, braking must work
   over the whole swing.
 
-## Gates (each: plan → mock/sim test → Molly's go → results README)
+## Agreed order (Molly, 2026-11-11)
+
+G1 → G2 → stage 1 carry (sim, then live at ~0.02 Hz, both directions, brake as backup) → stage 2 if the 8 Hz limit allows.
+G3 and G4 are folded into the carry attempt (a slow carry goes over the top under control; the brake catches a failure).
+G1 run: kick A 2400, pump to ±35° (`brake_offsets.py --pump-to 35 --safe 150,280`, branch voltage-steps), then the pulse plan
+`analysis/spinup_g1_20261111/g1_plan.csv` (25 pulses at 800 and 25 at 1600 counts, 0.25 s).
+
+## Gates as first proposed (each: plan → mock/sim test → Molly's go → results README)
 
 - **G1. Push map over the full swing, and its scaling with voltage.** Kick (A, 2400) and pump within the mapped range to
   ±40–60°, then B2-style random pulses across 150–290°, at 800 and at 1600 counts. Pass: the 45°-periodic shape holds
