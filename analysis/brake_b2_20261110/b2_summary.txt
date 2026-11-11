@@ -1,0 +1,135 @@
+# Gate B2 push map, 2026-11-10 (b2_pushmap.py)
+video: 16503 frames, host 1794363687.89..1794364017.93, angle 187.0..238.8 deg, 668 blanked-source frames (kept, as B1)
+pulses: 45 (15 A / 15 B / 15 C); all 90 writes landed; landing durations 0.2498..0.2498 s (measured, OUT_DQ)
+write -> landing relative delay: 0..140 ms (zero = earliest; host->FE drift fitted +0.980 ms/s)
+
+## 1. Joint fit (trap + 45 pulse accelerations), run data
+common delay d (field start - landing_host): best -1 ms (scan -100..300 ms, chi2 rise at +-50 ms: +2.260% / +2.172%)
+same fit timed from the WRITE instead of the landing: best chi2 / landing best chi2 = 1.0055 (at 70 ms after the write)
+
+## 2. Trap check: replay of the post-run free swing (field off, t >= last write + 20 s)
+measured: period 2.9288 s, mean max/min 236.99/191.75 deg, 54 periods
+  B2 joint (run)            : period 2.9267 s (-0.07 %), max/min 236.96/191.88, rms over first 10 s 0.42 deg
+  B2 free swing (post-run)  : period 2.9234 s (-0.18 %), max/min 236.96/191.81, rms over first 10 s 0.31 deg
+  B1 MAIN                   : period 3.1468 s (+7.45 %), max/min 236.96/187.92, rms over first 10 s 10.90 deg
+  B1 smooth                 : period 2.8874 s (-1.41 %), max/min 236.92/188.03, rms over first 10 s 5.32 deg
+  S1 canonical              : period 3.0165 s (+3.00 %), max/min 236.97/191.22, rms over first 10 s 6.10 deg
+  (S1 canonical valid only 198-234 deg; the swing reaches 191.4..237.1)
+  joint-fit trap vs free-swing trap over 192-236 deg: rms difference 0.291 rad/s^2
+
+## 3. Per-pulse trajectory fits (window 1.5 s each side, joint-fit trap)
+
+## 4. Null test (fake pulses in the post-run free swing, run-only trap)
+39 fake pulses (overlapping windows, spacing 1.6-2.4 s): mean +0.0065, rms 0.0199 rad/s^2 (trap fitted on the same free data: rms 0.0101); median fit-covariance error of real pulses 0.0029 rad/s^2
+-> per-pulse uncertainty on the mean field acceleration: 0.020 rad/s^2 (dw: 0.0050 rad/s) (derived)
+
+per-pulse table (phase, theta_mid deg, omega_mid rad/s, a rad/s^2 [trajectory], a [joint 2nd-diff], d_free ms)
+   0 A t=   3.42  th  206.5  w -0.902  a -0.435  joint -0.423  d   -37  rms 0.106
+   1 A t=   7.29  th  190.4  w +0.095  a +0.306  joint +0.294  d    -1  rms 0.043
+   2 C t=  13.16  th  190.5  w -0.134  a +0.252  joint +0.217  d    +3  rms 0.060
+   3 C t=  18.78  th  202.5  w -0.816  a -0.009  joint +0.025  d    -5  rms 0.073
+   4 A t=  23.90  th  236.3  w +0.377  a +0.234  joint +0.264  d    +2  rms 0.040
+   5 C t=  28.14  th  199.8  w -0.751  a -0.150  joint -0.165  d   +18  rms 0.092
+   6 B t=  34.26  th  208.7  w -0.992  a -0.008  joint +0.028  d   -11  rms 0.386
+   7 A t=  39.26  th  222.0  w +0.890  a +0.053  joint +0.108  d    +4  rms 0.170
+   8 C t=  43.75  th  204.6  w -0.915  a +0.083  joint +0.105  d    -1  rms 0.052
+   9 B t=  49.75  th  220.4  w -0.844  a +0.111  joint +0.148  d    +7  rms 0.064
+  10 B t=  53.87  th  189.5  w -0.073  a -0.673  joint -0.659  d    +2  rms 0.048
+  11 A t=  59.24  th  221.0  w -0.807  a +0.291  joint +0.250  d   -24  rms 0.127
+  12 B t=  63.48  th  206.6  w +0.911  a +0.087  joint +0.124  d    +1  rms 0.079
+  13 C t=  67.48  th  231.5  w -0.589  a +0.682  joint +0.659  d   +12  rms 0.135
+  14 A t=  72.85  th  224.8  w -0.670  a +0.004  joint -0.094  d   -11  rms 0.218
+  15 A t=  76.84  th  208.0  w +0.808  a -0.168  joint -0.185  d   -11  rms 0.130
+  16 C t=  81.46  th  197.4  w -0.221  a -0.232  joint -0.291  d    +4  rms 0.089
+  17 A t=  86.46  th  202.3  w -0.711  a -0.540  joint -0.529  d   +11  rms 0.043
+  18 C t=  90.33  th  199.7  w +0.637  a -0.136  joint -0.168  d    +0  rms 0.070
+  19 A t=  95.83  th  198.6  w +0.504  a -0.353  joint -0.263  d    +7  rms 0.058
+  20 C t= 100.70  th  195.8  w -0.224  a -0.269  joint -0.328  d    +1  rms 0.055
+  21 B t= 105.82  th  202.0  w -0.625  a +0.529  joint +0.566  d   +16  rms 0.065
+  22 C t= 110.19  th  231.6  w -0.350  a +0.778  joint +0.676  d    +2  rms 0.194
+  23 A t= 114.68  th  215.5  w +0.592  a +0.523  joint +0.592  d   +12  rms 0.290
+  24 A t= 119.43  th  198.3  w +0.305  a -0.235  joint -0.188  d    +6  rms 0.111
+  25 B t= 124.05  th  206.7  w -0.758  a +0.072  joint +0.098  d    -2  rms 0.120
+  26 B t= 129.29  th  206.1  w -0.694  a +0.080  joint +0.187  d    +3  rms 0.283
+  27 B t= 134.29  th  218.3  w -0.501  a -0.140  joint +0.004  d    -9  rms 0.417
+  28 C t= 138.78  th  229.8  w +0.482  a +0.675  joint +0.655  d    -0  rms 0.354
+  29 B t= 142.03  th  225.7  w -0.620  a +0.045  joint +0.092  d   -10  rms 0.070
+  30 B t= 147.65  th  210.1  w -0.767  a -0.155  joint -0.156  d    +4  rms 0.072
+  31 B t= 152.52  th  224.2  w -0.654  a +0.108  joint +0.189  d    +0  rms 0.148
+  32 A t= 156.77  th  220.5  w +0.658  a +0.362  joint +0.360  d    -9  rms 0.074
+  33 B t= 161.51  th  198.2  w +0.479  a +0.652  joint +0.608  d    +3  rms 0.069
+  34 A t= 165.01  th  222.8  w +0.842  a +0.133  joint +0.123  d    -3  rms 0.160
+  35 B t= 171.00  th  211.3  w +0.923  a -0.088  joint -0.097  d    -1  rms 0.052
+  36 C t= 177.25  th  219.2  w +0.731  a -0.538  joint -0.561  d    +6  rms 0.055
+  37 B t= 180.62  th  231.5  w -0.575  a -0.497  joint -0.488  d    -0  rms 0.077
+  38 A t= 184.99  th  199.9  w +0.602  a -0.435  joint -0.372  d    +5  rms 0.078
+  39 B t= 190.36  th  205.9  w +0.818  a +0.324  joint +0.285  d    -2  rms 0.175
+  40 C t= 194.60  th  213.8  w -0.835  a -0.297  joint -0.321  d    -1  rms 0.096
+  41 C t= 199.60  th  221.7  w +0.783  a -0.474  joint -0.416  d   -11  rms 0.094
+  42 C t= 204.09  th  194.8  w +0.024  a -0.192  joint -0.238  d    -1  rms 0.054
+  43 A t= 209.59  th  196.5  w +0.292  a +0.109  joint +0.076  d    -1  rms 0.097
+  44 C t= 215.71  th  229.2  w +0.705  a +0.428  joint +0.449  d   +12  rms 0.128
+trajectory vs joint a: rms difference 0.0508 rad/s^2, corr 0.990
+
+## Delay (field start after landing_host)
+common (joint fit): -1 ms. Per-pulse free fits, pulses with |a| > 3 sigma (40): median 1 ms, IQR -1..5 ms; bootstrap error of the median 1.1 ms (per-pulse fit-covariance errors are unreliable here and not used)
+  same measured from the WRITE: spread (std) 39 ms vs from the landing 10 ms; corr(d_free, relative landing delay) = +0.01 (expect ~0 if landing timing is right)
+
+## 5. Push map a(theta) = P cos(m theta - phi) + c per phase (pulse-averaged basis, sigma = null rms)
+m= 4: chi2/ndof per-phase 7488.4/36; shared P 10995.9/40; const-only 14339.8/42
+   A: P 0.357+-0.014  phi  264.4+-2.1 deg  const +0.172+-0.013  chi2 2633.6/12
+   B: P 0.582+-0.018  phi  115.8+-0.9 deg  const -0.392+-0.014  chi2 2836.4/12
+   C: P 1.043+-0.019  phi  295.5+-0.5 deg  const +0.609+-0.012  chi2 2018.3/12
+   shared-P fit: P 0.296, const +0.127, phi A/B/C 257.4/19.7/264.4; phi_B-phi_A 122.2, phi_C-phi_B 244.8, phi_A-phi_C 353.0 deg (electrical)
+m= 8: chi2/ndof per-phase 8100.8/36; shared P 8692.8/40; const-only 14339.8/42
+   A: P 0.347+-0.008  phi   10.5+-1.4 deg  const +0.015+-0.005  chi2 1825.0/12
+   B: P 0.224+-0.007  phi  196.1+-2.6 deg  const -0.014+-0.006  chi2 3045.3/12
+   C: P 0.490+-0.009  phi   57.7+-0.9 deg  const -0.053+-0.006  chi2 3230.5/12
+   shared-P fit: P 0.334, const -0.010, phi A/B/C 10.1/186.1/54.9; phi_B-phi_A 176.0, phi_C-phi_B 228.8, phi_A-phi_C 315.2 deg (electrical)
+m=16: chi2/ndof per-phase 4624.4/36; shared P 4895.2/40; const-only 14339.8/42
+   A: P 0.481+-0.011  phi  207.1+-1.2 deg  const -0.017+-0.006  chi2 1992.9/12
+   B: P 0.528+-0.010  phi  337.8+-1.2 deg  const +0.007+-0.006  chi2 1347.5/12
+   C: P 0.576+-0.008  phi   96.2+-1.1 deg  const +0.092+-0.005  chi2 1284.0/12
+   shared-P fit: P 0.529, const +0.029, phi A/B/C 203.9/335.7/95.3; phi_B-phi_A 131.8, phi_C-phi_B 119.6, phi_A-phi_C 108.6 deg (electrical)
+   coverage A: theta_mid [190, 197, 198, 199, 200, 202, 206, 208, 215, 220, 221, 222, 223, 225, 236]
+   coverage B: theta_mid [189, 198, 202, 206, 206, 207, 207, 209, 210, 211, 218, 220, 224, 226, 231]
+   coverage C: theta_mid [190, 195, 196, 197, 200, 200, 203, 205, 214, 219, 222, 229, 230, 231, 232]
+
+## 5b. Harmonic combinations, per phase (chi2/ndof at sigma = null 0.020 and = method spread 0.051 rad/s^2)
+  m (8,)        : rms residual 0.268 rad/s^2, chi2/ndof 8101/36 (null sigma), 1246/36 (spread sigma)
+  m (16,)       : rms residual 0.202 rad/s^2, chi2/ndof 4624/36 (null sigma), 711/36 (spread sigma)
+  m (24,)       : rms residual 0.306 rad/s^2, chi2/ndof 10595/36 (null sigma), 1630/36 (spread sigma)
+  m (4, 8)      : rms residual 0.130 rad/s^2, chi2/ndof 1914/30 (null sigma), 294/30 (spread sigma)
+  m (8, 16)     : rms residual 0.065 rad/s^2, chi2/ndof 479/30 (null sigma), 74/30 (spread sigma)
+  m (16, 24)    : rms residual 0.178 rad/s^2, chi2/ndof 3599/30 (null sigma), 554/30 (spread sigma)
+  m (8, 16, 24) : rms residual 0.052 rad/s^2, chi2/ndof 302/24 (null sigma), 46/24 (spread sigma)
+   (8,16) A: P8 0.285 phi8 337  P16 0.496 phi16 208  const +0.004
+   (8,16) B: P8 0.262 phi8 187  P16 0.533 phi16 325  const -0.011
+   (8,16) C: P8 0.322 phi8 88  P16 0.529 phi16 85  const -0.003
+   (8,16) m=8 phase differences: B-A 210, C-B 261, A-C 248 deg electrical
+   (8,16) m=16 phase differences: B-A 117, C-B 121, A-C 122 deg electrical
+  shared-shape test: a_q(theta) = F(theta - s_q), F = c + m=8 + m=16 terms, s_A = 0, grid over s_B, s_C (mech deg, period 45):
+   best s_B -16.0, s_C +14.5 mech deg; rms residual 0.072 rad/s^2, chi2/ndof 91/38 (spread sigma) vs independent per-phase (8,16) 74/30
+   fixed sB=+15, sC=-15: rms residual 0.342 (chi2 spread-sigma 2036)
+   fixed sB=-15, sC=+15: rms residual 0.076 (chi2 spread-sigma 101)
+   fixed sB=+0, sC=+0: rms residual 0.334 (chi2 spread-sigma 1939)
+   ~68 % region (chi2 rescaled to ndof): s_B -16.0..-15.5, s_C +14.5..+15.0 mech deg
+
+global variant: harmonic map fitted inside the 2nd-difference fit (run data), per m:
+  m= 4: row chi2 1206.37 (vs per-pulse free 1073.04); A P 0.255 phi 252 c +0.106; B P 0.561 phi 113 c -0.339; C P 0.918 phi 292 c +0.518
+  m= 8: row chi2 1218.42 (vs per-pulse free 1073.04); A P 0.285 phi 353 c +0.024; B P 0.226 phi 184 c +0.029; C P 0.427 phi 55 c -0.057
+  m=16: row chi2 1081.02 (vs per-pulse free 1073.04); A P 0.561 phi 210 c -0.010; B P 0.531 phi 333 c +0.051; C P 0.565 phi 88 c +0.069
+
+## 6. AC tail (if the push were linear in V: -4.4 % reversed tail, tau 5.57 s, times the push map)
+(map m=(8, 16), per phase) per-pulse a shifts by +0.0073 mean, 0.0330 rms rad/s^2; max |shift| 0.0952
+   A: P8 0.291 (was 0.285), phi8 336 (was 337), P16 0.497 (was 0.496), phi16 206 (was 208), const +0.008 (was +0.004)
+   B: P8 0.248 (was 0.262), phi8 197 (was 187), P16 0.543 (was 0.533), phi16 326 (was 325), const +0.002 (was -0.011)
+   C: P8 0.304 (was 0.322), phi8 90 (was 88), P16 0.545 (was 0.529), phi16 84 (was 85), const +0.004 (was -0.003)
+
+## 7. Swing amplitude (turning points)
+  pre-run             : half-amplitude 20.43 deg (range 20.41..20.46), centre 215.25, n 11
+  run, first 30 s     : half-amplitude 24.22 deg (range 22.75..25.69), centre 213.56, n 20
+  run, last 30 s      : half-amplitude 20.89 deg (range 19.66..23.81), centre 214.99, n 22
+  post-run (> +20 s)  : half-amplitude 22.63 deg (range 22.42..22.84), centre 214.37, n 56
+  during the run: half-amplitude range 16.62..25.92 deg
+  per-pulse energy change w*dw (rad^2/s^2): sum +0.1723, rms 0.0513; fraction of pulses adding energy 0.53
