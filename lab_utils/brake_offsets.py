@@ -111,7 +111,7 @@ def cmd_run(a, ep=None, src=None):
     rows = [dict(block=0, pattern='brake', rate=8.0, step=0, t=0.0, V2=max(lv, a.kick), V4=lv, V3=lv)]
     print('=' * 72)
     print(f'  brake_offsets: level {lv:g} counts (~{lv * 0.0124:.0f} V), {a.duration:g} s after {a.observe:g} s observing; '
-          f'safe {a.safe[0]:g}-{a.safe[1]:g} deg, grow limit {a.grow}x; outputs '
+          f'safe {a.safe[0]:g}-{a.safe[1]:g} deg, ' + ('no growth limit (pump)' if a.pump_to > 0 else f'grow limit {a.grow}x') + '; outputs '
           f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
           + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
           + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else ''))
@@ -250,7 +250,7 @@ def cmd_run(a, ep=None, src=None):
         log.write(f'# stop: {reason}; start swing {S.A0}; final swing {S.amp():.2f}\n'); log.close()
         left = {n: ep.get(f'{PREFIX}_V{n}_OFFSET') for n in (1, 2, 3, 4)}
         print(f'  offsets {left}; log -> {fn}')
-    return 0 if reason in ('duration', 'Ctrl-C') else 2
+    return 0 if (reason in ('duration', 'Ctrl-C') or reason.startswith('pump target reached')) else 2
 
 
 # ------------------------------------------------------------------------------------------- selftest
