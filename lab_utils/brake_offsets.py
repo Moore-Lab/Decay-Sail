@@ -30,6 +30,7 @@ Log: one row per frame (angle, ncc, estimate, choice, write times) -> OUTDIR/bra
 """
 import argparse
 import csv
+import glob
 import math
 import os
 import socket
@@ -107,11 +108,12 @@ class Safety:
 
 def cmd_run(a, ep=None, src=None):
     lv = a.level
-    rows = [dict(block=0, pattern='brake', rate=8.0, step=0, t=0.0, V2=lv, V4=lv, V3=lv)]
+    rows = [dict(block=0, pattern='brake', rate=8.0, step=0, t=0.0, V2=max(lv, a.kick), V4=lv, V3=lv)]
     print('=' * 72)
     print(f'  brake_offsets: level {lv:g} counts (~{lv * 0.0124:.0f} V), {a.duration:g} s after {a.observe:g} s observing; '
           f'safe {a.safe[0]:g}-{a.safe[1]:g} deg, grow limit {a.grow}x; outputs '
-          f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}')
+          f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
+          + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else ''))
     print('=' * 72)
     err = vs.check_plan(rows)
     if err:
@@ -155,7 +157,15 @@ def cmd_run(a, ep=None, src=None):
             if m0 is None or ep.now() - m0[1] < 0.1:
                 break
         t_start = ep.now(); last_frame = t_start; last_write = -1.0; phase = 'observe'
-        print(f'  observing {a.observe:g} s (field off) ...')
+        if a.kick > 0:
+            # set the rotor swinging (stage 2, 2026-11-11: it had decayed to rest): one phase stepped to --kick counts
+            # for --kick-hold s, then 0; then --kick-settle s so the amplifier's AC tail fades before observing
+            kn = CHANS['ABC'.index(a.kick_phase)]
+            print(f'  kick: V{kn} -> {a.kick:g} counts for {a.kick_hold:g} s, then {a.kick_settle:g} s settle')
+            ep.put(f'{PREFIX}_V{kn}_OFFSET', a.kick, wait=False); ep.flush(); cur[kn] = a.kick
+            log.write(f'# kick on V{kn} {a.kick:g} at {ep.now():.6f}\n')
+            phase = 'kick'; t_kick = ep.now()
+        print(f'  observing {a.observe:g} s (field off) ...' if a.kick <= 0 else '')
         while True:
             m = src()
             now = ep.now()
@@ -175,9 +185,19 @@ def cmd_run(a, ep=None, src=None):
             hist.append((ht, ang)); hist = hist[-8:]
             S.add(ang)
             note = ''
+            if phase in ('kick', 'settle'):
+                if not (a.safe[0] <= ang <= a.safe[1]):
+                    reason = f'angle {ang:.1f} outside {a.safe} after the kick'; break
+                if phase == 'kick' and now - t_kick >= a.kick_hold:
+                    ep.put(f'{PREFIX}_V{kn}_OFFSET', 0, wait=False); ep.flush(); cur[kn] = 0.0
+                    log.write(f'# kick off at {now:.6f}\n'); phase = 'settle'
+                elif phase == 'settle' and now - t_kick >= a.kick_hold + a.kick_settle:
+                    phase = 'observe'; t_start = now; S.buf = []
+                    print(f'  observing {a.observe:g} s (field off) ...')
             if phase == 'observe' and now - t_start >= a.observe:
-                S.A0 = max(S.amp(), 1.0); phase = 'brake'; t_brake = now
-                print(f'  start swing +-{S.A0:.1f} deg; braking for up to {a.duration:g} s')
+                meas = S.amp(); S.A0 = max(meas, 1.0); phase = 'brake'; t_brake = now
+                print(f'  start swing +-{meas:.2f} deg measured' + (' (growth limit uses a 1.0 deg floor)' if meas < 1.0 else '')
+                      + f'; braking for up to {a.duration:g} s')
             if phase == 'brake':
                 bad = S.check(ang)
                 if bad:
@@ -189,6 +209,8 @@ def cmd_run(a, ep=None, src=None):
             if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.020:
                 last_write = now
                 out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push)
+                if S.amp() < a.rest_amp:             # nearly still: nothing to brake; a push would only disturb it
+                    out = (0.0, 0.0, 0.0); est['q'] = -1; note = 'rest'
                 ch = [n for n, v in zip(CHANS, out) if v != cur[n]]
                 w0 = ep.now()
                 for n in ch:
@@ -268,17 +290,26 @@ def selftest():
             self.step_to(t); self.t_frame = t; self.k += 1
             return self.k, t, self.th + self.rng.normal(0, 0.05), 0.95
 
-    for label, gain, want in (('brake (measured push)', 1.0, 'duration'), ('wrong-sign push: must stop on growth', -1.0, 'grow')):
+    cases = (('brake (measured push)', 1.0, 'duration', 22.0, 0.0),
+             ('wrong-sign push: must stop on growth', -1.0, 'grow', 22.0, 0.0),
+             ('from rest, no kick: field stays off (rest zone)', 1.0, 'rest', 0.0, 0.0),
+             ('from rest, kick 1200 then brake (plant pushes ~V^2, so 1200 here ~ 2400 if linear)', 1.0, 'kick', 0.0, 1200.0))
+    for label, gain, want, amp0, kick in cases:
         if B is None:
             break
         fe = vs.MockFE('every2', seed=1)
         fe.jit = 0.0
         for n in (1, 2, 3, 4):
             fe.pv[f'{PREFIX}_V{n}_SW2R'] = 768        # outputs off at rest, so the run must switch them on and back
-        pl = Plant(fe, gain=gain)
+        pl = Plant(fe, amp0=amp0, gain=gain)
+        if amp0 == 0.0:                               # start at the trap's own equilibrium, at rest
+            eq = float(B.NODES[np.argmin(np.abs(B.TRAPS['run']))]); pl.th = 210.6
+            for _ in range(2000):                     # settle onto the table's zero near rest
+                pl.w += B.trap(B.TRAPS['run'], pl.th) * 0.002 - 0.02 * pl.w; pl.th += math.degrees(pl.w * 0.002)
         a = ap.Namespace(level=800.0, duration=40.0, observe=5.0, safe=(190.0, 236.0), grow=1.2, stale=0.5, ncc_min=0.8,
                          port=0, outdir=os.path.join('/tmp', 'brake_selftest'), enable_outputs=True, live=True,
-                         c_assumed=0.03, min_push=0.15)
+                         c_assumed=0.03, min_push=0.15, rest_amp=1.5, kick=kick, kick_phase='B', kick_hold=2.0,
+                         kick_settle=10.0)
         import contextlib, io
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
@@ -288,7 +319,24 @@ def selftest():
         print(f'  {label}: {line[0].strip() if line else txt[-300:]}; offsets at end {[fe.pv[f"{PREFIX}_V{n}_OFFSET"] for n in CHANS]}, '
               f'SW2 {[fe.pv[f"{PREFIX}_V{n}_SW2R"] for n in CHANS]}')
         fin = float(line[0].split('final swing +-')[1].split(' ')[0]) if line else 99
-        good = (want == 'duration' and 'stop: duration' in txt and fin < 10) or (want == 'grow' and ('swing' in txt.split('stop:')[1].split(';')[0] or 'outside' in txt.split('stop:')[1].split(';')[0]))
+        rows = [l for l in open(sorted(glob.glob(os.path.join(a.outdir, 'brake_*.csv')), key=os.path.getmtime)[-1])
+                if not l.startswith('#')][1:]
+        ch = [l.split(',')[9] for l in rows if l.split(',')[5] == 'brake' and l.split(',')[9]]
+        st = txt.split('stop:')[1].split(';')[0] if 'stop:' in txt else ''
+        kicked = 'kick:' in txt
+        start = float(txt.split('start swing +-')[1].split(' ')[0]) if 'start swing +-' in txt else 0.0
+        if want == 'duration':
+            good = 'duration' in st and fin < 10
+        elif want == 'grow':
+            good = 'swing' in st or 'outside' in st
+        elif want == 'rest':
+            good = 'duration' in st and ch.count('off') >= 0.95 * len(ch)
+        else:
+            # the kick's effect depends on the trap's fine structure near rest (the plant's well is stiff, so a 1200-count
+            # kick barely moves it); this checks the code path: kick on, kick off, settle, observe, brake, clean end
+            logtxt = open(sorted(glob.glob(os.path.join(a.outdir, 'brake_*.csv')), key=os.path.getmtime)[-1]).read()
+            good = kicked and '# kick on' in logtxt and '# kick off' in logtxt and 'duration' in st and fin < 3
+        print(f'     choices {dict((c, ch.count(c)) for c in set(ch))}; start swing {start}')
         good &= all(fe.pv[f'{PREFIX}_V{n}_OFFSET'] == 0 for n in CHANS)
         ok &= good
         if not good:
@@ -310,6 +358,11 @@ def main():
     r.add_argument('--ncc-min', type=float, default=0.8)
     r.add_argument('--c-assumed', type=float, default=0.030, help='s of delay beyond the intake wait (B3 nominal)')
     r.add_argument('--min-push', type=float, default=0.15)
+    r.add_argument('--rest-amp', type=float, default=1.5, help='deg: field off while the swing (last 4 s) is below this')
+    r.add_argument('--kick', type=float, default=0.0, help='counts: set the rotor swinging first (0 = no kick)')
+    r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
+    r.add_argument('--kick-hold', type=float, default=2.0)
+    r.add_argument('--kick-settle', type=float, default=10.0)
     r.add_argument('--port', type=int, default=5005)
     r.add_argument('--outdir', default=os.path.expanduser('~/brake_runs'))
     r.add_argument('--enable-outputs', action='store_true')
