@@ -68,7 +68,7 @@ def trap(th):
     return float(np.interp(th, NODES, TRAP))
 
 
-def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15):
+def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15, sign=-1):
     """hist: [(t, angle_deg)] last frames. Returns (offsets (V2, V4, V3), est dict)."""
     tt = np.array([h[0] for h in hist]) - t_now; yy = np.array([h[1] for h in hist])
     p2 = np.polyfit(tt, yy, 2)
@@ -78,7 +78,7 @@ def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15):
     th_p = th_e + math.degrees(w_e * h + 0.5 * acc * h * h); w_p = w_e + acc * h
     best, bq = 0.0, None
     for q in range(3):
-        pw = w_p * push(q, th_p)
+        pw = sign * -1 * w_p * push(q, th_p)       # brake (sign -1): most negative power; pump (+1): most positive
         if pw < best:
             best, bq = pw, q
     out = [0.0, 0.0, 0.0]
@@ -113,7 +113,8 @@ def cmd_run(a, ep=None, src=None):
     print(f'  brake_offsets: level {lv:g} counts (~{lv * 0.0124:.0f} V), {a.duration:g} s after {a.observe:g} s observing; '
           f'safe {a.safe[0]:g}-{a.safe[1]:g} deg, grow limit {a.grow}x; outputs '
           f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
-          + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else ''))
+          + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
+          + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else ''))
     print('=' * 72)
     err = vs.check_plan(rows)
     if err:
@@ -198,7 +199,14 @@ def cmd_run(a, ep=None, src=None):
                 meas = S.amp(); S.A0 = max(meas, 1.0); phase = 'brake'; t_brake = now
                 print(f'  start swing +-{meas:.2f} deg measured' + (' (growth limit uses a 1.0 deg floor)' if meas < 1.0 else '')
                       + f'; braking for up to {a.duration:g} s')
-            if phase == 'brake':
+            if phase == 'brake' and a.pump_to > 0:
+                if not (a.safe[0] <= ang <= a.safe[1]):
+                    reason = f'angle {ang:.1f} outside {a.safe}'; break
+                if S.amp() >= a.pump_to:
+                    reason = f'pump target reached: swing +-{S.amp():.1f} deg'; break
+                if now - t_brake >= a.duration:
+                    reason = 'duration'; break
+            elif phase == 'brake':
                 bad = S.check(ang)
                 if bad:
                     reason = bad; break
@@ -208,8 +216,8 @@ def cmd_run(a, ep=None, src=None):
             est = dict(th='', w_dps='', th_p='')
             if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.020:
                 last_write = now
-                out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push)
-                if S.amp() < a.rest_amp:             # nearly still: nothing to brake; a push would only disturb it
+                out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push, sign=1 if a.pump_to > 0 else -1)
+                if S.amp() < a.rest_amp and a.pump_to <= 0:             # nearly still: nothing to brake; a push would only disturb it
                     out = (0.0, 0.0, 0.0); est['q'] = -1; note = 'rest'
                 ch = [n for n, v in zip(CHANS, out) if v != cur[n]]
                 w0 = ep.now()
@@ -293,7 +301,8 @@ def selftest():
     cases = (('brake (measured push)', 1.0, 'duration', 22.0, 0.0),
              ('wrong-sign push: must stop on growth', -1.0, 'grow', 22.0, 0.0),
              ('from rest, no kick: field stays off (rest zone)', 1.0, 'rest', 0.0, 0.0),
-             ('from rest, kick 1200 then brake (plant pushes ~V^2, so 1200 here ~ 2400 if linear)', 1.0, 'kick', 0.0, 1200.0))
+             ('from rest, kick 1200 then brake (plant pushes ~V^2, so 1200 here ~ 2400 if linear)', 1.0, 'kick', 0.0, 1200.0),
+             ('pump from +-8 deg to +-18 deg, then stop', 1.0, 'pump', 8.0, 0.0))
     for label, gain, want, amp0, kick in cases:
         if B is None:
             break
@@ -309,7 +318,7 @@ def selftest():
         a = ap.Namespace(level=800.0, duration=40.0, observe=5.0, safe=(190.0, 236.0), grow=1.2, stale=0.5, ncc_min=0.8,
                          port=0, outdir=os.path.join('/tmp', 'brake_selftest'), enable_outputs=True, live=True,
                          c_assumed=0.03, min_push=0.15, rest_amp=1.5, kick=kick, kick_phase='B', kick_hold=2.0,
-                         kick_settle=10.0)
+                         kick_settle=10.0, pump_to=18.0 if want == 'pump' else 0.0)
         import contextlib, io
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
@@ -329,6 +338,8 @@ def selftest():
             good = 'duration' in st and fin < 10
         elif want == 'grow':
             good = 'swing' in st or 'outside' in st
+        elif want == 'pump':
+            good = 'pump target reached' in st
         elif want == 'rest':
             good = 'duration' in st and ch.count('off') >= 0.95 * len(ch)
         else:
@@ -360,6 +371,9 @@ def main():
     r.add_argument('--min-push', type=float, default=0.15)
     r.add_argument('--rest-amp', type=float, default=1.5, help='deg: field off while the swing (last 4 s) is below this')
     r.add_argument('--kick', type=float, default=0.0, help='counts: set the rotor swinging first (0 = no kick)')
+    r.add_argument('--pump-to', type=float, default=0.0, help='deg: PUMP instead of brake (push along the motion) until the '
+                   'swing reaches this, then stop (G1, spin-up plan). Uses the B2 map, 45-deg periodic, outside 187-238 '
+                   'assumed. The growth limit is off; --safe still applies (set it wider, e.g. 150,280)')
     r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
     r.add_argument('--kick-hold', type=float, default=2.0)
     r.add_argument('--kick-settle', type=float, default=10.0)
