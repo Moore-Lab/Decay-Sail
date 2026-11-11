@@ -54,6 +54,29 @@ TRAP = np.array([2.1879, 1.6126, 1.0373, 0.8831, 0.8512, 1.3766, 1.5076, 1.9284,
                  -2.4935, -2.5734, -2.4193, -1.9453, -1.4714])
 
 
+# G1 map (analysis/spinup_g1_20261111/pushmap_g1.json, measured 2026-11-11 on the AC path): G1+B2 joint shape and
+# shifts (valid 167-267 deg), trap 'joint_run' 172-262 deg (trusted 180-254; the table's edge nodes are thin).
+MAPS = {
+    'b2': dict(coef=dict(COEF), shift=SHIFT, nodes=NODES, trap=TRAP, safe=(190.0, 236.0)),
+    'g1': dict(coef=dict(c8=0.2197, s8=-0.1149, c16=-0.4549, s16=-0.2857, const=-0.0292), shift=(0.0, -15.37, 13.83),
+               nodes=np.arange(172.0, 263.0, 2.0),
+               trap=np.array([2.6104, 3.3642, 3.8882, 3.7345, 3.4663, 2.4697, 3.5832, 2.108, 0.3259, 0.6131, 1.4698,
+                              1.4198, 0.7606, 2.32, 2.6309, 0.6711, 1.1506, 2.5518, 0.8453, -1.5861, -1.7764, -0.5526,
+                              -0.0969, -0.0413, 0.9507, 0.724, -1.0964, -1.794, -0.8047, -0.5873, -1.7595, -2.6911,
+                              -2.4757, -2.2602, -2.1136, -2.1179, -0.8635, -0.7426, -0.765, -1.0715, -1.7952, -2.3064,
+                              -3.1604, -2.946, -2.339, -2.022]),
+               safe=(176.0, 258.0)),
+}
+
+
+def set_map(name):
+    """Switch the controller's push map and trap (module globals used by choose())."""
+    global COEF, SHIFT, NODES, TRAP
+    m = MAPS[name]
+    COEF, SHIFT, NODES, TRAP = dict(m['coef']), tuple(m['shift']), m['nodes'], m['trap']
+    return m
+
+
 def F(th):
     x = math.radians(th)
     return (COEF['const'] + COEF['c8'] * math.cos(8 * x) + COEF['s8'] * math.sin(8 * x)
@@ -111,7 +134,7 @@ def cmd_run(a, ep=None, src=None):
     rows = [dict(block=0, pattern='brake', rate=8.0, step=0, t=0.0, V2=max(lv, a.kick), V4=lv, V3=lv)]
     print('=' * 72)
     print(f'  brake_offsets: level {lv:g} counts (~{lv * 0.0124:.0f} V), {a.duration:g} s after {a.observe:g} s observing; '
-          f'safe {a.safe[0]:g}-{a.safe[1]:g} deg, ' + ('no growth limit (pump)' if a.pump_to > 0 else f'grow limit {a.grow}x') + '; outputs '
+          f'map {getattr(a, "map", "b2")}, safe {a.safe[0]:g}-{a.safe[1]:g} deg, ' + ('no growth limit (pump)' if a.pump_to > 0 else f'grow limit {a.grow}x') + '; outputs '
           f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
           + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
           + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else ''))
@@ -363,7 +386,10 @@ def main():
     r.add_argument('--level', type=float, default=800.0, help='counts (B2/B3: 800; 1600 failed in B3)')
     r.add_argument('--duration', type=float, default=120.0)
     r.add_argument('--observe', type=float, default=5.0, help='s of field-off observation to measure the start swing')
-    r.add_argument('--safe', type=lambda s: tuple(float(x) for x in s.split(',')), default=(190.0, 236.0))
+    r.add_argument('--map', default='b2', choices=('b2', 'g1'), help='push map + trap: b2 (187-238 deg) or g1 (G1+B2 joint, '
+                   'trap 172-262 deg; spin-up G2)')
+    r.add_argument('--safe', type=lambda s: tuple(float(x) for x in s.split(',')), default=None,
+                   help='deg lo,hi (default: the map\'s, b2 190,236; g1 176,258)')
     r.add_argument('--grow', type=float, default=1.2)
     r.add_argument('--stale', type=float, default=0.25)
     r.add_argument('--ncc-min', type=float, default=0.8)
@@ -383,6 +409,10 @@ def main():
     r.add_argument('--live', action='store_true')
     sp.add_parser('selftest')
     a = p.parse_args()
+    if a.cmd == 'run':
+        m = set_map(a.map)
+        if a.safe is None:
+            a.safe = m['safe']
     return selftest() if a.cmd == 'selftest' else cmd_run(a)
 
 
