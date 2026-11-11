@@ -150,6 +150,10 @@ def cmd_run(a, ep=None, src=None):
             for n in CHANS:
                 if not sw2_before[n] & vs.SW2_OUTPUT_ON:
                     ep.put(f'{PREFIX}_V{n}_SW2S', sw2_before[n] | vs.SW2_OUTPUT_ON)
+        for _ in range(1000):                # drop angles queued during preflight (stage 1: up to 1.2 s old)
+            m0 = src()
+            if m0 is None or ep.now() - m0[1] < 0.1:
+                break
         t_start = ep.now(); last_frame = t_start; last_write = -1.0; phase = 'observe'
         print(f'  observing {a.observe:g} s (field off) ...')
         while True:
@@ -160,6 +164,10 @@ def cmd_run(a, ep=None, src=None):
                     reason = f'no fresh angle for {a.stale} s'; break
                 continue
             k, ht, ang, ncc = m
+            if now - ht > a.stale:                 # an old frame is no better than none
+                if now - last_frame > a.stale:
+                    reason = f'frames older than {a.stale} s'; break
+                continue
             last_frame = now
             low_ncc = low_ncc + 1 if ncc < a.ncc_min else 0
             if low_ncc >= 5:
@@ -178,7 +186,7 @@ def cmd_run(a, ep=None, src=None):
                     reason = 'duration'; break
             choice = ''; w0 = w1 = ''
             est = dict(th='', w_dps='', th_p='')
-            if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.003:
+            if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.020:
                 last_write = now
                 out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push)
                 ch = [n for n, v in zip(CHANS, out) if v != cur[n]]
