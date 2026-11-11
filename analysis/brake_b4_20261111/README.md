@@ -29,6 +29,21 @@ Interpretations are Claude's and marked "(interpretation, not approved)".
 - Without the brake, a ±19.5° swing would decay with Q ≈ 4300 (B1): amplitude e-folding ~1.6 h. The brake did it in ~6 s.
 - The simulator (B3) predicted 4–5 s to below ±10° at 800 counts; measured 4–8 s.
 
+## Repeats (2026-11-11, FE 1478453260–371 and 1478453391–501; data `brake/2026-11-11/b4_repeats/`)
+
+Checked from the logs (half peak-to-peak, after braking starts):
+
+| run | kick | start swing | 0–4 s | 4–8 s | 8–12 s | 40–90 s | pushes A/B/C, off |
+|---|---|---|---|---|---|---|---|
+| R1 | A 2400 | ±19.6° | 15.5° | 7.4° | 1.6° | 0.4° | 39/25/101, 590 |
+| R2 | C 2000 | ±3.65° | 2.5° | 1.1° | 1.1° | 1.4° | 1/4/30, 718 |
+
+- R1 repeats 2b's kick (±19.6° vs ±19.5°; the angle again reached 235.2°, 0.8° inside the limit) and passes (below ±10°
+  within 4–8 s). Both exit 0, no safety stop, clean end state.
+- C at 2000 hardly kicks from rest (±3.6°); the B2 map gives C ~half A's push at 208.5° (derived).
+- **Not explained (observations):** R1's 4–8 s window (7.4°) is slower than 2b's (2.6°) from the same start; by 8–12 s both
+  are ~1.5°. In R2 the field-off rest-zone swing grew from ~1.05° to ~1.4° over 40–90 s.
+
 ## Interpretation (not approved)
 
 - (interpretation, not approved) Braking works on this route because the controller uses the push map measured on this rotor
@@ -36,6 +51,6 @@ Interpretations are Claude's and marked "(interpretation, not approved)".
 
 ## Open
 
-- One successful run; reproducibility (repeat, other kick phases) not shown.
+- Reproduced once (R1); a C kick is too weak to test from rest.
 - The ±1° left is below the 1.5° rest threshold, by design; not tested lower.
 - The push map covers 187–238°; larger swings need it measured further out (and a wider safety range).
