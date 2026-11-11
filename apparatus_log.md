@@ -14,6 +14,16 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-10 (evening) — Detent runs on worker2, outputs ON, video (live)
+
+- Ran (worker2, `~/wt_detent`, branch `detent-test` at 1b10ddc, Molly's go, remote): `python3 stator_detent.py run --counts 3200
+  --cycles 1 --on 8 --release 30 --gap 10 --enable-outputs --live`, then the same at 6400; Basler `--record --show`, 15 ms.
+  FE GPS 1478408039–1478408390. End state: outputs off, offsets 0, TRAMP 1 (caget; the script's own end line read stale values).
+- Data: Dropbox `Microspheres/TFINER/data/detent/2026-11-10/`.
+- Saw: no snap into a detent; each switch-on kicked the rotor, and the swing grew to ±74° and stays (Q ≈ 4300). Results:
+  `analysis/detent_20261110/README.md`; trap over the swing `analysis/brake_b1_20261110/`; model checks
+  `analysis/f3_step2_20261110/README.md`.
+
 ### 2026-11-10 (afternoon) — Voltage steps S1 on worker2, outputs ON, scope + video (live)
 
 - Ran (worker2, `~/wt_vs`, branch `voltage-steps` at 70cf217, Molly's go, Molly not at the bench):

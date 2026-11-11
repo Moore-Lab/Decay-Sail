@@ -1,0 +1,61 @@
+trap: 11-04 x TRAP_S 0.796, zero at 208.6 (phi_trap = theta - 213.47)
+integrator check vs f3_check.simulate_measured (hold block, HOLD coupling): max |diff| 2.02e-12 deg
+field-off stiffness at 208.6 +- 3 deg (post-run free swing, savgol acc): 17.9 rad/s^2 -> small-swing 0.67 Hz (derived); 11-04 trap x TRAP_S there: 6.1 rad/s^2 (0.39 Hz)
+post-run free swing (measured): 0.381 Hz, range 198.1..233.6 deg
+
+Delta scan (refit trap; field-on training segments, mean sq. dw residual; held-out R^2):
+  HOLD: -80 ms 2.48e-03/0.966, -60 ms 2.29e-03/0.971, -40 ms 2.12e-03/0.979, -20 ms 2.12e-03/0.981, +0 ms 2.21e-03/0.984, +20 ms 2.22e-03/0.985, +40 ms 2.19e-03/0.984, +60 ms 2.09e-03/0.981, +80 ms 2.01e-03/0.980, +100 ms 2.18e-03/0.976, +120 ms 2.49e-03/0.971, +140 ms 2.64e-03/0.967, +160 ms 2.69e-03/0.963
+  V2DET: -80 ms 2.40e-03/0.965, -60 ms 2.22e-03/0.970, -40 ms 2.05e-03/0.978, -20 ms 2.04e-03/0.981, +0 ms 2.14e-03/0.984, +20 ms 2.15e-03/0.985, +40 ms 2.11e-03/0.984, +60 ms 2.00e-03/0.981, +80 ms 1.93e-03/0.980, +100 ms 2.08e-03/0.977, +120 ms 2.38e-03/0.971, +140 ms 2.54e-03/0.966, +160 ms 2.58e-03/0.962
+  lowest training residual at Delta +72 ms (V2DET, parabola), second minimum near -30 ms; residual within 10 % of the minimum over -48..+103 ms; held-out R^2 varies only 0.962..0.985: Delta is NOT well determined by this fit (mapping block residual 14 ms)
+
+fits at Delta +72 ms: 1206 training segments (429 field-on), 61 held-out (all3 2/s)
+| trap | form | R^2 train (all dw) | coupling R^2 (field-on, after trap) | held-out R^2 (coupling R^2) | coefficients +- 1 sigma |
+|---|---|---|---|---|---|
+| fixed | E1 | 0.005 | 0.024 | 0.080 (0.09) | c1 +0.98+-0.34, s1 -0.14+-0.37 |
+| fixed | HOLD | 0.020 | 0.082 | 0.239 (0.26) | c1 +1.15+-0.34, s1 -0.35+-0.37, c2 -0.09+-2.33, s2 -9.80+-2.23 |
+| fixed | HOLD0 | -0.065 | 0.103 | 0.208 (0.26) | c0 +1.19+-0.26, c1 +1.12+-0.36, s1 -0.64+-0.39, c2 -2.01+-2.47, s2 -9.81+-2.33 |
+| fixed | V2 | 0.021 | 0.086 | 0.239 (0.26) | q1c +7.04+-2.05, q1s -2.41+-2.29, c2 -0.26+-2.34, s2 -9.90+-2.23 |
+| fixed | V2DET | 0.130 | 0.782 | 0.757 (0.84) | c1 +0.88+-0.33, s1 -0.49+-0.36, c2 -0.28+-2.26, s2 -12.05+-2.21, k0 +12.64+-1.62, a8 +8.85+-2.30, b8 -9.08+-2.25, a16 +35.23+-2.42, b16 -12.11+-2.29 |
+| refit | E1 | 0.984 | 0.085 | 0.947 (0.27) | c1 +0.83+-0.09, s1 -0.29+-0.10 |
+| refit | HOLD | 0.989 | 0.434 | 0.981 (0.75) | c1 +1.00+-0.08, s1 -0.57+-0.08, c2 -0.31+-0.52, s2 -12.03+-0.50 |
+| refit | HOLD0 | 0.989 | 0.441 | 0.981 (0.76) | c0 -0.40+-0.07, c1 +0.99+-0.07, s1 -0.51+-0.08, c2 +0.10+-0.52, s2 -12.08+-0.49 |
+| refit | V2 | 0.989 | 0.442 | 0.982 (0.76) | q1c +5.98+-0.45, q1s -3.97+-0.51, c2 -0.47+-0.52, s2 -12.19+-0.49 |
+| refit | V2DET | 0.990 | 0.460 | 0.981 (0.76) | c1 +1.00+-0.08, s1 -0.51+-0.08, c2 +0.09+-0.52, s2 -12.00+-0.51, k0 -2.45+-0.48, a8 +2.71+-0.62, b8 -1.39+-0.74, a16 +0.80+-0.74, b16 -0.14+-0.65 |
+  (refit trap with the coupling zeroed, same nodes: held-out R^2 0.927: the trap alone)
+  common-mode check, V2DET + cm^2 detent + cm x E cross terms: train R^2 0.990, held-out 0.980; cm coefs [-3.67, 9.28, -1.57, 2.23, -2.12]
+
+per-block HOLD coupling on the residual after the all-data refit trap (field-on segments; +- 1 sigma):
+  b0 holds: 102 segs, R^2 0.71, c1 +1.34+-0.16 s1 +0.18+-0.24 c2 -11.3+-1.2 s2 -10.7+-1.3; 1x amplitude 1.35 at +8 deg
+  b1 all3 1/s: 87 segs, R^2 0.93, c1 +1.31+-0.10 s1 -0.90+-0.10 c2 +8.5+-0.6 s2 -16.5+-0.6; 1x amplitude 1.59 at -35 deg
+  b2 8/s random: 240 segs, R^2 0.16, c1 +0.88+-0.17 s1 -0.49+-0.18 c2 -2.5+-1.2 s2 -0.9+-1.2; 1x amplitude 1.01 at -29 deg
+  b3 all3 2/s: 54 segs, R^2 0.92, c1 +1.78+-0.16 s1 -1.21+-0.16 c2 +4.7+-1.1 s2 -15.8+-1.1; 1x amplitude 2.15 at -34 deg
+leave-one-block-out (train on the other blocks + field-off; R^2 of the held-out block, total / coupling after trap):
+  b0 holds: trap only 0.737, E1 0.620/-0.44, HOLD 0.716/-0.08, V2DET 0.729/-0.02, GEN 0.596/-0.55
+  b1 all3 1/s: trap only 0.901, E1 0.912/+0.10, HOLD 0.945/+0.44, V2DET 0.948/+0.48, GEN 0.895/-0.05
+  b2 8/s random: trap only 0.959, E1 0.962/+0.12, HOLD 0.943/-0.39, V2DET 0.939/-0.36, GEN 0.772/-4.55
+  b3 all3 2/s: trap only 0.927, E1 0.947/+0.27, HOLD 0.981/+0.75, V2DET 0.981/+0.76, GEN 0.919/-0.04
+  Delta sensitivity: refit trap + HOLD at Delta 0: [1.1, -0.61, -1.12, -12.35] (at +72 ms: [1.0, -0.57, -0.31, -12.03])
+  all3 1/s frames at 212-222 deg: acceleration minus refit trap +0.22 rad/s^2 (std 0.52, n 229); per unit E (0.173): +1.3
+  coupling rms at E 0.173 over field angle and 185-245 deg: 0.30 rad/s^2; refit trap rms over 198-234: 1.15 rad/s^2
+
+open-loop replay from the tracked state at each block start (rms deg over the block; first 5 s in brackets):
+| model | b0 holds | b1 all3 1/s | b2 8/s random | b3 all3 2/s | post free |
+|---|---|---|---|---|---|
+| 11-04 HOLD (as step 2) | 3.8 (3.2) | 10.4 (6.3) | 24.0 (7.7) | 30.0 (18.2) | 18.5 (7.0) |
+| fixed trap + HOLD refit | 3.2 (3.1) | 15.5 (9.7) | 18.4 (8.0) | 29.5 (15.0) | 18.4 (7.0) |
+| refit trap + HOLD refit | 2.2 (2.4) | 13.4 (7.2) | 21.4 (3.9) | 8.5 (3.3) | 2.8 (0.5) |
+| refit trap + V2DET | 2.1 (2.6) | 13.4 (7.5) | 16.6 (2.7) | 8.2 (1.6) | 10.8 (0.3) |
+| refit trap + E1 | 1.7 (2.1) | 12.8 (7.0) | 18.5 (2.6) | 5.2 (1.3) | 3.3 (0.5) |
+| refit trap, no field | 1.9 (2.2) | 13.2 (7.3) | 19.5 (2.3) | 7.3 (2.1) | 2.9 (0.5) |
+
+swing frequency (Hz) and amplitude (half p-p, deg, first 3 / last 3 swings), tracked vs sim:
+  b0 holds: tracked 0.68 Hz, amp [3.2, 2.9, 1.8] .. [1.8, 1.8, 1.8] | 11-04 HOLD (as step 2): 0.38 Hz, [4.0, 2.2, 2.8] .. [3.1, 6.0, 5.8] | refit trap + E1: 0.68 Hz, [0.2, 0.2, 0.4] .. [1.6, 1.5, 1.5] | refit trap + HOLD refit: 0.68 Hz, [1.8, 1.8, 1.8] .. [1.8, 1.7, 1.6] | refit trap + V2DET: 0.67 Hz, [2.4, 2.3, 2.3] .. [1.9, 1.9, 1.9] | refit trap, no field: 0.67 Hz, [0.1, 0.1, 0.1] .. [0.1, 0.1, 0.1]
+  b1 all3 1/s: tracked 0.40 Hz, amp [1.2, 3.0, 16.5] .. [21.8, 20.9, 16.6] | 11-04 HOLD (as step 2): 0.35 Hz, [7.3, 10.4, 11.2] .. [7.2, 9.0, 8.2] | refit trap + E1: 0.65 Hz, [1.7, 2.5, 3.1] .. [1.1, 1.2, 0.7] | refit trap + HOLD refit: 0.64 Hz, [1.7, 1.5, 0.8] .. [3.4, 4.6, 4.1] | refit trap + V2DET: 0.68 Hz, [1.4, 1.4, 1.7] .. [2.2, 1.8, 1.7] | refit trap, no field: 0.68 Hz, [1.6, 1.6, 1.6] .. [1.6, 1.6, 1.6]
+  b2 8/s random: tracked 0.34 Hz, amp [17.5, 19.5, 23.2] .. [26.3, 29.0, 24.6] | 11-04 HOLD (as step 2): 0.37 Hz, [19.3, 19.9, 20.8] .. [25.8, 25.5, 25.9] | refit trap + E1: 0.38 Hz, [17.1, 17.2, 17.2] .. [18.2, 18.2, 18.0] | refit trap + HOLD refit: 0.35 Hz, [17.4, 16.0, 14.2] .. [15.3, 15.2, 14.6] | refit trap + V2DET: 0.32 Hz, [17.2, 17.0, 15.9] .. [2.1, 0.0, 1.2] | refit trap, no field: 0.37 Hz, [16.6, 16.6, 16.6] .. [16.6, 16.6, 16.6]
+  b3 all3 2/s: tracked 0.32 Hz, amp [28.0, 31.8, 27.9] .. [28.0, 31.8, 27.9] | 11-04 HOLD (as step 2): 0.36 Hz, [29.2, 33.0, 31.3] .. [33.0, 31.3, 23.7] | refit trap + E1: 0.32 Hz, [27.3, 28.6, 28.7] .. [27.3, 28.6, 28.7] | refit trap + HOLD refit: 0.34 Hz, [26.4, 27.2, 24.2] .. [27.2, 24.2, 18.4] | refit trap + V2DET: 0.32 Hz, [27.2, 28.3, 29.7] .. [27.2, 28.3, 29.7] | refit trap, no field: 0.32 Hz, [24.8, 24.8, 24.8] .. [24.8, 24.8, 24.8]
+  post free: tracked 0.38 Hz, amp [17.6, 17.6, 17.6] .. [17.3, 17.3, 17.3] | 11-04 HOLD (as step 2): 0.38 Hz, [19.3, 19.3, 19.3] .. [19.3, 19.3, 19.3] | refit trap + E1: 0.38 Hz, [17.8, 17.8, 17.8] .. [17.8, 17.8, 17.8] | refit trap + HOLD refit: 0.38 Hz, [17.9, 17.9, 17.9] .. [17.9, 17.9, 17.9] | refit trap + V2DET: 0.38 Hz, [17.8, 17.8, 17.8] .. [17.8, 17.8, 17.8] | refit trap, no field: 0.38 Hz, [17.9, 17.9, 17.9] .. [17.9, 17.9, 17.9]
+
+first hold edge, open loop from rest, rms (deg) over [landing - 0.3 s, + 1.5 s] by Delta (refit trap + V2DET):
+  -60: 1.92, -40: 1.83, -20: 1.75, +0: 1.66, +20: 1.57, +40: 1.49, +60: 1.41, +80: 1.33, +100: 1.25, +120: 1.19
+
+plots: /Users/mollywatts/Desktop/VSCode/decay_sail/analysis/f3_step2_20261110/refit/plots/trap_and_delta.png, /Users/mollywatts/Desktop/VSCode/decay_sail/analysis/f3_step2_20261110/refit/plots/replay_blocks.png; coefficients: /Users/mollywatts/Desktop/VSCode/decay_sail/analysis/f3_step2_20261110/refit/refit_coeffs.json

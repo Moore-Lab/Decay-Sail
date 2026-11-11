@@ -1,0 +1,71 @@
+detent free window: host 1794356925.02..1794357029.80 (104.8 s, 5240 frames at 50.0 fps), angle 145.3..293.3 deg (measured)
+  blanked tracker frames in window: 57 (1.1 %), angles 223.1..292.5 deg
+  angle noise (frame - savgol 9/3 residual): 0.035 deg rms (measured)
+MAIN fit (position 2nd differences, lags (3, 5, 8) frames, 2 deg nodes 142..298, pen 1.0): 15688 rows, residual rms 0.201 rad/s^2, R2 0.9926; jackknife node error (10 time blocks) median 0.039, max 0.304 rad/s^2 over 150-290
+velocity-integral fit (refit method, 0.16 s segments): residual rms 0.0079 rad/s; rms difference to MAIN over 150-290: 1.18 rad/s^2 (it smooths, see synthetic test)
+direction (fit w>0 rows minus w<0 rows) over 150-290: mean -0.001, rms 0.092, max |.| 0.29 rad/s^2 at 260 deg; cf. sqrt(2) x node error 0.06 (derived)
+zero crossings of acc (equilibria), MAIN table (derived); for each unstable zero, hump height above the higher neighbouring minimum (U uncertainty ~0.3 rad/s^2 x 4 deg = 0.02 rad^2/s^2):
+   208.5 deg  stable   stiffness   41.0 rad/s^2 (1.02 Hz)  U 0.007
+   215.4 deg  unstable stiffness  -44.3 rad/s^2  U 0.132  hump 0.126
+   222.1 deg  stable   stiffness   50.9 rad/s^2 (1.14 Hz)  U 0.001
+   247.6 deg  unstable stiffness  -31.5 rad/s^2  U 0.905  hump 0.016 (at noise level)
+   250.9 deg  stable   stiffness   20.8 rad/s^2 (0.73 Hz)  U 0.889
+   260.8 deg  unstable stiffness  -91.0 rad/s^2  U 1.518  hump 0.024 (at noise level)
+   263.9 deg  stable   stiffness   43.4 rad/s^2 (1.05 Hz)  U 1.494
+  smooth (velocity-integral) table zeros: 209.3 stable k=5.4, 215.4 unstable k=-3.8, 220.6 stable k=4.9
+measured swing: period 4.1679 +- 0.027 s (48 intervals), max 293.30 -> 291.29, min 145.32 -> 147.18 deg (measured)
+potential, MAIN (derived): global min 222 deg; U(150) 2.40, U(290) 2.54; U at the first turning points 145.3 / 293.3: 2.636 / 2.632 rad^2/s^2 (= swing energy per inertia)
+  acc at the edges: a(146) +2.40, a(150) +3.97, a(290) -1.30, a(292) -1.71 rad/s^2 (restoring at both ends)
+  interior local maxima of U: [(216.0, 0.136), (248.0, 0.909), (260.0, 1.521)]
+damping from turning-point energy E_k = U(theta_turn) (derived):
+  MAIN U   upper: E(t=0) 2.634 rad^2/s^2, dE/dt -6.29e-04 +- 6.3e-06 rad^2/s^3, scatter 0.0009
+  MAIN U   lower: E(t=0) 2.639 rad^2/s^2, dE/dt -7.91e-04 +- 8.7e-06 rad^2/s^3, scatter 0.0013
+  MAIN U   both : E(t=0) 2.637 rad^2/s^2, dE/dt -7.08e-04 +- 1.5e-05 rad^2/s^3, scatter 0.0031
+    MAIN U dE/dt over 0-52 s: -6.89e-04
+    MAIN U dE/dt over 52-105 s: -6.53e-04
+  smooth U upper: E(t=0) 2.534 rad^2/s^2, dE/dt -6.18e-04 +- 5.6e-06 rad^2/s^3, scatter 0.0008
+  smooth U lower: E(t=0) 2.541 rad^2/s^2, dE/dt -7.99e-04 +- 9.2e-06 rad^2/s^3, scatter 0.0014
+  smooth U both : E(t=0) 2.537 rad^2/s^2, dE/dt -7.07e-04 +- 1.6e-05 rad^2/s^3, scatter 0.0034
+    smooth U dE/dt over 0-52 s: -6.82e-04
+    smooth U dE/dt over 52-105 s: -6.58e-04
+  max turning angle drift: -1.20 deg/min (measured)
+  min turning angle drift: +1.12 deg/min (measured)
+  -> viscous gamma = -dE/dt / <w^2> = 3.50e-04 +- 7.2e-06 1/s (stat.; smooth U gives 3.49e-04); <w^2> 2.02 rad^2/s^2; Q = omega_swing/gamma ~ 4305; energy loss 0.112 % per cycle
+  equivalent acc at peak speed 2.28 rad/s: 8.0e-04 rad/s^2 (cf. direction-split noise 0.09: not visible in the acc fit)
+validation: trap alone, open loop from the first measured turning point (w = 0), 1 ms semi-implicit Euler (f3_check form):
+  MAIN trap + gamma 3.50e-04  [B1 test]: period 4.1670 meas / 4.1701 sim (+0.07 %); mean turning max 292.30/292.39, min 146.31/146.23 deg (p2p +0.11 %); last max 291.29/291.19, last min 147.18/147.02; drift after 25 cycles +0.072 s (+6 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  MAIN trap, no damping: period 4.1670 meas / 4.2065 sim (+0.95 %); mean turning max 292.30/293.53, min 146.31/145.32 deg (p2p +1.52 %); last max 291.29/293.53, last min 147.18/145.32; drift after 25 cycles +0.947 s (+82 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  smooth (velocity-integral) trap + gamma: period 4.1661 meas / 4.1968 sim (+0.74 %); mean turning max 292.26/292.39, min 146.31/146.24 deg (p2p +0.14 %); last max 291.29/291.18, last min 147.18/147.01; drift after 24 cycles +0.728 s (+63 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  sim range 145.3..293.5 deg (data 145.3..293.3; nodes 142..298)
+  hold-out fit 1st half -> replay 2nd half, + gamma: period 4.1428 meas / 4.1597 sim (+0.41 %); mean turning max 291.76/291.64, min 146.78/146.62 deg (p2p +0.03 %); last max 291.29/291.05, last min 147.18/146.98; drift after 12 cycles +0.199 s (+17 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  hold-out fit 2nd half -> replay 1st half, + gamma: period 4.1910 meas / 4.1874 sim (-0.09 %); mean turning max 292.85/293.15, min 145.84/145.81 deg (p2p +0.22 %); last max 292.40/292.65, last min 146.29/146.21; drift after 12 cycles -0.044 s (-4 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+comparison with S1 over 198-234 deg (rad/s^2; derived):
+  S1 canonical (refit HOLD): B1 - ref mean -0.07, rms 1.17, max |.| 2.48 at 226; ref rms 1.23; B1 MAIN node error ~0.3 (synthetic)
+  S1 free swing, MAIN method: B1 - ref mean -0.07, rms 1.24, max |.| 2.73 at 218; ref rms 1.36; B1 MAIN node error ~0.3 (synthetic)
+  S1 canonical vs smooth B1: B1 - ref mean -0.16, rms 0.55, max |.| 1.02 at 228; ref rms 1.23; B1 MAIN node error ~0.3 (synthetic)
+  (check) S1 MAIN-method fit vs S1 canonical: rms 0.54, S1 node error ~0.03
+  potential relative to 208.6: U(198) B1 0.269 / S1 0.255; U(216) 0.129 / 0.080; U(234) 0.347 / 0.276 rad^2/s^2
+  stiffness at 208.6 +-3 deg: B1 MAIN 41.0, B1 smooth 10.4, S1 canonical 18.5 rad/s^2
+S1 free swing (+-17.5 deg about 215.8) replayed open loop, 60 s, no damping (out of sample for B1):
+  B1 MAIN: period 2.6204 meas / 2.7466 sim (+4.82 %); mean turning max 233.35/233.41, min 198.32/195.82 deg (p2p +7.31 %); last max 233.30/233.41, last min 198.45/195.82; drift after 22 cycles +0.033 s (+5 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  B1 smooth: period 2.6204 meas / 2.7185 sim (+3.74 %); mean turning max 233.35/233.42, min 198.32/193.86 deg (p2p +12.94 %); last max 233.33/233.42, last min 198.45/193.86; drift after 23 cycles -0.461 s (-63 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+  S1 canonical: period 2.6204 meas / 2.6312 sim (+0.41 %); mean turning max 233.35/233.41, min 198.32/198.09 deg (p2p +0.84 %); last max 233.30/233.41, last min 198.45/198.09; drift after 22 cycles +0.242 s (+33 deg of swing phase; nearest-max pairing, wraps if |period err| x cycles > 1/2)
+11-04 trap x TRAP_S 0.796 (zero placed at 208.6, the s1data convention; 11-04 own rest was 229.8) vs B1 over 150-290: rms diff to MAIN 1.49, to smooth 0.67; rms MAIN 2.59, smooth 2.18, old 2.36 rad/s^2
+  best shift/scale of the old trap onto the smooth B1: shift +2.5 deg, x0.87 on top of TRAP_S, rms 0.60
+  old trap x TRAP_S: U(150) 2.65, U(290) 2.56 (B1 MAIN 2.40, 2.54)
+  old trap x TRAP_S barrier 7.67 rad^2/s^2 at abs 53.5 deg in this alignment (reference only: assumed harmonic form, other alignment)
+implied tracking error if the B1-S1 difference over 198-234 were a speed-dependent artefact (derived): delta(theta) peak-to-peak 0.123 deg, rms 0.033 deg (1 px at r 23.5 px = 2.4 deg, i.e. ~0.051 px p-p); w^2 of the big swing there 4.6-5.3 vs <=0.49 rad^2/s^2 in S1
+amplitude ladder: period of a free swing from (centre - amp) at w = 0, per trap, vs measured (steps_detent.csv; derived):
+  detent pre-run (field off): centre 208.6 amp 1.8, measured 1.480 s | B1 MAIN 0.970 (207..210); B1 smooth 2.723 (207..213); S1 canonical 1.489 (207..210)
+  detent gap after A1 (AC residue, field not off): centre 215.4 amp 20.1, measured 2.610 s | B1 MAIN 2.771 (195..234); B1 smooth 2.644 (195..233); S1 canonical 2.668 (195..235)
+  detent gap after B1 (AC residue, field not off): centre 213.5 amp 30.2, measured 3.200 s | B1 MAIN 2.619 (183..242); B1 smooth 2.942 (183..242); S1 canonical 3.054 (183..242)
+  detent gap after C1 (AC residue, field not off): centre 213.3 amp 30.6, measured 3.330 s | B1 MAIN 2.637 (183..243); B1 smooth 2.969 (183..243); S1 canonical 3.062 (183..242)
+  detent gap after A2 (AC residue, field not off): centre 217.0 amp 37.7, measured 3.300 s | B1 MAIN 3.033 (179..246); B1 smooth 3.103 (179..249); S1 canonical 7.596 (179..269)
+  detent gap after B2 (AC residue, field not off): centre 217.5 amp 56.5, measured 3.860 s | B1 MAIN 3.734 (161..272); B1 smooth 3.787 (161..272); S1 canonical n/a
+  detent gap after C2 (AC residue, field not off): centre 219.5 amp 74.1, measured 4.180 s | B1 MAIN 4.207 (145..294); B1 smooth 4.239 (145..294); S1 canonical n/a
+  S1 free swing (field off): centre 215.8 amp 17.5, measured 2.620 s | B1 MAIN 2.500 (198..230); B1 smooth 2.568 (198..231); S1 canonical 2.642 (198..233)
+  (S1 canonical is held flat outside 184-252 deg nodes, so its periods above ~+-20 deg are not meaningful)
+synthetic test: simulate the measured swing (+ gamma) through a known trap, add frame noise, refit (derived):
+  truth = MAIN: MAIN refit err rms 0.26 (196-236) / 0.30 (150-290); velocity-integral refit 0.98 / 1.18 rad/s^2; zeros 196-240 truth [208.5, 215.4, 222.1], MAIN [208.4, 215.6, 222.2], vel-int [209.3, 215.9, 220.4]; S1-swing replay period truth 2.747, MAIN refit 2.794, vel-int 2.719 s (min turn 195.8 / 195.8 / 193.9)
+  truth = MAIN with S1 canonical in 198-234: MAIN refit err rms 0.13 (196-236) / 0.29 (150-290); velocity-integral refit 0.33 / 1.08 rad/s^2; zeros 196-240 truth [208.6, 219.5, 224.1], MAIN [208.7, 220.1, 224.9], vel-int [208.7, 219.3, 220.7]; S1-swing replay period truth 2.631, MAIN refit 2.631, vel-int 2.706 s (min turn 198.1 / 198.1 / 195.8)
+plots: plots/b1_potential.png, plots/b1_s1_and_synthetic.png, plots/b1_trap_acc.png, plots/b1_validation.png
