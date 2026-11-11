@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-10/11 — Brake gates B2 and B4 on worker2 (live)
+
+- B2 push-map pulses (11-10, outputs on): `voltage_steps.py run --plan b2_plan.csv --live --enable-outputs` (45 pulses, 800 counts),
+  FE start 1478415207 (host 1794363700–1794363917); results `analysis/brake_b2_20261110/`.
+- B4 (`brake_offsets.py` on `voltage-steps`, live tracker from `feedback-drive`): stage 1 outputs off (11-10, FE 1478419559–629);
+  stage 2 outputs on but the rotor was at rest (11-11, FE 1478448785–915); stage 2b kick then brake, outputs on (11-11, FE
+  1478449691–831): ±19.5° braked to ±2.6° in 4–8 s. End states clean. Data Dropbox `brake/2026-11-10/`, `brake/2026-11-11/`.
+  Results `analysis/brake_b4_20261111/README.md`.
+
 ### 2026-11-10 (evening) — Detent runs on worker2, outputs ON, video (live)
 
 - Ran (worker2, `~/wt_detent`, branch `detent-test` at 1b10ddc, Molly's go, remote): `python3 stator_detent.py run --counts 3200
