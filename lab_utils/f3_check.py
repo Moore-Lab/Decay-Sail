@@ -149,7 +149,8 @@ def trap_U(phi_deg, cU=TRAP_CU):
 
 def simulate_measured(T=30.0, phi0=BRAKE1_START['phi0'], w0=BRAKE1_START['w0'], ctrl=None, ctrl_kw=None,
                       coupling=COUPLING_010, amp_scale=1.0, rate=20.0, write_ms=4.0, upd_every=2, tick_phase=0.0,
-                      mtramp=0.0625, tau_ac=5.6, frame=0.02, noise=0.3, Q=None, seed=0, rest=REST_F3, replay=None):
+                      mtramp=0.0625, tau_ac=5.6, frame=0.02, noise=0.3, Q=None, seed=0, rest=REST_F3, replay=None,
+                      trap_scale=1.0, cpl_scale=1.0):
     """One run from the state (phi0 deg from rest, w0 deg/s) with the measured trap and coupling.
     ctrl: a SpeedController (default: brake-only 1's live settings, built from ctrl_kw overrides).
     Writes: the first frame >= 1/rate after the last write; lands write_ms later on the next front-end tick
@@ -157,6 +158,7 @@ def simulate_measured(T=30.0, phi0=BRAKE1_START['phi0'], w0=BRAKE1_START['w0'], 
     ramps over mtramp. amp_scale: coupling scale (linear 1x, quadratic 2x terms ~ V^2 (assumed)).
     replay: (write_times s, psi deg or <0 for off) from a live log, played open loop instead of the controller's
     writes (tests the plant model: trap + coupling + load timing).
+    trap_scale, cpl_scale: multiply the trap and the coupling (step 2, 2026-11-10: the trap is ~20 % weaker than on 11-04).
     Returns t, phi (deg from rest, unwrapped), field-on flag per frame, controller E per frame."""
     rng = np.random.default_rng(seed)
     if ctrl is None:
@@ -208,7 +210,7 @@ def simulate_measured(T=30.0, phi0=BRAKE1_START['phi0'], w0=BRAKE1_START['w0'], 
             D = np.angle(z) + 8 * (math.radians(rest) + ph)
             tq = k1 * E * (c0 + c1 * math.cos(D) + s1 * math.sin(D)) + k2 * E * E * (c2 * math.cos(2 * D) + s2 * math.sin(2 * D))
         damp = 0.0 if Q is None else math.sqrt(4.94) / Q * om
-        om += (trap_acc(math.degrees(ph)) - damp + tq) * dt
+        om += (trap_scale * trap_acc(math.degrees(ph)) - damp + cpl_scale * tq) * dt
         ph += om * dt
     return np.array(out_t), np.array(out_ph), np.array(out_on), np.array(out_E)
 
