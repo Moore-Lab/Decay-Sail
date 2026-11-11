@@ -28,7 +28,7 @@ The goal these serve is in `measurement_objective.md`.
 - **Re-run §2 of `noise_budget_20260911_clean.ipynb`** with F0 = 0.81 fN.
 - **`I = 1.88e-11` still in** `analysis/laser_dark_vs_on.py:117` (and Dave's
   `thermal_noise_spindown.py:37`, left alone on purpose).
-- **HV amp output coupling (lab check, Molly):** read the code on R1 (0805 chip resistor
+- **HV amp output coupling:** answered 2026-11-11: the J1/J5 jumpers do select the coupling, and the outputs are now on the direct (DC) path (DECISIONS 2026-11-11). Open: measure the DC path (V/count, output at 0 counts, VPP ceiling) with an S1-style scope check. The earlier note follows. **(lab check, Molly):** read the code on R1 (0805 chip resistor
   near the output headers) and which pins the jumpers on J1/J5 connect. From the
   schematic/board netlist (not confirmed on the board), each output looks
   jumper-selectable: direct from `HVOUT`, or through 5 × 1 µF in series with R to GND,

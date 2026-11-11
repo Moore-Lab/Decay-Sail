@@ -168,7 +168,7 @@ Don't delete non-functional scripts unilaterally; Molly prunes them.
 ## Hardware traps (read before driving)
 
 **HV amplifier** (homemade, HV265 op-amp):
-- The output is **AC-coupled**: a DC step (e.g. the pedestal at drive start/stop) reaches
+- **Since 2026-11-11 the outputs are DC-coupled** (jumpers on the direct path; DECISIONS). Before that, the output was **AC-coupled**: a DC step (e.g. the pedestal at drive start/stop) reaches
   the electrode and decays over ~20 s (τ ≈ 5–7 s estimated; schematic suggests a jumper-
   selectable series-C/R-to-GND output, lab check pending in STATUS). So the drive is
   bipolar about 0 V and a static detent fades; Molly sees a kick at each drive start/stop.

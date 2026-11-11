@@ -14,6 +14,17 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-11 — HV amp switched to DC coupling; carry simulation (Mac); G1 run recorded
+
+- Molly moved the HV amp J1/J5 jumpers from the capacitor (AC) path to the direct path: outputs now DC-coupled (DECISIONS 2026-11-11). Cables were being reconnected afterwards. Nothing measured on the new path yet.
+- Camera check after a Basler USB replug (worker2, camera only, no EPICS writes): USB3 5000M; settings as G1 (256x292, 15 ms, 50 fps, 0 dropped). View unchanged to <= 0.55 px and 0.02 deg (phase correlation and ECC against G1's first 300 frames). The rotor was at rest at 207.7 deg (±0.14), against 208.6 before G1: observed, not explained (the view shift is far too small to account for it). Files Dropbox `camera_check/2026-11-11/`.
+- HV amp direct (DC) path, outputs off, offsets 0, scope DC-coupled with offsets reset: all three electrodes read ~0 V (Molly; V2 looked slightly high, centred on 0 when zoomed). So no output floor at 0 counts.
+- DC check step 1 (worker2, Molly's go, outputs on): V2 0 -> 400 -> 0 counts, 3 s hold (`voltage_steps.py run --plan dc_step1.csv --live --enable-outputs`). First try: the scope triggered early (FE 1478489995-1478490005; OUT_DQ confirms the 400-count step). Repeat (FE 1478490325-334): CH2 +4.70 V above a +0.75 V baseline (0.01175 V/count), flat over 3 s (-0.9 mV/s), edge overshoot to 7.1 V; V3/V4 unchanged (baselines +0.245/+0.050 V at 0 counts). Rotor moved -0.4 to -0.5 deg during the hold and returned; the G1 map and trap slope predict about -2.4 to -3 deg (derived): observed, not explained. Data worker2 `~/dc_check/2026-11-11/`, Dropbox `dc_check/2026-11-11/`.
+- DC check step 2 (worker2, Molly's go, outputs on; FE 1478490564-607): V2, V4, V3 each 400/800/1200/0 counts, 3 s per level (`voltage_steps.py run --plan dc_steps.csv --live --enable-outputs`). Baseline-subtracted fits: V2 0.01237, V4 0.01279, V3 0.01259 V/count (per-level V/count rises 0.0117-0.0121 at 400 to 0.0122-0.0126 at 1200; common intercept -0.28 V); sag <= 0.2 % per 3 s plateau; crosstalk <= 12 mV. Scope zero depends on V/div (0-count baselines V2 +1.89/+0.75 V at 5/2 V/div; S1's offsets were these). Rotor during the V2 holds: -0.3 / -1.4 / -3.0 deg at 400/800/1200 (from 208.28; grows faster than the level, observed, not explained); the release from 1200 left a +-5 deg swing that blurs the V4/V3 plateaus. Data worker2 `~/dc_check/2026-11-11/vsteps_1794438991`, scope `scope_1794439054_step2.npz`.
+- Scope: S1's constant trace offsets (CH2 +1.9, CH3 +0.5, CH4 +0.1 V) were the scope's own channel offsets (Molly, GND coupling).
+- Spin-up G1 (live on worker2, earlier 11-11, Molly's go): kick A 2400, pump to ±35° (`brake_offsets.py --pump-to 35`), then 50 pulses (`voltage_steps.py --plan analysis/spinup_g1_20261111/g1_plan.csv`), on the AC path. Data Dropbox `spinup/2026-11-11/g1/` (tracker file gps1478438744). Results `analysis/spinup_g1_20261111/README.md`.
+- Stage-1 carry simulation (Mac, AC path, before the jumper change): `analysis/carry_sim_20261111/README.md`. Derived, not approved.
+
 ### 2026-11-10/11 — Brake gates B2 and B4 on worker2 (live)
 
 - B2 push-map pulses (11-10, outputs on): `voltage_steps.py run --plan b2_plan.csv --live --enable-outputs` (45 pulses, 800 counts),

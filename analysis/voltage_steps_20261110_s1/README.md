@@ -45,7 +45,9 @@ Interpretations are Claude's and marked "(interpretation, not approved)". Everyt
   that is why the peaks reached +20–22 V, not ~+16 V). Falling steps overshoot much less, least for the largest
   (median 0.2 V for −900 to −1300 counts, steps that end at or near 0). This is a different shape from OUT_DQ's ringing (~18 %, ~10 ms, sample to sample).
 - **Constant offsets on the scope traces,** outputs off or on: CH2 (V2) +1.9 V, CH3 (V3) +0.5 V, CH4 (V4) +0.1 V. Not
-  from the drive (present before the first write, and the fit's constant term). Cause not known.
+  from the drive (present before the first write, and the fit's constant term). **Cause: the scope's own channel offsets
+  (Molly, 2026-11-11, seen with GND coupling), not the electrodes.** The V/count values use step heights, so they are
+  unaffected.
 - **Scope timing:** saved at 20.8 kS/s (block-averaged by `scope_rtb.py`); the scope's own `ACQ:SRAT?` read 496–992 S/s,
   which cannot be its sampling rate given the resolved 0.29 ms edges. Scope clock vs FE: 0.998773 (FE runs 1.23 ms/s
   fast; OUT_DQ host fit 1.2 ms/s in S0 and the 8/s test).
