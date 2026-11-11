@@ -1,0 +1,170 @@
+# Gate G1 push map + voltage scaling, 2026-11-11 (g1_pushmap.py)
+angles: live tracker, 21001 frames, host 1794403526.47..1794403946.47, angle 167.4..267.1 deg, ncc median 0.967 min 0.944, 919 blanked-source frames (kept, as B1/B2)
+  time base: camera clock + median offset; host stamp - mapped: p1..p99 -2.6..14.3 ms, max 1490 ms (one host stall, not used)
+  re-track check (measured, separate run): frames 0-3999 re-tracked with blob_core -> max |live - retrack| 0.005 deg
+pulses: 50; per phase x level: A800 9, B800 8, C800 8, A1600 9, B1600 8, C1600 8
+  timing: host->FE drift refitted b = 1.001237 (score 1.000916); write->landing delays span 124.7 ms (one 125 ms tick = consistent); kick on/off delays 92/76 ms; step-2 relative delays 0..121 ms
+  pulse length at OUT_DQ (landing on -> landing off, FE clock): 0.2500..0.3750 s (measured)
+  residual AC tail on the pulsed electrode at pulse start: -57..-0 counts; kappa = ((V+delta)/V)^2 0.862..1.000 (V^2 assumed)
+step 1: 31 pump writes, 41 channel-level changes commanded, 39 seen as OUT_DQ landings, 2 not (superseded within one 8 Hz tick): [(71.723, 4, 800.0), (71.84, 4, 0.0)]; 40 landings in the pump window (includes the stop write)
+
+## 1. Joint fit (trap + 50 pulse accelerations), run data
+common delay d (field start - landing_host): 15 ms; chi2 rise at +-50 ms +1.00% / +1.01%
+
+## 2. Trap (field-off data)
+post-run free swing (t >= last write + 20 s): period 3.3666 s, mean max/min 252.75/179.97 deg, 65 periods
+  G1 joint (run)            : line fit 186-240: zero  212.5 deg, k  4.37 rad/s^2/rad, ripple rms 0.91; rms vs G1 joint (192-236) 0.000 rad/s^2; replay of post-run swing: period -0.06 %, rms first 10 s 0.37 deg
+  G1 between-pulse (run)    : line fit 186-240: zero  212.4 deg, k  4.38 rad/s^2/rad, ripple rms 0.91; rms vs G1 joint (192-236) 0.027 rad/s^2; replay of post-run swing: period -0.17 %, rms first 10 s 0.61 deg
+  G1 free swing (post-run)  : line fit 186-240: zero  212.6 deg, k  4.35 rad/s^2/rad, ripple rms 0.84; rms vs G1 joint (192-236) 0.131 rad/s^2; replay of post-run swing: period +0.16 %, rms first 10 s 0.31 deg
+  B1 MAIN                   : line fit 186-240: zero  212.2 deg, k  4.90 rad/s^2/rad, ripple rms 1.06; rms vs G1 joint (192-236) 0.795 rad/s^2
+  B1 smooth                 : line fit 186-240: zero  212.4 deg, k  4.84 rad/s^2/rad, ripple rms 0.40; rms vs G1 joint (192-236) 0.778 rad/s^2
+  B2 joint (run)            : line fit 186-240: zero  212.8 deg, k  4.40 rad/s^2/rad, ripple rms 0.79; rms vs G1 joint (192-236) 0.563 rad/s^2
+  B2 free swing             : line fit 186-240: zero  212.4 deg, k  4.51 rad/s^2/rad, ripple rms 0.79; rms vs G1 joint (192-236) 0.435 rad/s^2
+  (B1/B2 traps are defined only on 184-242 / B1 data range; not replayed on the 180-253 G1 swing)
+  outer nodes (<180, >252; visited only with pulses present): |joint - between-pulse| median 0.02, max 0.32 rad/s^2; inner 182-250: median 0.01
+  trap table (deg: joint / between-pulse / free / frames run / frames free):
+      160:  +0.28  +0.59 +10.40      0     0
+      166:  +1.28  +1.32  +8.37      0     0
+      172:  +2.61  +2.61  +6.33    194     0
+      178:  +3.73  +3.72  +4.30    316     0
+      184:  +3.58  +3.62  +3.31    290   174
+      190:  +0.61  +0.60  +0.77    243   134
+      196:  +0.76  +0.75  +0.83    221   107
+      202:  +0.67  +0.70  +0.82    183    93
+      208:  +0.85  +0.84  +0.68    176    87
+      214:  -0.55  -0.59  -0.58    193    99
+      220:  +0.95  +0.97  +0.87    185   104
+      226:  -1.79  -1.79  -1.42    190    99
+      232:  -1.76  -1.77  -1.87    198   107
+      238:  -2.26  -2.27  -2.30    245   136
+      244:  -0.86  -0.87  -0.79    335   210
+      250:  -1.07  -1.08  -1.05    445   309
+      256:  -3.16  -3.16  -2.60    306     0
+      262:  -2.02  -2.00  -3.73    196     0
+      268:  -1.19  -1.18  -4.86      6     0
+      274:  -0.55  -0.52  -5.99      0     0
+
+## 3. Per-pulse trajectory fits (window 1.5 s each side, joint-fit trap)
+null test: 54 fake pulses in the post-run swing, run trap: mean +0.0303, rms 0.0388 rad/s^2 (trap fitted on the same data: 0.0107); B2 was 0.020
+method spread (trajectory vs joint) rms: 800 0.192, 1600 0.186 rad/s^2; corr 0.926
+per-pulse free delay (|a| > 3 sigma, n 35): median +20 ms, IQR +10..+28; corr with time -0.08
+per-pulse table (phase, level, t, theta_mid, omega_mid, a [tail-corr], a_raw, joint, kappa, sweep deg, rms deg)
+   0 A  800 t=  77.5 th  261.2 w -0.289 a +0.262 raw +0.226 joint +0.651 k 0.862 sw  4.8 rms 0.277
+   1 C  800 t=  81.1 th  241.2 w -1.118 a -0.166 raw -0.151 joint -0.101 k 0.906 sw 17.3 rms 0.300
+   2 B  800 t=  86.6 th  255.4 w +0.725 a -0.321 raw -0.310 joint -0.224 k 0.968 sw  9.7 rms 0.221
+   3 C 1600 t=  92.1 th  197.8 w +1.364 a -0.127 raw -0.125 joint -0.092 k 0.987 sw 19.9 rms 0.152
+   4 A 1600 t=  97.4 th  190.0 w -1.216 a -0.046 raw -0.046 joint +0.104 k 0.997 sw 16.5 rms 0.217
+   5 C  800 t= 103.1 th  239.5 w -1.121 a +0.029 raw +0.028 joint +0.023 k 0.971 sw 17.1 rms 0.150
+   6 B 1600 t= 106.8 th  188.8 w -1.242 a -0.683 raw -0.682 joint -0.767 k 0.998 sw 16.9 rms 0.146
+   7 B  800 t= 110.5 th  171.9 w -0.065 a -0.265 raw -0.240 joint +0.030 k 0.907 sw  1.3 rms 0.264
+   8 A  800 t= 115.2 th  254.9 w +0.854 a -0.415 raw -0.412 joint -0.132 k 0.992 sw 10.9 rms 0.288
+   9 B 1600 t= 120.0 th  182.2 w -1.108 a -0.512 raw -0.503 joint -0.148 k 0.983 sw 15.4 rms 0.394
+  10 B 1600 t= 123.8 th  171.4 w -0.269 a -0.316 raw -0.298 joint -0.027 k 0.945 sw  3.3 rms 0.290
+  11 B  800 t= 128.7 th  254.7 w +0.936 a -0.324 raw -0.286 joint -0.270 k 0.881 sw 12.5 rms 0.257
+  12 C  800 t= 134.1 th  170.9 w -0.271 a -0.937 raw -0.936 joint -0.616 k 1.000 sw  3.8 rms 0.296
+  13 A 1600 t= 139.8 th  266.6 w +0.088 a -0.011 raw -0.011 joint +0.392 k 0.999 sw  1.2 rms 0.371
+  14 A  800 t= 144.3 th  241.1 w -1.284 a -0.305 raw -0.281 joint -0.201 k 0.919 sw 19.5 rms 0.156
+  15 C 1600 t= 149.5 th  170.8 w +0.308 a -1.653 raw -1.648 joint -1.371 k 0.997 sw  4.9 rms 0.260
+  16 C  800 t= 153.2 th  189.8 w +1.333 a +0.071 raw +0.065 joint +0.259 k 0.906 sw 19.7 rms 0.310
+  17 B 1600 t= 158.2 th  264.6 w -0.237 a +0.005 raw +0.005 joint +0.432 k 0.999 sw  3.6 rms 0.331
+  18 B  800 t= 162.1 th  249.3 w -1.064 a +0.116 raw +0.106 joint +0.195 k 0.910 sw 15.5 rms 0.207
+  19 A 1600 t= 167.6 th  243.5 w +1.059 a -0.533 raw -0.532 joint -0.495 k 0.999 sw 16.1 rms 0.294
+  20 B  800 t= 171.5 th  253.7 w -0.772 a -0.041 raw -0.040 joint -0.004 k 0.966 sw 11.4 rms 0.170
+  21 A  800 t= 177.5 th  259.2 w -0.195 a +0.446 raw +0.432 joint +0.841 k 0.969 sw  5.3 rms 0.126
+  22 C 1600 t= 183.2 th  242.3 w +0.985 a -0.015 raw -0.015 joint -0.344 k 1.000 sw 13.8 rms 0.587
+  23 A 1600 t= 188.6 th  181.8 w +0.776 a -0.519 raw -0.513 joint -0.603 k 0.988 sw 11.3 rms 0.227
+  24 C 1600 t= 192.9 th  253.3 w +0.552 a +0.820 raw +0.807 joint +0.624 k 0.984 sw  7.0 rms 0.229
+  25 C  800 t= 196.7 th  244.7 w -0.859 a +0.267 raw +0.238 joint -0.162 k 0.893 sw 12.5 rms 0.655
+  26 B  800 t= 200.1 th  228.8 w -1.386 a -0.034 raw -0.034 joint -0.187 k 0.999 sw 19.8 rms 0.571
+  27 C  800 t= 205.3 th  252.5 w +0.790 a +0.166 raw +0.159 joint +0.183 k 0.957 sw 10.2 rms 0.147
+  28 A  800 t= 211.4 th  246.9 w +0.910 a -0.168 raw -0.167 joint -0.412 k 0.997 sw 12.4 rms 0.528
+  29 B 1600 t= 217.4 th  234.3 w +1.134 a -0.767 raw -0.765 joint -0.798 k 0.998 sw 15.1 rms 0.084
+  30 A  800 t= 222.7 th  191.4 w -0.905 a +0.179 raw +0.177 joint +0.173 k 0.987 sw 12.7 rms 0.127
+  31 C 1600 t= 227.3 th  223.7 w +1.222 a -0.043 raw -0.043 joint -0.035 k 0.999 sw 15.4 rms 0.309
+  32 A 1600 t= 233.4 th  180.6 w +0.110 a -0.777 raw -0.771 joint -0.637 k 0.992 sw  2.4 rms 0.160
+  33 C 1600 t= 236.9 th  181.8 w -0.049 a +1.204 raw +1.184 joint +1.291 k 0.984 sw  2.0 rms 0.222
+  34 A 1600 t= 242.6 th  244.5 w -0.463 a -0.289 raw -0.284 joint -0.266 k 0.981 sw  7.6 rms 0.456
+  35 A 1600 t= 246.9 th  198.1 w -1.087 a -0.435 raw -0.412 joint -0.375 k 0.949 sw 16.3 rms 0.458
+  36 B 1600 t= 250.5 th  179.6 w -0.335 a +0.387 raw +0.387 joint +0.434 k 1.000 sw  4.7 rms 0.252
+  37 A  800 t= 255.5 th  254.3 w -0.181 a -0.113 raw -0.106 joint -0.115 k 0.940 sw  3.1 rms 0.079
+  38 A 1600 t= 260.4 th  179.7 w +0.349 a -0.614 raw -0.595 joint -0.613 k 0.968 sw  5.8 rms 0.180
+  39 C 1600 t= 266.1 th  224.8 w -1.249 a -0.133 raw -0.133 joint -0.145 k 0.999 sw 16.3 rms 0.277
+  40 B 1600 t= 272.0 th  253.1 w -0.305 a +0.053 raw +0.053 joint +0.052 k 0.998 sw  5.1 rms 0.189
+  41 A 1600 t= 277.8 th  239.6 w +0.859 a +0.281 raw +0.280 joint +0.272 k 0.995 sw 12.5 rms 0.219
+  42 B  800 t= 283.1 th  179.0 w -0.292 a +0.315 raw +0.307 joint +0.328 k 0.975 sw  4.0 rms 0.127
+  43 B  800 t= 287.8 th  253.7 w +0.342 a +0.012 raw +0.011 joint -0.016 k 0.951 sw  4.3 rms 0.081
+  44 A  800 t= 293.6 th  222.0 w +1.332 a +0.067 raw +0.066 joint +0.131 k 0.989 sw 18.8 rms 0.396
+  45 A  800 t= 298.2 th  229.9 w -1.247 a -0.073 raw -0.069 joint -0.029 k 0.955 sw 17.8 rms 0.404
+  46 B 1600 t= 301.8 th  196.0 w -1.072 a +0.398 raw +0.396 joint +0.337 k 0.994 sw 14.4 rms 0.407
+  47 C  800 t= 305.4 th  181.4 w -0.402 a +0.541 raw +0.541 joint +0.567 k 1.000 sw  4.8 rms 0.135
+  48 C  800 t= 309.8 th  223.7 w +1.226 a +0.009 raw +0.008 joint +0.023 k 0.959 sw 16.2 rms 0.200
+  49 C 1600 t= 313.9 th  250.8 w +0.316 a +0.582 raw +0.564 joint +0.575 k 0.968 sw  4.2 rms 0.134
+
+## 5. Voltage scaling and shape: a = S(level) F(theta - s_q), S(800) = 1
+G1 joint fit (m = 8+16, shared F, shifts free): S(1600)/S(800) = 2.043; bootstrap (400) 68 % 1.65..2.64, 95 % 1.44..3.96
+   s_B -14.7 (68 % -15.7..-13.6), s_C +12.6 (68 % +11.4..+13.6) deg; sigma_shape 0.148 rad/s^2 per unit S; rms residual 800 0.157, 1600 0.241
+   -> exponent n = log2(ratio) = 1.03 (68 % 0.73..1.40); linear-in-V would be 1, V^2 would be 2
+   AC-tail correction: ratio 2.043 with V^2 kappa, 2.060 with linear kappa, 2.076 uncorrected
+   trap systematic: per-pulse a with the between-pulse trap differs by rms 0.011 (pulses at <182 / >250 deg, n 25), 0.006 (others)
+   ratio with a from the between-pulse trap 2.047; with a from the joint 2nd-difference fit 1.940
+cross-check, F and shifts fixed to B2: S(1600)/S(800=1) = 2.287 (68 % 2.02..2.56); with S(800) free too: S(800) = 0.833, S(1600) = 2.287, ratio 2.745
+   phase A: ratio 2.63 (68 % 1.60..4.10); S800 1.00, S1600 2.63 (relative to A at 800)
+   phase B: ratio 1.65 (68 % 1.15..2.60); S800 1.39, S1600 2.30 (relative to A at 800)
+   phase C: ratio 1.72 (68 % 1.47..1.96); S800 1.90, S1600 3.27 (relative to A at 800)
+G1 pulses vs B2 F (shifts B2, S from G1 fit): rms residual inside 187-238 0.103 (n 14), outside 0.272 (n 36); G1 own fit 0.171 / 0.215 rad/s^2  [residuals are 1600 pulses at full size]
+joint G1 + B2 (B2 tied to S(800) = 1): ratio 2.192 (68 % 1.93..2.45, 95 % 1.68..2.75); s_B -15.4 (-15.8..-14.9), s_C +13.8 (+13.3..+14.4); sigma_shape 0.128
+   B2 amplitude free: S_B2/S_G1(800) = 1.132, ratio 2.383; chi2 86.0 vs tied 87.0 (same sigma scale only approximately)
+   F(G1+B2): P8 0.248, P16 0.537, const -0.029, span -0.75..+0.69; B2 F: P8 0.287, P16 0.529, span -0.74..+0.74 rad/s^2
+   F(G1+B2) - F(B2) rms over one period 0.038 rad/s^2
+   m 8+16+24 (45-periodic)                   : chi2 87.0 -> 79.9 (+2 par), F 3.75, p 0.028; ratio 2.19
+   m 4+8+12+16+20 (adds non-45-periodic)     : chi2 87.0 -> 77.5 (+6 par), F 1.66, p 0.141; ratio 2.42
+   amplitude gradient across theta           : chi2 87.0 -> 73.4 (+1 par), F 15.95, p 0.000; ratio 2.08, kappa -0.359 per 50 deg
+   separate F for theta_mid < 217 / >= 217   : chi2 87.0 -> 78.8 (+5 par), F 1.71, p 0.141; ratio 2.14
+   G1 theta_mid < 217       (n 19): own fit ratio 1.60, s_B -16.0, s_C +13.2, rms 0.123; rms vs B2 F 0.222
+   G1 theta_mid >= 217      (n 31): own fit ratio 2.27, s_B -13.2, s_C +13.1, rms 0.163; rms vs B2 F 0.246
+   G1 outside B2 range      (n 36): own fit ratio 1.98, s_B -14.2, s_C +12.4, rms 0.217; rms vs B2 F 0.272
+   amplitude gradient, G1, trajectory a      : kappa -0.389 per 50 deg, F 8.51, p 0.006
+   amplitude gradient, G1, joint 2nd-diff a  : kappa -0.106 per 50 deg, F 2.06, p 0.159
+   amplitude gradient, G1 800 only          : kappa -0.272 per 50 deg, F 2.10, p 0.166
+   slow pulses (sweep < 8 deg)  (n 20): own-fit ratio 1.83; regression on B2 F: 800 x0.98+-0.33, 1600 x2.25+-0.44 (ratio 2.29)
+   fast pulses (sweep >= 8 deg) (n 30): own-fit ratio 2.94; regression on B2 F: 800 x0.53+-0.24, 1600 x2.39+-0.16 (ratio 4.54)
+
+## 6. Step 1 checks (kick and pump) against the map
+pump: writes 70.06..73.64 s, last landing 73.85; half-amplitude 18.3 -> 45.1 deg (measured); E = w^2/2 + U(theta) (G1 joint trap) 0.318 (sd 0.022) -> 1.339 (sd 0.013) rad^2/s^2, dE +1.021
+   G1+B2 F, n=2.00                   : predicted dE (work along the measured path) +0.776; simulated half-amplitude after 32.4 deg
+   G1+B2 F, n=1.03                   : predicted dE (work along the measured path) +0.777; simulated half-amplitude after 33.0 deg
+   B2 F (used by the pump), n=2.00   : predicted dE (work along the measured path) +0.801; simulated half-amplitude after 35.6 deg
+   B2 F (used by the pump), n=1.03   : predicted dE (work along the measured path) +0.809; simulated half-amplitude after 34.5 deg
+   trajectory during the kick (-0.5..+2.0 s), G1+B2 F, V2: rms vs S(2400) 2.5:6.2 3.0:2.3 3.5:1.6 4.0:1.2 4.5:2.7 5.0:4.2 5.5:5.5 6.0:6.3 6.5:6.4 7.0:5.7 7.5:9.2 8.0:9.5 8.5:15.0 9.0:12.8 9.5:11.7 -> best S(2400) 4.0 (n = 1.26)
+   trajectory during the kick (-0.5..+2.0 s), G1+B2 F, linear, signed: rms vs S(2400) 2.5:6.2 3.0:2.2 3.5:1.7 4.0:2.0 4.5:2.7 5.0:3.2 5.5:4.0 6.0:4.7 6.5:5.0 7.0:5.8 7.5:10.2 8.0:17.4 8.5:14.0 9.0:12.4 9.5:11.5 -> best S(2400) 3.5 (n = 1.14)
+   trajectory during the kick (-0.5..+2.0 s), B2 F (used by the pump), V2: rms vs S(2400) 2.5:6.2 3.0:4.1 3.5:1.4 4.0:1.1 4.5:2.2 5.0:3.8 5.5:5.1 6.0:5.9 6.5:6.0 7.0:5.5 7.5:9.1 8.0:9.1 8.5:14.1 9.0:12.2 9.5:11.3 -> best S(2400) 4.0 (n = 1.26)
+   trajectory during the kick (-0.5..+2.0 s), B2 F (used by the pump), linear, signed: rms vs S(2400) 2.5:6.2 3.0:2.6 3.5:1.6 4.0:1.7 4.5:2.2 5.0:2.9 5.5:3.8 6.0:4.6 6.5:4.7 7.0:8.9 7.5:9.9 8.0:13.5 8.5:13.3 9.0:11.9 9.5:11.0 -> best S(2400) 3.5 (n = 1.14)
+kick (A 2400 counts, 2 s, from rest at 207.9 deg): measured half-amplitude after 18.20 deg
+   G1+B2 F, n=1.00 (S(2400) = 3.0): simulated half-amplitude after the kick 2.44 deg (threshold-like in S: not a clean scaling test)
+   G1+B2 F, n=2.00 (S(2400) = 9.0): simulated half-amplitude after the kick 22.35 deg (threshold-like in S: not a clean scaling test)
+   G1+B2 F, n=1.03 (S(2400) = 3.1): simulated half-amplitude after the kick 2.57 deg (threshold-like in S: not a clean scaling test)
+   B2 F (used by the pump), n=1.00 (S(2400) = 3.0): simulated half-amplitude after the kick 2.45 deg (threshold-like in S: not a clean scaling test)
+   B2 F (used by the pump), n=2.00 (S(2400) = 9.0): simulated half-amplitude after the kick 24.13 deg (threshold-like in S: not a clean scaling test)
+   B2 F (used by the pump), n=1.03 (S(2400) = 3.1): simulated half-amplitude after the kick 2.50 deg (threshold-like in S: not a clean scaling test)
+
+## 7. Carry: push needed to beat the trap over 167-267 at slow speed (derived)
+best single phase at each angle (800 counts, G1+B2 F): forward push min 0.047 at 210.5 deg, backward min 0.120 at 178.5; any angle with no forward phase: False
+  G1 joint          fwd: S needed 62.18 (worst at 255.5 deg, max |trap| 3.89) -> counts n=0.95 61501, n=1.13 30723, n=1.29 19429, n=2.00 6308, n=1.00 49744
+  G1 joint          bwd: S needed 30.60 (worst at 178.5 deg, max |trap| 3.89) -> counts n=0.95 29182, n=1.13 16423, n=1.29 11236, n=2.00 4425, n=1.00 24479
+  G1 between-pulse  fwd: S needed 62.15 (worst at 255.5 deg, max |trap| 3.89) -> counts n=0.95 61470, n=1.13 30710, n=1.29 19421, n=2.00 6307, n=1.00 49721
+  G1 between-pulse  bwd: S needed 30.50 (worst at 178.5 deg, max |trap| 3.89) -> counts n=0.95 29081, n=1.13 16375, n=1.29 11207, n=2.00 4418, n=1.00 24398
+  bootstrap of F/shifts (G1 joint trap): S needed fwd 68 % 26.84..189.20, bwd 24.22..49.35
+  limit: V_LIMIT 12800 counts (offset route). Counts -> volts not re-measured here.
+  at 12800 counts, n=0.95 (S = 14.0): forward push beats the trap on 97 % of 167-267, backward on 98 %; forward fails within 210.0..256.5
+  at 12800 counts, n=1.13 (S = 23.1): forward push beats the trap on 99 % of 167-267, backward on 99 %; forward fails within 210.5..256.0
+  at 12800 counts, n=1.29 (S = 36.2): forward push beats the trap on 100 % of 167-267, backward on 100 %; forward fails within 255.5..255.8
+  at 12800 counts, n=2.00 (S = 256.0): forward push beats the trap on 100 % of 167-267, backward on 100 %
+
+## 8. Swing amplitude (turning points)
+  pre-kick                : half-amplitude 0.70 (range 0.49..0.72) deg, centre 208.6
+  after kick, before pump : half-amplitude 18.20 (range 18.08..18.28) deg, centre 215.9
+  run, first 30 s         : half-amplitude 43.27 (range 41.97..44.64) deg, centre 217.0
+  run, last 30 s          : half-amplitude 37.78 (range 35.76..39.29) deg, centre 216.7
+  post-run                : half-amplitude 36.39 (range 36.08..36.68) deg, centre 216.4
+  during step 2: 34.1..49.8 deg; tracked angle 167.4..267.1
+  per-pulse w*dw: sum -0.263 rad^2/s^2; 800: -0.177, 1600: -0.086
