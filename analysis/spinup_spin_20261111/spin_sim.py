@@ -36,6 +36,7 @@ REST = 208.5
 SWITCH = None          # (t, new target Hz): spin-down test
 TRAP_SRC = 'assumed'   # or 'coast'
 TOL = 0.05             # governor deadband width (live --tol)
+START_F = 0.0          # Hz: start rotating at this rate AGAINST dir (reversal test); 0 = from rest
 COAST = json.load(open(os.path.join(HERE, 'coast_trap.json'))) if os.path.exists(os.path.join(HERE, 'coast_trap.json')) else None
 
 
@@ -52,13 +53,14 @@ def run(cell, T=600.0, dt=0.002, trace=False):
     FP = CS.push_tables('G1B2', pscale * (1 + 0.1 * rng.standard_normal(3)))
     x = level / 800.0
     g = (1 - f) * x + f * x * x
-    th, w = REST + rng.uniform(-2, 2), 0.0
+    th, w = REST + rng.uniform(-2, 2), -d * 2 * math.pi * START_F * 1.08   # x1.08: mean rate below peak speed
     tick0 = rng.uniform(0, INTAKE)
     hist, trail, pending = [], [], []
     cmd = np.zeros(3, bool)
     last_write, aborted, reason = -1.0, False, ''
     nfr = int(round(0.02 / dt))
     th0 = th
+    ext = d * th
     t_first, dir_first, t_reach = None, 0, None
     turn_times = []                                # (t, rate) at each completed turn along d
     next_turn = 1
@@ -73,6 +75,7 @@ def run(cell, T=600.0, dt=0.002, trace=False):
                 trail.append((t, hist[-1][1]))
             trail = [p for p in trail if t - p[0] <= 30.0]
             f_mean = B.mean_rate(trail, t, hist[-1][1], d)
+            f_ag = B.mean_rate(trail, t, hist[-1][1], -d)
             if len(hist) >= 3:
                 wn = (hist[-1][1] - hist[-3][1]) / (hist[-1][0] - hist[-3][0])
                 wmax = max(wmax, abs(wn))
@@ -81,7 +84,7 @@ def run(cell, T=600.0, dt=0.002, trace=False):
             if not aborted and t - last_write >= INTAKE - 1e-9 and len(hist) >= 5:
                 last_write = t
                 ft_now = f_t if (SWITCH is None or t < SWITCH[0]) else SWITCH[1]     # optional target change (spin-down test)
-                o, _ = B.choose_spin(hist, t, level, d, f_mean, ft_now, TOL, wpm)
+                o, _ = B.choose_spin(hist, t, level, d, f_mean, ft_now, TOL, wpm, f_against=f_ag)
                 land = math.ceil((t + C - tick0) / INTAKE) * INTAKE + tick0
                 if rng.uniform() > 1 / 400:
                     pending.append((land, np.array(o) > 0))
@@ -95,9 +98,14 @@ def run(cell, T=600.0, dt=0.002, trace=False):
                 a_f += CS.look(FP[q], th) * g
         w += (CS.look(trapP, th) + a_f - 0.5 * GAMMA * w) * dt
         th += math.degrees(w * dt)
-        if t_first is None and abs(th - th0) >= 360.0:
+        ext = min(ext, d * th)                          # furthest point against d so far
+        if t_first is None and abs(th - th0) >= 360.0 and START_F == 0.0:
             t_first, dir_first = t, int(np.sign(th - th0))
-        if d * (th - th0) >= 360.0 * next_turn:
+        if t_first is None and START_F > 0.0 and d * th - ext >= 360.0:
+            t_first, dir_first = t, d
+        if START_F > 0.0 and next_turn == 1 and t_first is None:
+            pass
+        elif d * th - (ext if START_F > 0.0 else d * th0) >= 360.0 * next_turn:
             turn_times.append(t); next_turn += 1
         if t_reach is None and f_mean > 0 and abs(f_mean / f_t - 1) < 0.05 and len(turn_times) >= 2:
             t_reach = t

@@ -14,6 +14,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 — Spin-up attempt series at 0.5 Hz, 4 per direction (live, worker2, one go from Molly)
+
+- `brake_offsets.py` (voltage-steps e5c6495): U = `--map g1 --level 800 --w-push-max 120 --spin-to 0.5 --dir D --duration 540 --ncc-min 0.70`; D = spin-down `--level 1600 --w-push-max 120 --spin-to 0.001 --duration 300`. FE GPS 1478540331 (U1) to 1478549582 (D8).
+- **6/8 passed at frame-resolution timing, 7/8 with interpolated crossings** (pass: first turn along D; within ±5 % of 0.5 Hz within 300 s; all turns of the next 300 s within ±5 %). U6 fails only at frame resolution (one turn at 0.527); U7 fails both ways (two turns at 0.471/0.474). Means 0.501-0.511 Hz (both directions run 1-2 % high). Spin-downs stopped rotation in 10-33 s (D1 failed with push limit 90, since fixed). No safety stops except D2's tracker stall during a concurrent upload. Table and files: `lab_utils/SPINUP_HANDOFF.md` (SERIES), Dropbox `spinup/2026-11-12/series/`.
+
 ### 2026-11-11 (night) — Spin-up by pumping over the top (live, worker2, Molly's go; DECISIONS 2026-11-11 amended rule)
 
 - S1 `brake_offsets.py run --map g1 --level 1600 --spin-to 0.5 --dir 1 --duration 480 --enable-outputs --live` (voltage-steps 70ca56b), FE 1478503576-1478503921: **first full turn along +1 at 40 s after the field went on; ~130 turns at 0.43-0.47 Hz (mean ~0.45) over ~5 min**; 0.5 Hz not reached (the governor kept pushing; ceiling with pushes only below 90 deg/s). Peak 291 deg/s; tracker ncc min 0.82. Stopped at 338 s on the speed cap, which was spurious (two frames with the same host time; fixed in 18e3e0a). The rotor coasted with the field off: 0.42 Hz just after, 0.41 Hz ~2 min later. Data worker2 `~/spinup/2026-11-11/spin/`, Dropbox `spinup/2026-11-11/spin/` (tracker_S1 verified).

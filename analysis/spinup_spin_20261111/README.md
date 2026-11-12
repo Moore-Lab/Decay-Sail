@@ -107,3 +107,36 @@ Files: `spin_summary.md`, `spin_cells.json`, `plots/spin_traces.png`.
   back out.
 - **0.75 Hz** is not reachable on this route (needs faster updates).
 - **Within ±1 %** of 0.5 Hz: about 20–50 % of turns at the best settings.
+
+## Update-rate sim (2026-11-12; `spin_sim_rate.py`, `spin_rate_summary.md`; derived)
+
+Same governor, trap measured from the coast, three plant variants × C 15/30 ms × both directions (12 cells per setting).
+Best push limit and level per row:
+
+| updates/s | 0.5 Hz: passed / ±5 % / ±1 % | 0.75 Hz | 1.0 Hz |
+|---|---|---|---|
+| 8 (today) | 10/12, 99 %, 17 % | 0/12, plateau 0.43 Hz | 0/12 |
+| 16 | 11/12, 100 %, 1 % | **7/12, 94 %, 5 %** (mean 0.773) | 6/12, 50 %, 28 % (mean 0.90) |
+| 25 | 3/12, 86 % | 6/12, 85 % | 0/12, 26 % |
+| 50 | 1/12, 48 % | 3/12, 98 % | 0/12, 12 % |
+
+- **16 updates/s reaches 0.75 Hz** with this governor, mostly within ±5 %, running ~3 % high.
+- **More updates do not help this governor; they make it worse.**
+  - It pushes on/off at a fixed level and judges speed from the last full turn.
+  - With pushes allowed most of the way round, it overshoots and hunts.
+  - Reaching 1 Hz, or ±1 %, needs a different controller, as well as more updates per turn: push strength set by the speed
+    error, with speed estimated within the turn.
+  - So the 25/50 Hz rows show this governor's limit, not the hardware's.
+
+## Reversal (2026-11-12; `spin_sim_reverse.py`, `spin_reverse_summary.md`; derived)
+
+The governor now brakes first when the rotor is rotating against the requested direction (voltage-steps, after e5c6495).
+Sim from 0.5 Hz against the direction, using the coast trap, level 800 and a 120°/s push limit:
+
+- the first turn in the new direction came in 12/12 cells for each direction and target, at a median of 16 s (+) and
+  26 s (−);
+- the target was reached at a median of 47–56 s;
+- 97–100 % of turns were within ±5 %;
+- 8–12 of 12 cells passed per row.
+
+A target of 0.495 instead of 0.5 hardly moves the mean: the − direction still runs ~1.5 % high, in the sim as well as live.
