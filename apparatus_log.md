@@ -14,6 +14,14 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-11 (evening) — Spin-up G2: brake from a large swing, DC-coupled (live, worker2, Molly's go)
+
+- `brake_offsets.py run --map g1` (voltage-steps 7f62942). Each repeat: kick A 2400 + `--pump-to`, then brake at 800 counts. Data Dropbox `spinup/2026-11-11/g2/`.
+- Repeat 1 (FE 1478496197-): kick ±18.8 deg (G1 AC: ±18.2), pump to 36 in 2.7 s, brake from ±40.1 (peaks 256.9/176.6): < 10 deg in 3.3 s, final ±0.6. Pass.
+- Repeat 2 (FE 1478497433-): kick only ±5.5 deg (same pull to 194.6 as repeat 1; released at a different point of the hold oscillation, not proven); pump to 32 overshot to ±42.4 about 216.9; first brake tripped the safe range (175.7 < 176) after 0.14 s. Brake rerun with `--safe 173,261` (Molly's go): **braked well (Molly); video kept** (FE 1478497989, 125 s; `--safe 173,261` this run only): ±40.4 about 216.8 -> first peak < 10 deg at +9.1 s (a 4-8 s plateau of +14..+21 deg peaks first), < 2 deg at +10.0 s, final ±1.2. Pass. Video tracker_2b/output_basler_gps1478481358.avi.
+- Repeat 3 (FE 1478498249-; brake FE 1478498309, default safe 176-258): kick ~0 (released near the top of the hold oscillation), pump to 26 in 4.6 s, brake from ±35.4 about 215.9: first peak < 10 deg at +6.2 s, final ±0.2. Pass. Video in tracker_2b.
+- All three brakes met the proposed G2 criteria (results `analysis/brake_g2_20261111/README.md`); the gate pass is Molly's call. Dropbox copy verified (rclone check, 0 differences; tracker_2b 1800 s, 90001 frames, 0 dropped, holds repeat 2's free swing and rerun and all of repeat 3). worker2 idle, front end at rest.
+
 ### 2026-11-11 — HV amp switched to DC coupling; carry simulation (Mac); G1 run recorded
 
 - Molly moved the HV amp J1/J5 jumpers from the capacitor (AC) path to the direct path: outputs now DC-coupled (DECISIONS 2026-11-11). Cables were being reconnected afterwards. Nothing measured on the new path yet.
