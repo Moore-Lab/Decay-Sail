@@ -226,6 +226,7 @@ def cmd_run(a, ep=None, src=None):
     S = Safety(a.grow, a.safe)
     hist, low_ncc, reason = [], 0, 'duration'
     trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
+    hist_k = []                                         # (frame index, unwrapped angle) for the speed cap
     try:
         for n in CHANS:
             ep.put(f'{PREFIX}_V{n}_TRAMP', 0)
@@ -268,6 +269,7 @@ def cmd_run(a, ep=None, src=None):
                 reason = f'ncc < {a.ncc_min} for 5 frames'; break
             ang_u = ang if not hist else unwrap_to(hist[-1][1], ang)
             hist.append((ht, ang_u)); hist = hist[-8:]
+            hist_k.append((k, ang_u)); hist_k = hist_k[-8:]
             S.add(ang)
             note = ''
             if phase in ('kick', 'settle'):
@@ -290,8 +292,10 @@ def cmd_run(a, ep=None, src=None):
                 f_against = mean_rate(trail, ht, ang_u, -a.dir)
                 # speed for the cap: straight-line fit over the last 8 frames (a 2-frame difference over host receive
                 # times tripped on timestamp jitter, S1 2026-11-11: two frames with the same host time gave 533 deg/s)
-                if len(hist) >= 5:
-                    w_now = float(np.polyfit([h[0] for h in hist], [h[1] for h in hist], 1)[0])
+                # timed by FRAME INDEX x 20 ms (camera isochronous at 50 fps, 0 dropped frames in every run so far): host
+                # receive times bunch after a tracker stall (U18 2026-11-12: a 150 ms stall then 9 frames in 40 ms -> 700 deg/s)
+                if len(hist_k) >= 5:
+                    w_now = float(np.polyfit([h[0] * 0.02 for h in hist_k], [h[1] for h in hist_k], 1)[0])
                     over_cap = over_cap + 1 if abs(w_now) > a.w_cap else 0
                     if over_cap >= 3:
                         reason = f'speed {w_now:.0f} deg/s above --w-cap {a.w_cap:g} (3 frames running)'; break
