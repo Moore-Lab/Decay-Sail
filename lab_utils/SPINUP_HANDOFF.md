@@ -48,7 +48,7 @@ decisions: `docs/DECISIONS.md` (2026-11-10 feedback rule; 2026-11-11 DC coupling
 
 ## Code (branch `voltage-steps`, worker2 `~/wt_vs`; tracker from `feedback-drive`, worker2 `~/wt_fb`)
 
-- **`lab_utils/brake_offsets.py`** (latest e5c6495):
+- **`lab_utils/brake_offsets.py`** (latest c5a2afe: adds reversal, brakes first if rotating against --dir):
   - `run --map g1` gives the brake (`--level 800`) or the pump (`--pump-to DEG`).
   - `--spin-to HZ --dir ±1 --w-push-max DEG/S --level N` gives the spin-up governor; `--spin-to 0.001` is the spin-down.
   - **Safety:**
