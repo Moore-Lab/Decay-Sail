@@ -14,6 +14,10 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 — worker2 disk: local video copies removed (Molly's OK)
+
+- 11 tracker .avi files (32.7 GB) deleted on worker2 from `~/spinup/2026-11-11/{g2,spin}` and `~/spinup/2026-11-12/series` after a fresh `rclone check` showed each on Dropbox unchanged; CSVs, logs and consoles kept locally. Free space 24 -> 54 GB. Copies: Dropbox `spinup/...` (same paths).
+
 ### 2026-11-12 — Spin-up attempt series at 0.5 Hz, 4 per direction (live, worker2, one go from Molly)
 
 - `brake_offsets.py` (voltage-steps e5c6495): U = `--map g1 --level 800 --w-push-max 120 --spin-to 0.5 --dir D --duration 540 --ncc-min 0.70`; D = spin-down `--level 1600 --w-push-max 120 --spin-to 0.001 --duration 300`. FE GPS 1478540331 (U1) to 1478549582 (D8).

@@ -67,9 +67,12 @@ Files: `spin_summary.md`, `spin_cells.json`, `plots/spin_traces.png`.
     in shape; rms difference 1.6 rad/s², with both carrying ripple. High orders may be partly overfit.
   - **Damping:** dE/dt = −c ω² gives **c = 3.8e−4 /s**, within ~10 % of B1's 3.5e−4 (B1's γ is this viscous coefficient,
     derived from its 0.11 %-per-cycle figure).
-- **Against September (observation, cause not identified):** the September spindown gave τ_mech = 79.8 min (DECISIONS
-  drag row), i.e. c = 1/τ = 2.1e−4 /s. Tonight's coast gives τ = 1/c = 44 min, and B1 gave 48 min: damping is now ~1.8×
-  September's.
+- **Against September: not a like-for-like comparison** (corrected 2026-11-12). The fitted τ depends on the speed band.
+  - September (Molly's slide): 85.7 / 85.3 min (CCW / CW) in the 0.50–0.75 Hz band; 79.8 / 79.0 min for the full coast.
+  - Tonight's coast covered 0.27–0.43 Hz, where the trap modulates the speed strongly within each turn, and its c comes
+    from an energy fit with the trap included.
+  - So "~1.8× more damping now" is not established. It needs a coast in the 0.50–0.75 Hz band (that needs 16 Hz
+    updates).
   - What changed since September (Molly, 2026-11-11): the board was already installed then, but not grounded.
   - Since then: the beam change; the tilt-stage rebuild (10-15 to 10-26: shims, screw stands removed, PCB and magnet
     centred); board grounding (10-27).
