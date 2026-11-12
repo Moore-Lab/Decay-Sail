@@ -14,6 +14,13 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-11 (night) — Spin-up by pumping over the top (live, worker2, Molly's go; DECISIONS 2026-11-11 amended rule)
+
+- S1 `brake_offsets.py run --map g1 --level 1600 --spin-to 0.5 --dir 1 --duration 480 --enable-outputs --live` (voltage-steps 70ca56b), FE 1478503576-1478503921: **first full turn along +1 at 40 s after the field went on; ~130 turns at 0.43-0.47 Hz (mean ~0.45) over ~5 min**; 0.5 Hz not reached (the governor kept pushing; ceiling with pushes only below 90 deg/s). Peak 291 deg/s; tracker ncc min 0.82. Stopped at 338 s on the speed cap, which was spurious (two frames with the same host time; fixed in 18e3e0a). The rotor coasted with the field off: 0.42 Hz just after, 0.41 Hz ~2 min later. Data worker2 `~/spinup/2026-11-11/spin/`, Dropbox `spinup/2026-11-11/spin/` (tracker_S1 verified).
+- Free coast after S1: 0.43 -> 0.27 Hz in 11 min, last full turn at +681 s, then a swing (±100 deg by ~40 min). Video timing of S1: 0.459 Hz. Full-circle trap and damping from the coast: `analysis/spinup_spin_20261111/README.md` (barrier at 60 deg, 6.5 rad^2/s^2; c = 3.8e-4 /s).
+- 2026-11-12 S3, spin-up --dir -1 (18e3e0a). First try (FE 1478536186) stopped at 26 s on ncc < 0.8: the tracker match dips to ~0.78 at 320-330 deg (S1 0.82 at 342). Rerun with `--ncc-min 0.70` (Molly's go; no frame went below 0.78), FE 1478536726-217: **first full turn along -1 at 25.8 s from the ±98 deg swing; 212 turns; 0.45-0.49 Hz, hold 200-480 s mean 0.470 Hz (0.447-0.491)**; 0.5 Hz not reached. Peak 274 deg/s.
+- S4, spin-down --dir -1 --spin-to 0.001 (FE 1478537267-572): rotation ended at 37 s; then braked the swing to ~±42 about 213.5 by 300 s. End states clean. Files Dropbox `spinup/2026-11-11/spin/`. S3 video timing (independent of the tracker): 10 turns in 1066 frames = 0.469 Hz. tracker_S3 copy verified (135001 frames, 0 dropped).
+
 ### 2026-11-11 (evening) — Spin-up G2: brake from a large swing, DC-coupled (live, worker2, Molly's go)
 
 - `brake_offsets.py run --map g1` (voltage-steps 7f62942). Each repeat: kick A 2400 + `--pump-to`, then brake at 800 counts. Data Dropbox `spinup/2026-11-11/g2/`.

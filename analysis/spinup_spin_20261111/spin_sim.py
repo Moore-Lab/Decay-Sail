@@ -34,6 +34,9 @@ import carry_sim as CS  # noqa: E402
 INTAKE, GAMMA = 0.125, 3.5e-4
 REST = 208.5
 SWITCH = None          # (t, new target Hz): spin-down test
+TRAP_SRC = 'assumed'   # or 'coast'
+TOL = 0.05             # governor deadband width (live --tol)
+COAST = json.load(open(os.path.join(HERE, 'coast_trap.json'))) if os.path.exists(os.path.join(HERE, 'coast_trap.json')) else None
 
 
 def run(cell, T=600.0, dt=0.002, trace=False):
@@ -41,7 +44,10 @@ def run(cell, T=600.0, dt=0.002, trace=False):
     B.set_map('g1')
     f_t, d, tin, out, f, pscale, C, level, seed, wpm = cell
     rng = np.random.default_rng(seed)
-    trapP = CS.trap_table(tin, out, 0.6, seed)
+    if TRAP_SRC == 'coast':                         # measured over the full circle from S1's coast (coast_trap.json)
+        trapP = tin * np.interp(CS.TH, COAST['theta_deg'], COAST['acc'], period=360.0)
+    else:
+        trapP = CS.trap_table(tin, out, 0.6, seed)
     trapP = trapP - trapP.mean()      # a static trap does no net work per turn (the stitched table was off by its mean)
     FP = CS.push_tables('G1B2', pscale * (1 + 0.1 * rng.standard_normal(3)))
     x = level / 800.0
@@ -75,7 +81,7 @@ def run(cell, T=600.0, dt=0.002, trace=False):
             if not aborted and t - last_write >= INTAKE - 1e-9 and len(hist) >= 5:
                 last_write = t
                 ft_now = f_t if (SWITCH is None or t < SWITCH[0]) else SWITCH[1]     # optional target change (spin-down test)
-                o, _ = B.choose_spin(hist, t, level, d, f_mean, ft_now, 0.05, wpm)
+                o, _ = B.choose_spin(hist, t, level, d, f_mean, ft_now, TOL, wpm)
                 land = math.ceil((t + C - tick0) / INTAKE) * INTAKE + tick0
                 if rng.uniform() > 1 / 400:
                     pending.append((land, np.array(o) > 0))
