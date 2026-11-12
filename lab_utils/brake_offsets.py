@@ -164,6 +164,37 @@ def mean_rate(trail, t_now, th_now, d, span=30.0):
     return 0.0
 
 
+class TurnTimer:
+    """Per-turn rates along d from (frame index, unwrapped angle), timed by frame index x 20 ms with the 360-deg crossing
+    interpolated between frames (the scoring method, DECISIONS 2026-11-12). Only new forward maxima count, so turning
+    against d during a reversal is ignored until the lost ground is recovered."""
+    def __init__(self, d, fps=50.0):
+        self.d, self.dt = d, 1.0 / fps
+        self.th0 = None; self.prev = None; self.n_max = None; self.cross = []; self.rates = []
+
+    def add(self, k, th):
+        if self.th0 is None:
+            self.th0 = th; self.prev = (k, th); self.n_max = 0
+            return None
+        k0, th_prev = self.prev
+        self.prev = (k, th)
+        x0, x1 = self.d * (th_prev - self.th0), self.d * (th - self.th0)
+        n = math.floor(x1 / 360.0)
+        new = None
+        while n > self.n_max and x1 > x0:
+            self.n_max += 1
+            frac = (360.0 * self.n_max - x0) / (x1 - x0)
+            tc = (k0 + min(max(frac, 0.0), 1.0) * (k - k0)) * self.dt
+            if self.cross:
+                new = 1.0 / (tc - self.cross[-1]); self.rates.append(new)
+            self.cross.append(tc)
+        return new
+
+    def on_target(self, f_target, tol, n_turns):
+        r = self.rates[-n_turns:]
+        return len(r) >= n_turns and all(abs(x / f_target - 1.0) < tol for x in r)
+
+
 class Safety:
     def __init__(self, grow, safe, fps=50.0, win=4.0):
         self.grow, self.safe, self.n = grow, safe, int(win * fps)
@@ -184,7 +215,7 @@ class Safety:
 
 
 def cmd_run(a, ep=None, src=None):
-    for k_, v_ in dict(spin_to=0.0, dir=1, tol=0.05, w_push_max=90.0, w_cap=500.0).items():   # callers without spin args
+    for k_, v_ in dict(spin_to=0.0, dir=1, tol=0.05, w_push_max=90.0, w_cap=500.0, stop_on_target=0, stop_tol=0.01).items():   # callers without spin args
         if not hasattr(a, k_):
             setattr(a, k_, v_)
     lv = a.level
@@ -196,6 +227,7 @@ def cmd_run(a, ep=None, src=None):
           + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
           + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else '')
           + (f'; SPIN to {a.spin_to:g} Hz dir {a.dir:+d}, push below {a.w_push_max:g} deg/s, cap {a.w_cap:g} deg/s, NO safe range'
+             + (f'; STOP ON TARGET after {a.stop_on_target} turns within {100 * a.stop_tol:g} %' if getattr(a, 'stop_on_target', 0) > 0 else '')
              if getattr(a, 'spin_to', 0) > 0 else ''))
     print('=' * 72)
     err = vs.check_plan(rows)
@@ -227,6 +259,7 @@ def cmd_run(a, ep=None, src=None):
     hist, low_ncc, reason = [], 0, 'duration'
     trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
     hist_k = []                                         # (frame index, unwrapped angle) for the speed cap
+    TT = None                                           # spin: per-turn rates (TurnTimer)
     try:
         for n in CHANS:
             ep.put(f'{PREFIX}_V{n}_TRAMP', 0)
@@ -302,9 +335,15 @@ def cmd_run(a, ep=None, src=None):
                 turns = a.dir * (ang_u - spin_th0) / 360.0 if spin_th0 is not None else 0.0
                 if spin_th0 is None:
                     spin_th0 = ang_u
+                if TT is None:
+                    TT = TurnTimer(a.dir)
+                r_new = TT.add(k, ang_u)
+                if a.stop_on_target > 0 and r_new is not None and TT.on_target(a.spin_to, a.stop_tol, a.stop_on_target):
+                    reason = (f'on target: last {a.stop_on_target} turns within {100 * a.stop_tol:g} % of {a.spin_to:g} Hz '
+                              f'({", ".join(f"{x:.4f}" for x in TT.rates[-a.stop_on_target:])}); field off, coasting'); break
                 if now - t_brake >= a.duration:
                     reason = 'duration'; break
-                note = f'f_mean={f_mean:.4f};f_against={f_against:.4f};turns={turns:.2f}'
+                note = f'f_mean={f_mean:.4f};f_against={f_against:.4f};turns={turns:.2f}' + (f';turn_rate={r_new:.4f}' if r_new else '')
             elif phase == 'brake' and a.pump_to > 0:
                 if not (a.safe[0] <= ang <= a.safe[1]):
                     reason = f'angle {ang:.1f} outside {a.safe}'; break
@@ -494,6 +533,9 @@ def main():
     r.add_argument('--tol', type=float, default=0.05, help='spin: deadband width: push below target x (1 - tol/2), brake above target x (1 + tol/2)')
     r.add_argument('--w-push-max', type=float, default=90.0, help='deg/s: spin pushes only where the rotor is slower than this')
     r.add_argument('--w-cap', type=float, default=500.0, help='deg/s: spin safety, field off for good above this speed')
+    r.add_argument('--stop-on-target', type=int, default=0, help='spin: field off (coast) once this many consecutive turns '
+                   'are within --stop-tol of --spin-to (per-turn rate, frame-index timing, interpolated crossings); 0 = off')
+    r.add_argument('--stop-tol', type=float, default=0.01, help='spin: fractional tolerance for --stop-on-target (0.01 = 1 %%)')
     r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
     r.add_argument('--kick-hold', type=float, default=2.0)
     r.add_argument('--kick-settle', type=float, default=10.0)
