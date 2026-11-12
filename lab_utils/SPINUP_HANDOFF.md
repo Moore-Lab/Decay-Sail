@@ -73,6 +73,9 @@ decisions: `docs/DECISIONS.md` (2026-11-10 feedback rule; 2026-11-11 DC coupling
 - **Stop rules used:** any stop other than the expected one, a wrong-direction first turn, no turn by 360 s, a spin-down
   leaving the rotor turning, or a dirty end state (OFFSET 0, SW2R 768, TRAMP restored, OUTMON 0).
 - **No Dropbox uploads or other heavy jobs during a live run.** A 4.7 GB upload starved the tracker (D2 stale stop, 11-12).
+- **Videos (Molly's standing OK, 11-12):** after each run, worker2 uploads the folder (`rclone copy`), runs `rclone check`, and
+  deletes the local .avi files only when that folder shows 0 differences. CSVs and logs stay local. Never during a run
+  or a coast.
 - **Data:** worker2 `~/spinup/<date>/...`, mirrored to Dropbox `Microspheres/TFINER/data/spinup/<date>/...`; Mac path
   `~/Library/CloudStorage/Dropbox/...`.
 
