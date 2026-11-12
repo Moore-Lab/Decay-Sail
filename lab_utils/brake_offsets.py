@@ -110,13 +110,16 @@ def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15, sign=-1):
     return tuple(out), dict(th=th_e, w_dps=math.degrees(w_e), th_p=th_p, q=-1 if out == [0.0] * 3 else bq)
 
 
-def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90.0, c_assumed=0.030, min_push=0.15):
+def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90.0, c_assumed=0.030, min_push=0.15,
+                f_against=0.0, f_rev=0.05):
     """Spin-up governor (2026-11-11, DECISIONS rule amended for this run). hist: [(t, UNWRAPPED angle deg)].
     No trap model: the quadratic fit's own acceleration is used to predict to the middle of the hold the write lands in.
     Energy is added only where the rotor is slow (|w| < w_push_max deg/s, where 8 updates/s can still commutate):
       f_mean < f_target (1 - tol/2) -> push along d, only while moving along d (pumps the swing, then drives the turn);
       f_mean > f_target (1 + tol/2) -> brake (push against the motion);
-      otherwise                   -> off.
+      otherwise                   -> off;
+      and if the rotor is ROTATING against d (mean rate along -d above f_rev, 0.05 Hz) -> brake first (reversal,
+      2026-11-12); small swings are still pumped normally.
     Returns (offsets (V2, V4, V3), est dict)."""
     tt = np.array([h[0] for h in hist]) - t_now; yy = np.array([h[1] for h in hist])
     p2 = np.polyfit(tt, yy, 2)
@@ -125,6 +128,8 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
     th_p = th_e + w_e * h + 0.5 * al * h * h; w_p = w_e + al * h
     # deadband centred on the target (was target..target x (1 + tol), which sat the mean above target, sim 2026-11-12)
     want = 1 if f_mean < f_target * (1 - tol / 2) else (-1 if f_mean > f_target * (1 + tol / 2) else 0)
+    if f_against > f_rev:                                  # REVERSE: rotating the other way -> brake first
+        want = -1
     out = [0.0, 0.0, 0.0]; bq = None
     if want != 0 and abs(w_p) < w_push_max:
         if want > 0 and w_p * d > 0:
@@ -282,6 +287,7 @@ def cmd_run(a, ep=None, src=None):
                 trail.append((ht, ang_u)) if (not trail or ht - trail[-1][0] >= 0.1) else None
                 trail = [x for x in trail if ht - x[0] <= 30.0]
                 f_mean = mean_rate(trail, ht, ang_u, a.dir)
+                f_against = mean_rate(trail, ht, ang_u, -a.dir)
                 # speed for the cap: straight-line fit over the last 8 frames (a 2-frame difference over host receive
                 # times tripped on timestamp jitter, S1 2026-11-11: two frames with the same host time gave 533 deg/s)
                 if len(hist) >= 5:
@@ -294,7 +300,7 @@ def cmd_run(a, ep=None, src=None):
                     spin_th0 = ang_u
                 if now - t_brake >= a.duration:
                     reason = 'duration'; break
-                note = f'f_mean={f_mean:.4f};turns={turns:.2f}'
+                note = f'f_mean={f_mean:.4f};f_against={f_against:.4f};turns={turns:.2f}'
             elif phase == 'brake' and a.pump_to > 0:
                 if not (a.safe[0] <= ang <= a.safe[1]):
                     reason = f'angle {ang:.1f} outside {a.safe}'; break
@@ -313,7 +319,8 @@ def cmd_run(a, ep=None, src=None):
             if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.020:
                 last_write = now
                 if a.spin_to > 0:
-                    out, est = choose_spin(hist, ht, a.level, a.dir, f_mean, a.spin_to, a.tol, a.w_push_max, a.c_assumed, a.min_push)
+                    out, est = choose_spin(hist, ht, a.level, a.dir, f_mean, a.spin_to, a.tol, a.w_push_max, a.c_assumed, a.min_push,
+                                           f_against=f_against)
                     est.pop('want', None)
                 else:
                     out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push, sign=1 if a.pump_to > 0 else -1)
