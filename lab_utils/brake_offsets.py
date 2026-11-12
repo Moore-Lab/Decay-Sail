@@ -110,6 +110,54 @@ def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15, sign=-1):
     return tuple(out), dict(th=th_e, w_dps=math.degrees(w_e), th_p=th_p, q=-1 if out == [0.0] * 3 else bq)
 
 
+def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90.0, c_assumed=0.030, min_push=0.15):
+    """Spin-up governor (2026-11-11, DECISIONS rule amended for this run). hist: [(t, UNWRAPPED angle deg)].
+    No trap model: the quadratic fit's own acceleration is used to predict to the middle of the hold the write lands in.
+    Energy is added only where the rotor is slow (|w| < w_push_max deg/s, where 8 updates/s can still commutate):
+      f_mean < f_target          -> push along d, only while moving along d (pumps the swing, then drives the turn);
+      f_mean > f_target (1 + tol) -> brake (push against the motion);
+      otherwise                   -> off.
+    Returns (offsets (V2, V4, V3), est dict)."""
+    tt = np.array([h[0] for h in hist]) - t_now; yy = np.array([h[1] for h in hist])
+    p2 = np.polyfit(tt, yy, 2)
+    th_e, w_e, al = p2[2], p2[1], 2 * p2[0]                     # deg, deg/s, deg/s^2
+    h = c_assumed + INTAKE
+    th_p = th_e + w_e * h + 0.5 * al * h * h; w_p = w_e + al * h
+    want = 1 if f_mean < f_target else (-1 if f_mean > f_target * (1 + tol) else 0)
+    out = [0.0, 0.0, 0.0]; bq = None
+    if want != 0 and abs(w_p) < w_push_max:
+        if want > 0 and w_p * d > 0:
+            vals = [d * push(q, th_p) for q in range(3)]           # most push along d
+        elif want < 0:
+            vals = [-math.copysign(1.0, w_p) * push(q, th_p) for q in range(3)]   # most push against the motion
+        else:
+            vals = None
+        if vals is not None:
+            bq = int(np.argmax(vals))
+            if vals[bq] > min_push:
+                out[bq] = level
+            else:
+                bq = None
+    return tuple(out), dict(th=th_e, w_dps=w_e, th_p=th_p, q=-1 if bq is None else bq, want=want)
+
+
+def unwrap_to(prev, ang):
+    """Angle (0-360 from the tracker) placed within 180 deg of the previous unwrapped angle."""
+    return prev + ((ang - prev + 180.0) % 360.0 - 180.0)
+
+
+def mean_rate(trail, t_now, th_now, d, span=30.0):
+    """Mean rotation rate (Hz, along d) over the last full turn: time back to where the angle was 360 deg behind. Before a
+    full turn (or if none within span s), the net advance over the span divided by the span (small)."""
+    for t, th in reversed(trail):
+        if d * (th_now - th) >= 360.0:
+            return 1.0 / max(t_now - t, 1e-3)
+    if trail:
+        t0, th0 = trail[0]
+        return max(0.0, d * (th_now - th0)) / 360.0 / max(t_now - t0, 1.0)
+    return 0.0
+
+
 class Safety:
     def __init__(self, grow, safe, fps=50.0, win=4.0):
         self.grow, self.safe, self.n = grow, safe, int(win * fps)
@@ -130,6 +178,9 @@ class Safety:
 
 
 def cmd_run(a, ep=None, src=None):
+    for k_, v_ in dict(spin_to=0.0, dir=1, tol=0.05, w_push_max=90.0, w_cap=500.0).items():   # callers without spin args
+        if not hasattr(a, k_):
+            setattr(a, k_, v_)
     lv = a.level
     rows = [dict(block=0, pattern='brake', rate=8.0, step=0, t=0.0, V2=max(lv, a.kick), V4=lv, V3=lv)]
     print('=' * 72)
@@ -137,7 +188,9 @@ def cmd_run(a, ep=None, src=None):
           f'map {getattr(a, "map", "b2")}, safe {a.safe[0]:g}-{a.safe[1]:g} deg, ' + ('no growth limit (pump)' if a.pump_to > 0 else f'grow limit {a.grow}x') + '; outputs '
           f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
           + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
-          + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else ''))
+          + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else '')
+          + (f'; SPIN to {a.spin_to:g} Hz dir {a.dir:+d}, push below {a.w_push_max:g} deg/s, cap {a.w_cap:g} deg/s, NO safe range'
+             if getattr(a, 'spin_to', 0) > 0 else ''))
     print('=' * 72)
     err = vs.check_plan(rows)
     if err:
@@ -166,6 +219,7 @@ def cmd_run(a, ep=None, src=None):
     cur = {n: 0.0 for n in CHANS}
     S = Safety(a.grow, a.safe)
     hist, low_ncc, reason = [], 0, 'duration'
+    trail, spin_th0, f_mean = [], None, 0.0          # spin mode
     try:
         for n in CHANS:
             ep.put(f'{PREFIX}_V{n}_TRAMP', 0)
@@ -206,7 +260,8 @@ def cmd_run(a, ep=None, src=None):
             low_ncc = low_ncc + 1 if ncc < a.ncc_min else 0
             if low_ncc >= 5:
                 reason = f'ncc < {a.ncc_min} for 5 frames'; break
-            hist.append((ht, ang)); hist = hist[-8:]
+            ang_u = ang if not hist else unwrap_to(hist[-1][1], ang)
+            hist.append((ht, ang_u)); hist = hist[-8:]
             S.add(ang)
             note = ''
             if phase in ('kick', 'settle'):
@@ -222,7 +277,20 @@ def cmd_run(a, ep=None, src=None):
                 meas = S.amp(); S.A0 = max(meas, 1.0); phase = 'brake'; t_brake = now
                 print(f'  start swing +-{meas:.2f} deg measured' + (' (growth limit uses a 1.0 deg floor)' if meas < 1.0 else '')
                       + f'; braking for up to {a.duration:g} s')
-            if phase == 'brake' and a.pump_to > 0:
+            if phase == 'brake' and a.spin_to > 0:
+                trail.append((ht, ang_u)) if (not trail or ht - trail[-1][0] >= 0.1) else None
+                trail = [x for x in trail if ht - x[0] <= 30.0]
+                f_mean = mean_rate(trail, ht, ang_u, a.dir)
+                w_now = (hist[-1][1] - hist[-3][1]) / max(hist[-1][0] - hist[-3][0], 1e-3) if len(hist) >= 3 else 0.0
+                if abs(w_now) > a.w_cap:
+                    reason = f'speed {w_now:.0f} deg/s above --w-cap {a.w_cap:g}'; break
+                turns = a.dir * (ang_u - spin_th0) / 360.0 if spin_th0 is not None else 0.0
+                if spin_th0 is None:
+                    spin_th0 = ang_u
+                if now - t_brake >= a.duration:
+                    reason = 'duration'; break
+                note = f'f_mean={f_mean:.4f};turns={turns:.2f}'
+            elif phase == 'brake' and a.pump_to > 0:
                 if not (a.safe[0] <= ang <= a.safe[1]):
                     reason = f'angle {ang:.1f} outside {a.safe}'; break
                 if S.amp() >= a.pump_to:
@@ -239,8 +307,12 @@ def cmd_run(a, ep=None, src=None):
             est = dict(th='', w_dps='', th_p='')
             if phase == 'brake' and len(hist) >= 5 and now - last_write >= INTAKE - 0.020:
                 last_write = now
-                out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push, sign=1 if a.pump_to > 0 else -1)
-                if S.amp() < a.rest_amp and a.pump_to <= 0:             # nearly still: nothing to brake; a push would only disturb it
+                if a.spin_to > 0:
+                    out, est = choose_spin(hist, ht, a.level, a.dir, f_mean, a.spin_to, a.tol, a.w_push_max, a.c_assumed, a.min_push)
+                    est.pop('want', None)
+                else:
+                    out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push, sign=1 if a.pump_to > 0 else -1)
+                if S.amp() < a.rest_amp and a.pump_to <= 0 and a.spin_to <= 0:             # nearly still: nothing to brake; a push would only disturb it
                     out = (0.0, 0.0, 0.0); est['q'] = -1; note = 'rest'
                 ch = [n for n, v in zip(CHANS, out) if v != cur[n]]
                 w0 = ep.now()
@@ -400,6 +472,12 @@ def main():
     r.add_argument('--pump-to', type=float, default=0.0, help='deg: PUMP instead of brake (push along the motion) until the '
                    'swing reaches this, then stop (G1, spin-up plan). Uses the B2 map, 45-deg periodic, outside 187-238 '
                    'assumed. The growth limit is off; --safe still applies (set it wider, e.g. 150,280)')
+    r.add_argument('--spin-to', type=float, default=0.0, help='Hz: SPIN-UP governor (2026-11-11 amended rule): pump over the '
+                   'top and hold this mean rotation rate along --dir; no safe angle range; stops on --duration or --w-cap')
+    r.add_argument('--dir', type=int, default=1, choices=(1, -1), help='spin direction (increasing angle = +1)')
+    r.add_argument('--tol', type=float, default=0.05, help='spin: brake when the mean rate exceeds target x (1 + tol)')
+    r.add_argument('--w-push-max', type=float, default=90.0, help='deg/s: spin pushes only where the rotor is slower than this')
+    r.add_argument('--w-cap', type=float, default=500.0, help='deg/s: spin safety, field off for good above this speed')
     r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
     r.add_argument('--kick-hold', type=float, default=2.0)
     r.add_argument('--kick-settle', type=float, default=10.0)
