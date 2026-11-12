@@ -14,6 +14,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 (afternoon) — Reversal series U9-U20 at 0.5 Hz (live, worker2, Molly's go)
+
+- `brake_offsets.py` c5a2afe (reversal: brake first if rotating against --dir), cap fix c1a86f5 from U19; `--level 800 --w-push-max 120 --spin-to 0.5 --duration 480 --ncc-min 0.70`. FE GPS 1478552676 (U9) to 1478560425 (final spin-down).
+- 8 pass, 3 fail (+1 settling dips), 1 incomplete (U18: spurious speed-cap trip after a 150 ms tracker stall; fixed). All reversals turned along D (first turn 52-142 s). Combined with the morning series: - 9/10, + 6/10 (interpolated timing). Table: `lab_utils/SPINUP_HANDOFF.md`. Data Dropbox `spinup/2026-11-12/reversal/`.
+
 ### 2026-11-12 — worker2 disk: local video copies removed (Molly's OK)
 
 - 11 tracker .avi files (32.7 GB) deleted on worker2 from `~/spinup/2026-11-11/{g2,spin}` and `~/spinup/2026-11-12/series` after a fresh `rclone check` showed each on Dropbox unchanged; CSVs, logs and consoles kept locally. Free space 24 -> 54 GB. Copies: Dropbox `spinup/...` (same paths).

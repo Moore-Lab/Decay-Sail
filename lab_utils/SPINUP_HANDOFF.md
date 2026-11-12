@@ -103,6 +103,34 @@ counts; it was fixed only after U6.
 - **Bias** (all turns): + mean 0.5059 Hz (sd 0.0084), − mean 0.5092 (sd 0.0078). Both run high, − slightly more.
 - **Video timing** (10 turns, independent of the tracker): U1 0.492 Hz (log 0.489), U2 0.514 Hz (log 0.513).
 
+## REVERSAL SERIES (2026-11-12 afternoon; worker2 `reversal_score_table.txt`, Dropbox `spinup/2026-11-12/reversal/`)
+
+Code: c5a2afe, plus the cap fix c1a86f5 from U19. Settings: level 800, push limit 120°/s, 0.5 Hz, 480 s. Each attempt
+started as soon as the previous ended (a reversal), except U9 and U19 (from a swing). Scored with interpolated timing.
+
+| attempt | dir | start | brake-first (s) | first turn (s) | target (s) | mean (Hz) | min | ±5 % | ±1 % | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| U9 | + | swing | – | 60 | 100 | 0.506 | 0.474 | 99.3 | 12 | fail (one dip) |
+| U10 | − | rev | 79 | 102 | 118 | 0.509 | 0.479 | 100 | 7 | pass |
+| U11 | + | rev | 30 | 52 | 74 | 0.507 | 0.479 | 100 | 21 | pass |
+| U12 | − | rev | 108 | 130 | 142 | 0.510 | 0.481 | 100 | 17 | pass |
+| U13 | + | rev | 80 | 125 | 178 | 0.507 | 0.473 | 98.7 | 11 | fail (two dips) |
+| U14 | − | rev | 121 | 142 | 155 | 0.508 | 0.489 | 100 | 21 | pass |
+| U15 | + | rev | 59 | 96 | 120 | 0.510 | 0.478 | 100 | 24 | pass |
+| U16 | − | rev | 70 | 116 | 139 | 0.509 | 0.478 | 100 | 18 | pass |
+| U17 | + | rev | 25 | 64 | 91 | 0.508 | 0.472 | 99.3 | 9 | fail (one dip) |
+| U18 | − | rev | 77 | 125 | 143 | 0.511 | 0.491 | 100 (222 s) | 5 | incomplete (spurious cap trip at 365 s; fixed c1a86f5) |
+| U19 | + | swing | – | 37 | 76 | 0.501 | 0.482 | 100 | 46 | pass |
+| U20 | − | rev | 88 | 140 | 159 | 0.508 | 0.481 | 100 | 6 | pass |
+
+- **Both series together (20 attempts):** − **9/10** (U18 incomplete), + **6/10**.
+  - Every + failure is a single dip to 0.47 within ~15 s of the first in-band turn (U7, U9, U13, U17).
+  - So − meets 8 of 10 at the interim 0.5 Hz target; + does not yet.
+- **Reversals:** all 9 turned along D within the 240 s limit (latest first turn 142 s).
+  - Braking the old rotation took longer into − (70–121 s) than into + (25–80 s). The sim had predicted 16–26 s.
+  - Observed, not explained. The same +/− asymmetry shows in the settling dips.
+- **Video timing** (tracker-independent): U9 0.512 Hz, U10 0.517 Hz, matching the log windows.
+
 ## Next commands
 
 1. Molly rules on the timing method. Then run 6 more attempts per direction for 8 of 10, ideally with the target centred
