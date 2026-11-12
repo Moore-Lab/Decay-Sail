@@ -114,8 +114,8 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
     """Spin-up governor (2026-11-11, DECISIONS rule amended for this run). hist: [(t, UNWRAPPED angle deg)].
     No trap model: the quadratic fit's own acceleration is used to predict to the middle of the hold the write lands in.
     Energy is added only where the rotor is slow (|w| < w_push_max deg/s, where 8 updates/s can still commutate):
-      f_mean < f_target          -> push along d, only while moving along d (pumps the swing, then drives the turn);
-      f_mean > f_target (1 + tol) -> brake (push against the motion);
+      f_mean < f_target (1 - tol/2) -> push along d, only while moving along d (pumps the swing, then drives the turn);
+      f_mean > f_target (1 + tol/2) -> brake (push against the motion);
       otherwise                   -> off.
     Returns (offsets (V2, V4, V3), est dict)."""
     tt = np.array([h[0] for h in hist]) - t_now; yy = np.array([h[1] for h in hist])
@@ -123,7 +123,8 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
     th_e, w_e, al = p2[2], p2[1], 2 * p2[0]                     # deg, deg/s, deg/s^2
     h = c_assumed + INTAKE
     th_p = th_e + w_e * h + 0.5 * al * h * h; w_p = w_e + al * h
-    want = 1 if f_mean < f_target else (-1 if f_mean > f_target * (1 + tol) else 0)
+    # deadband centred on the target (was target..target x (1 + tol), which sat the mean above target, sim 2026-11-12)
+    want = 1 if f_mean < f_target * (1 - tol / 2) else (-1 if f_mean > f_target * (1 + tol / 2) else 0)
     out = [0.0, 0.0, 0.0]; bq = None
     if want != 0 and abs(w_p) < w_push_max:
         if want > 0 and w_p * d > 0:
@@ -479,7 +480,7 @@ def main():
     r.add_argument('--spin-to', type=float, default=0.0, help='Hz: SPIN-UP governor (2026-11-11 amended rule): pump over the '
                    'top and hold this mean rotation rate along --dir; no safe angle range; stops on --duration or --w-cap')
     r.add_argument('--dir', type=int, default=1, choices=(1, -1), help='spin direction (increasing angle = +1)')
-    r.add_argument('--tol', type=float, default=0.05, help='spin: brake when the mean rate exceeds target x (1 + tol)')
+    r.add_argument('--tol', type=float, default=0.05, help='spin: deadband width: push below target x (1 - tol/2), brake above target x (1 + tol/2)')
     r.add_argument('--w-push-max', type=float, default=90.0, help='deg/s: spin pushes only where the rotor is slower than this')
     r.add_argument('--w-cap', type=float, default=500.0, help='deg/s: spin safety, field off for good above this speed')
     r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
