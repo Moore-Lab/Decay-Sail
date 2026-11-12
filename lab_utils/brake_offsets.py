@@ -219,7 +219,7 @@ def cmd_run(a, ep=None, src=None):
     cur = {n: 0.0 for n in CHANS}
     S = Safety(a.grow, a.safe)
     hist, low_ncc, reason = [], 0, 'duration'
-    trail, spin_th0, f_mean = [], None, 0.0          # spin mode
+    trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
     try:
         for n in CHANS:
             ep.put(f'{PREFIX}_V{n}_TRAMP', 0)
@@ -281,9 +281,13 @@ def cmd_run(a, ep=None, src=None):
                 trail.append((ht, ang_u)) if (not trail or ht - trail[-1][0] >= 0.1) else None
                 trail = [x for x in trail if ht - x[0] <= 30.0]
                 f_mean = mean_rate(trail, ht, ang_u, a.dir)
-                w_now = (hist[-1][1] - hist[-3][1]) / max(hist[-1][0] - hist[-3][0], 1e-3) if len(hist) >= 3 else 0.0
-                if abs(w_now) > a.w_cap:
-                    reason = f'speed {w_now:.0f} deg/s above --w-cap {a.w_cap:g}'; break
+                # speed for the cap: straight-line fit over the last 8 frames (a 2-frame difference over host receive
+                # times tripped on timestamp jitter, S1 2026-11-11: two frames with the same host time gave 533 deg/s)
+                if len(hist) >= 5:
+                    w_now = float(np.polyfit([h[0] for h in hist], [h[1] for h in hist], 1)[0])
+                    over_cap = over_cap + 1 if abs(w_now) > a.w_cap else 0
+                    if over_cap >= 3:
+                        reason = f'speed {w_now:.0f} deg/s above --w-cap {a.w_cap:g} (3 frames running)'; break
                 turns = a.dir * (ang_u - spin_th0) / 360.0 if spin_th0 is not None else 0.0
                 if spin_th0 is None:
                     spin_th0 = ang_u
