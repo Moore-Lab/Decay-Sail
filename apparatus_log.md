@@ -14,6 +14,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 (afternoon) — Coast pairs C1-C3; camera moved; tracker re-centred
+
+- Coast pairs (`--spin-to 0.5 --stop-on-target 3 --stop-tol 0.01`, dad1a29; 600 s coasts, no writes): C1 (+1), C2 (-1) complete; C3 (+1) coast valid 0-336 s. First CW/CCW comparison: `analysis/coast_pairs_20261112/README.md`.
+- Molly moved the camera during C3's coast (14:19:33 local, host 1794511172.9) and again ~14:55; series stopped (no writes after 14:13:56). Final view vs 11-11: +10, +16 px, -1.2 deg, scale -1.1 %. New tracker centre (131.03, 178.79), confirmed by Molly on a still; tracker locks (ncc 0.945). STATUS updated. Files Dropbox `camera_check/2026-11-12/` and `/2026-11-12b/`.
+
 ### 2026-11-12 (afternoon) — Reversal series U9-U20 at 0.5 Hz (live, worker2, Molly's go)
 
 - `brake_offsets.py` c5a2afe (reversal: brake first if rotating against --dir), cap fix c1a86f5 from U19; `--level 800 --w-push-max 120 --spin-to 0.5 --duration 480 --ncc-min 0.70`. FE GPS 1478552676 (U9) to 1478560425 (final spin-down).

@@ -58,7 +58,7 @@ decisions: `docs/DECISIONS.md` (2026-11-10 feedback rule; 2026-11-11 DC coupling
     - `--ncc-min` (use 0.70 for spins: the tracker match dips to ~0.78 at 320–330°; a false lock scores ≤ 0.71);
     - in brake/pump mode, the `--safe` range.
   - `selftest` must pass before any live use.
-- **Live tracker:** `camera_utils/tracking/live_blob_track.py --centre 117.5,165.1 --publish 127.0.0.1:5005 --show
+- **Live tracker** (centre (131.03, 178.79) since the camera move of 2026-11-12 15:00; was (117.5, 165.1); STATUS): `camera_utils/tracking/live_blob_track.py --centre 131.03,178.79 --publish 127.0.0.1:5005 --show
   --duration 2700 --outdir DIR`. It records video too, at 15 ms exposure and 50 fps.
 - **Series settings:**
   - spin-up: `--map g1 --level 800 --w-push-max 120 --spin-to 0.5 --dir D --duration 540 --ncc-min 0.70 --enable-outputs --live`;

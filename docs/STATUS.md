@@ -6,6 +6,7 @@ The goal these serve is in `measurement_objective.md`.
 
 ## Open
 
+- **Tracker centre since 2026-11-12 15:00 local: (131.03, 178.79)** after Molly moved the camera (twice; final view vs 11-11: +10, +16 px, rotation -1.2 deg, scale -1.1 %). Molly confirmed it on a still; the tracker locks (median ncc 0.945). Angles may read ~1 deg off the maps' zero (check the rest angle against 208.5 when the rotor settles). Data before 14:19 local 11-12 used (117.5, 165.1). Files: Dropbox `camera_check/2026-11-12b/`. Earlier entry:
 - **Tracker centre re-derived 2026-11-10:** (117.5, 165.1), the 11-06 clicked centre, passes the replay check on the S1 video (median ncc 0.965; checked over a ~63° arc only) and Molly confirmed it on a still. Rest angle 208.6° (F3 had 229.8°; cause unknown). Source: `analysis/voltage_steps_20261110_s1/README.md`, "Rotor".
 
 - **Angle tracking (white blob):** gates 1–6 passed on recorded video
