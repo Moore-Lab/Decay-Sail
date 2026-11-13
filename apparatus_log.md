@@ -14,6 +14,10 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 (evening) — Earlier tilt optimisation recorded (Molly, recalled; no runs)
+
+- October 2025, **old rotor (no cutouts)**: Molly scanned tilt on both axes and minimised the first-mode (libration) frequency. Quadratic fits gave minima at x ≈ −0.53°, y ≈ 0.01° (f₀ ~0.10 and ~0.19 Hz). **Moving to the f₀ minimum made the damping worse** (Molly; damping numbers not recorded here). Lesson: minimising f₀ does not minimise damping, so don't propose f₀-by-tilt as a damping fix. Old setup, so not a measurement of the current rotor. The tilt_check.py monitor (voltage-steps bcdf997, not pushed) was written before this was raised.
+
 ### 2026-11-12 (afternoon) — Coast pairs C1-C3; camera moved; tracker re-centred
 
 - Coast pairs (`--spin-to 0.5 --stop-on-target 3 --stop-tol 0.01`, dad1a29; 600 s coasts, no writes): C1 (+1), C2 (-1) complete; C3 (+1) coast valid 0-336 s. First CW/CCW comparison: `analysis/coast_pairs_20261112/README.md`.

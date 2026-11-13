@@ -69,7 +69,7 @@ The goal these serve is in `measurement_objective.md`.
   video 10-30 0.311 Hz agree); how it depends on amplitude and time is open (`analysis/ringdown_20261102/README.md`). Current value:
   `docs/DECISIONS.md`. The older LES-based 0.12–0.16 Hz values predate the comb rule and
   are unexplained. f₀ matched before and after the 10-15 → 10-26 rebuild (log 2026-11-04).
-  Planned (Molly): tilt-stage check, f₀ and rest angle at small tilt steps, to test whether tilt sets the trap. Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the
+  Planned (Molly): tilt-stage check, f₀ and rest angle at small tilt steps, to test whether tilt sets the trap. Note (Molly, 2026-11-12): in October 2025 on the old rotor (no cutouts), tilting to the f₀ minimum made the damping worse (log 2026-11-12 evening). Re-examine `Y1_RDS-LES_YAW_IN1_DQ_1472933400_1472935200.h5` in the
   time domain (cusp spacing, not a peak finder).
 - **Rotation direction:** which way A→B→C turns the rotor has not been observed. No lock
   yet; on the sweep the camera-to-board sign mapping is not established.
