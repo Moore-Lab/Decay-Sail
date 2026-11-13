@@ -16,7 +16,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ### 2026-11-12 (evening) — Earlier tilt optimisation recorded (Molly, recalled; no runs)
 
-- October 2025, **old rotor (no cutouts)**: Molly scanned tilt on both axes and minimised the first-mode (libration) frequency. Quadratic fits gave minima at x ≈ −0.53°, y ≈ 0.01° (f₀ ~0.10 and ~0.19 Hz). **Moving to the f₀ minimum made the damping worse** (Molly; damping numbers not recorded here). Lesson: minimising f₀ does not minimise damping, so don't propose f₀-by-tilt as a damping fix. Old setup, so not a measurement of the current rotor. The tilt_check.py monitor (voltage-steps bcdf997, not pushed) was written before this was raised.
+- October 2025, **old rotor (no cutouts)**: Molly scanned tilt on both axes and minimised the first-mode (libration) frequency. Quadratic fits gave minima at x ≈ −0.53°, y ≈ 0.01° (f₀ ~0.10 and ~0.19 Hz). **Moving to the f₀ minimum made the damping worse.** Damping from Molly's slide (exponential fits to ln ω; old rotor):
+  - pre tilt stage: γ ≈ 1.3e-3 /s, τ ≈ 15 min (SNR 0.22 in 1 s, 13 in 1 h);
+  - after the tilt "improvement": γ ≈ 3.2e-3 /s, τ ≈ 5 min (fit 311 s; SNR 0.14 / 8);
+  - after George, with the tilt stage: γ ≈ 2.4e-4 /s, τ ≈ 68 min (fit 4290 s = 71.5 min over +10 to +40 min; SNR 0.5 / 30).
+  So the f₀-minimising tilt cost ~2.5× in damping; the later gain came from George's change, not tilt. Lesson: minimising f₀ does not minimise damping, so don't propose f₀-by-tilt as a damping fix. Old setup, so not a measurement of the current rotor. The tilt_check.py monitor (voltage-steps bcdf997, not pushed) was written before this was raised.
 
 ### 2026-11-12 (afternoon) — Coast pairs C1-C3; camera moved; tracker re-centred
 
