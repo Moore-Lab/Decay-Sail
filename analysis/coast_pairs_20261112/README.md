@@ -1,4 +1,4 @@
-# CW/CCW coast pairs (2026-11-12): damping symmetry, first look
+# CW/CCW coast pairs (2026-11-12): damping symmetry
 
 Method: Molly's differential spindown. Spin up with the electrodes (`brake_offsets.py --spin-to 0.5 --stop-on-target 3
 --stop-tol 0.01`, voltage-steps dad1a29), field off on target, coast 600 s with no writes, reverse, repeat.
@@ -38,3 +38,33 @@ C2's 7-frame dot loss is masked. Errors are 1σ from a delete-one-block jackknif
   (3.8e−4, 0.27–0.43 Hz).
 - **Precision needed:** the recoil is ~1e−4 of the drag (slide), so this is far from the level the measurement needs.
   It needs many pairs, and 0.75 Hz.
+
+
+## All three pairs (C1/C2, C3b/C4, C5/C6; tracker centre (131.03, 178.79) from C3b on; derived)
+
+| quantity | + coasts (C1, C3b, C5) | − coasts (C2, C4, C6) | − vs + per pair (%) | weighted mean (%) |
+|---|---|---|---|---|
+| τ, 0.44–0.49 Hz (min) | 36.22, 36.32, 36.14 | 36.77, 36.78, 36.71 | +1.51, +1.27, +1.58 (±0.9–1.1 each) | **+1.47 ± 0.57** |
+| c, 0.44–0.49 Hz (1e−4 /s) | 3.672, 3.730, 3.724 | 3.634, 3.668, 3.682 | −1.04, −1.65, −1.14 | **−1.24 ± 0.62** |
+| τ, 0.38–0.49 Hz (min) | 33.52, 33.60, 33.48 | 33.91, 33.92, 34.00 | +1.17, +0.97, +1.57 | +1.24 ± 1.89 |
+| c, 0.38–0.49 Hz (1e−4 /s) | 3.708, 3.749, 3.754 | 3.687, 3.713, 3.706 | −0.59, −0.95, −1.29 | −0.98 ± 0.46 |
+
+**Observations:**
+- **Every pair shows the same sign:** the − direction damps 1.0–1.5 % less than the + direction (τ longer, c lower).
+- **The scatter is smaller than the errors.** Repeats within a direction agree to ~0.1–0.3 % (τ: + 36.14–36.32, −
+  36.71–36.78), and χ² ≈ 0 for 2 degrees of freedom. So the jackknife errors look conservative.
+  - On the repeat scatter, the τ difference is about 1.5 ± 0.15 %, i.e. not consistent with zero.
+  - On the jackknife errors it is 2.6σ.
+- **Comparison with September** (Molly's slide, one coast each way): 0.4 ± 0.5 % at 0.50–0.75 Hz and ≈ 3 % at 0.3–0.5 Hz.
+  These coasts are at 0.37–0.50 Hz.
+- **Cause: unknown.** Candidates, not approved:
+  - A small constant torque (direction-independent) would slow one direction and speed the other. It would give an
+    asymmetry growing as 1/ω, matching September's larger lower-band difference. But here the wider band (lower speeds
+    included) shows a smaller c asymmetry, not a larger one, so this data does not support that scaling.
+  - A direction-dependent dissipation.
+  - Something from the stator: the electrode floors at 0 counts are small and static, which by itself gives no net
+    torque per turn.
+- **Next tests (proposed):**
+  - pairs at 0.75 Hz, which needs the 16 Hz update; there September matched to 0.4 %;
+  - more pairs here, to fix the band dependence of the asymmetry;
+  - a pair with the camera illumination changed, to check light-induced torque.

@@ -26,8 +26,11 @@ CT = json.load(open(os.path.join(HERE, '..', 'spinup_spin_20261111', 'coast_trap
 FPS = 50.0
 MOVE = 1794511172.9
 COASTS = [('C1', +1, 'tracker_1/blob_live_gps1478544406.csv'), ('C2', -1, 'tracker_1/blob_live_gps1478544406.csv'),
-          ('C3', +1, 'tracker_2/blob_live_gps1478545917.csv')]
-BANDS = {'common 0.44-0.49': (0.44, 0.49), 'C1/C2 0.38-0.49': (0.38, 0.49)}
+          ('C3', +1, 'tracker_2/blob_live_gps1478545917.csv'),
+          ('C3b', +1, 'tracker_3/blob_live_gps1478549385.csv'), ('C4', -1, 'tracker_3/blob_live_gps1478549385.csv'),
+          ('C5', +1, 'tracker_4/blob_live_gps1478550935.csv'), ('C6', -1, 'tracker_4/blob_live_gps1478550935.csv')]
+PAIRS = [('C1', 'C2'), ('C3b', 'C4'), ('C5', 'C6')]         # back-to-back +/- pairs (C3 partial: extra)
+BANDS = {'common 0.44-0.49': (0.44, 0.49), 'full 0.38-0.49': (0.38, 0.49)}
 
 
 def meta(name):
@@ -124,7 +127,7 @@ def main():
         r['tau_whole_err'] = boot(lambda x: fit_tau(x[:, 0], x[:, 1]), tr)
         r['c_whole'] = fit_c(et); r['c_whole_err'] = boot(fit_c, et)
         for bn, (lo, hi) in BANDS.items():
-            if bn.startswith('C1/C2') and name == 'C3':
+            if bn.startswith('full') and name == 'C3':
                 continue
             s = (tr[:, 1] >= lo) & (tr[:, 1] <= hi)
             se = (et[:, 1] >= lo) & (et[:, 1] <= hi)
@@ -134,31 +137,34 @@ def main():
             r[f'c {bn}'] = fit_c(et[se]); r[f'c {bn} err'] = boot(fit_c, et[se])
             r[f'n {bn}'] = int(s.sum())
         res[name] = r
-    json.dump(res, open(os.path.join(HERE, 'coast_pairs.json'), 'w'), indent=1)
     for name, r in res.items():
         print(name, {k: (round(v, 6) if isinstance(v, float) else v) for k, v in r.items()})
     # CW/CCW comparisons
     print()
-    keys = {'tau whole': ('tau_whole_min', 'tau_whole_err'), 'c whole': ('c_whole', 'c_whole_err')}
+    out = {}
     for bn in BANDS:
-        keys[f'tau {bn}'] = (f'tau {bn}', f'tau {bn} err'); keys[f'c {bn}'] = (f'c {bn}', f'c {bn} err')
-    for key, (k, ke) in keys.items():
-        vals = {n_: (res[n_].get(k), res[n_].get(ke)) for n_ in res}
-        vals = {n_: v for n_, v in vals.items() if v[0] is not None}
-        if 'C1' in vals and 'C2' in vals:
-            a1, e1 = vals['C1']; a2, e2 = vals['C2']
-            line = f'{key}: ' + ', '.join(f'{n_} {v[0]:.5g} ± {v[1]:.2g}' for n_, v in vals.items())
-            line += f' | C2(-) vs C1(+): {100 * (a2 / a1 - 1):+.2f} ± {100 * np.hypot(e1 / a1, e2 / a2):.2f} %'
-            if 'C3' in vals:
-                a3, e3 = vals['C3']
-                line += f' | C3(+) vs C1(+): {100 * (a3 / a1 - 1):+.2f} ± {100 * np.hypot(e1 / a1, e3 / a3):.2f} %'
-            print(line)
+        for q in ('tau', 'c'):
+            k, ke = f'{q} {bn}', f'{q} {bn} err'
+            diffs = []
+            for p_, m_ in PAIRS:
+                a1, e1 = res[p_][k], res[p_][ke]; a2, e2 = res[m_][k], res[m_][ke]
+                diffs.append((100 * (a2 / a1 - 1), 100 * np.hypot(e1 / a1, e2 / a2)))
+            dv = np.array(diffs)
+            wts = 1 / dv[:, 1] ** 2
+            mean = float(np.sum(dv[:, 0] * wts) / np.sum(wts)); err = float(1 / np.sqrt(np.sum(wts)))
+            chi2 = float(np.sum((dv[:, 0] - mean) ** 2 * wts))
+            plus = [res[n_][k] for n_ in ('C1', 'C3b', 'C5')]; minus = [res[n_][k] for n_ in ('C2', 'C4', 'C6')]
+            out[k] = dict(pairs=diffs, weighted_mean_pct=mean, err_pct=err, chi2=chi2, plus=plus, minus=minus)
+            print(f'{k}: pair diffs (- vs +, %): ' + ', '.join(f'{d:+.2f}±{e:.2f}' for d, e in diffs)
+                  + f' | weighted mean {mean:+.2f} ± {err:.2f} % (chi2 {chi2:.1f}/2) | + values '
+                  + ', '.join(f'{v:.5g}' for v in plus) + ' | - values ' + ', '.join(f'{v:.5g}' for v in minus))
+    json.dump(dict(per_coast=res, comparison=out), open(os.path.join(HERE, 'coast_pairs.json'), 'w'), indent=1)
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     os.makedirs(os.path.join(HERE, 'plots'), exist_ok=True)
     fig, ax = plt.subplots(1, 2, figsize=(14, 4.6))
-    for name, col in (('C1', 'C0'), ('C2', 'C3'), ('C3', 'C2')):
+    for name, col in (('C1', 'C0'), ('C3b', 'C9'), ('C5', 'C2'), ('C2', 'C3'), ('C4', 'C1'), ('C6', 'C6')):
         tr = traces[name]
         lab = f'{name} ({"+" if res[name]["dir"] > 0 else "-"}1): tau {res[name]["tau_whole_min"]:.1f} min'
         ax[0].plot(tr[:, 0] / 60, tr[:, 1], '.', ms=2, color=col, label=lab)
