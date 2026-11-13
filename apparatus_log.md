@@ -14,6 +14,11 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-12 (night) — Rest angle after the camera move (worker2, read only, Molly's yes)
+
+- Tracker only (`live_blob_track.py --centre 131.03,178.79 --duration 120`), no EPICS writes; front end at rest before and after (OFFSET 0, SW2R 768, OUTMON 0, DRVON OFF). Start host 1794538918.67, gps1478574136, 6001 frames, 0 dropped.
+- Rotor still (p-p 0.82 deg, no drift). **Median 208.48 deg** (mean 208.479, sd 0.228; ncc median 0.948), matching 208.5 before the move: no angle offset at rest. Files: worker2 `~/spinup/2026-11-12/rest_angle/`, Dropbox `spinup/2026-11-12/rest_angle/` (rclone check 0 differences; the tracker always writes an AVI, 215 MB, kept).
+
 ### 2026-11-12 (evening) — Earlier tilt optimisation recorded (Molly, recalled; no runs)
 
 - October 2025, **old rotor (no cutouts)**: Molly scanned tilt on both axes and minimised the first-mode (libration) frequency. Quadratic fits gave minima at x ≈ −0.53°, y ≈ 0.01° (f₀ ~0.10 and ~0.19 Hz). **Moving to the f₀ minimum made the damping worse.** Damping from Molly's slide (exponential fits to ln ω; old rotor):
