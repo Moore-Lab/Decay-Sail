@@ -53,6 +53,9 @@ p.add_argument('--replay', default='', help='read frames from this video instead
 p.add_argument('--replay-realtime', action='store_true', help='pace --replay at its frame rate (for loop tests)')
 p.add_argument('--publish', default='', help='HOST:PORT: send each angle as a UDP datagram '
                '"frame,host_time,angle_deg,ncc" (for lab_utils/feedback_drive.py); off by default')
+p.add_argument('--video-every', type=int, default=1, help='save every Nth frame to the AVI (default 1 = all; '
+               '10 = 5 fps at 50 fps; 0 = no video). Tracking and the timestamp CSV still use every frame; '
+               'AVI frame j is camera frame j*N (frame_index j*N+1 in output_basler_*.csv)')
 args = p.parse_args()
 
 T, ref_angle, ref_centre, ref_median = blob_core.load_template(args.template)
@@ -120,14 +123,15 @@ os.makedirs(args.outdir, exist_ok=True)
 gps = int(time.time() - GPS_UNIX_OFF)
 stem = os.path.join(args.outdir, 'output_basler_gps%d' % gps)
 writer = None                             # replay: the video already exists, so no copy
-if not args.replay:
-    writer = cv2.VideoWriter(stem + '.avi', cv2.VideoWriter_fourcc(*'FFV1'), fps, (W, H), isColor=False)
+if args.video_every < 0: close_source(); sys.exit('--video-every must be >= 0')
+if not args.replay and args.video_every > 0:
+    writer = cv2.VideoWriter(stem + '.avi', cv2.VideoWriter_fourcc(*'FFV1'), fps / args.video_every, (W, H), isColor=False)
     if not writer.isOpened():
         close_source(); sys.exit('FFV1 VideoWriter failed to open (%s.avi)' % stem)
 ts = open(stem + '.csv', 'w', buffering=1); ts.write('frame_index,block_id,cam_timestamp_ns,host_time\n')
 ang_name = os.path.join(args.outdir, 'blob_live_gps%d.csv' % gps)
 out = open(ang_name, 'w', buffering=1)
-print('recording -> %s (%s)\nangles    -> %s' % (stem + '.avi' if writer else '(none, replay)', datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), ang_name))
+print('recording -> %s (%s)\nangles    -> %s' % ((stem + '.avi' + ('' if args.video_every == 1 else ' (every %dth frame)' % args.video_every)) if writer else ('(none, replay)' if args.replay else '(none, --video-every 0)'), datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC'), ang_name))
 
 pub = None
 if args.publish:
@@ -153,8 +157,8 @@ def start_tracker():
         how = 'registered: board shift (%+.2f, %+.2f) px, response %.2f' % (dx, dy, resp)
     trk = blob_core.Tracker(cx, cy, W, H, T, ref_angle)
     print('centre (%.2f, %.2f) %s' % (cx, cy, how))
-    out.write('# live_blob_track.py gps%d centre=(%.6f,%.6f) %s template=%s exposure=%.1fms%s\n' % (
-        gps, cx, cy, how, os.path.basename(args.template), args.exposure, ' replay=' + args.replay if args.replay else ''))
+    out.write('# live_blob_track.py gps%d centre=(%.6f,%.6f) %s template=%s exposure=%.1fms video_every=%d%s\n' % (
+        gps, cx, cy, how, os.path.basename(args.template), args.exposure, args.video_every, ' replay=' + args.replay if args.replay else ''))
     out.write('frame,host_time,angle_deg,r_px,ncc,ncc_elsewhere,source,proc_ms\n')
 
 def track(f, k, host):
@@ -179,7 +183,7 @@ try:
     for f, block, cam_ns in frames():
         if not running['go']: break
         host = time.time(); n += 1
-        if writer: writer.write(f)
+        if writer and (n - 1) % args.video_every == 0: writer.write(f)
         ts.write('%d,%d,%d,%.6f\n' % (n, block, cam_ns, host))
         if prev_block is not None and block > prev_block + 1: dropped += block - prev_block - 1
         prev_block = block
