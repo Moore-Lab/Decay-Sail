@@ -33,6 +33,7 @@ import csv
 import glob
 import math
 import os
+import signal
 import socket
 import sys
 import time
@@ -260,6 +261,13 @@ def cmd_run(a, ep=None, src=None):
     trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
     hist_k = []                                         # (frame index, unwrapped angle) for the speed cap
     TT = None                                           # spin: per-turn rates (TurnTimer)
+
+    def killed(signum, frame):                          # SIGTERM/SIGHUP -> same exit as Ctrl-C: field off in finally.
+        for sg in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):   # ignore repeats so they can't cut the finally short
+            signal.signal(sg, signal.SIG_IGN)
+        raise KeyboardInterrupt(signal.Signals(signum).name)
+    for sg in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sg, killed)
     try:
         for n in CHANS:
             ep.put(f'{PREFIX}_V{n}_TRAMP', 0)
@@ -380,8 +388,8 @@ def cmd_run(a, ep=None, src=None):
                 est = {k2: (f'{v:.3f}' if isinstance(v, float) else v) for k2, v in est.items()}
             log.write(f'{now:.6f},{k},{ht:.6f},{ang:.3f},{ncc:.3f},{phase},{est["th"]},{est["w_dps"]},{est["th_p"]},{choice},'
                       f'{cur[2]:g},{cur[4]:g},{cur[3]:g},{w0 if w0 == "" else f"{w0:.6f}"},{w1 if w1 == "" else f"{w1:.6f}"},{note}\n')
-    except KeyboardInterrupt:
-        reason = 'Ctrl-C'
+    except KeyboardInterrupt as e:
+        reason = f'killed ({e})' if str(e) else 'Ctrl-C'
     except Exception as e:
         reason = f'error: {e}'
     finally:

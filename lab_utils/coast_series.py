@@ -4,6 +4,13 @@
     python3 coast_series.py --pairs 25 --outdir ~/spinup/2026-11-14/overnight            # dry: brake_offsets without --live
     python3 coast_series.py --pairs 25 --outdir ~/spinup/2026-11-14/overnight --live     # Molly's go, typed on worker2
 
+Launch detached on worker2 (tmux does not work there), so a closed terminal or Claude session cannot kill it:
+    setsid nohup python3 lab_utils/coast_series.py --pairs 40 --outdir DIR --live > DIR/series_console.txt 2>&1 &
+    watch: tail -f DIR/series_console.txt        end early: touch DIR/STOP
+brake_offsets.py turns the field off on SIGTERM/SIGHUP as on Ctrl-C (2026-11-14). If this script itself is killed
+mid-run, series.csv lacks that step's row: the console files have it. If the series stopped early, check the
+tracker first (a dead tracker stops the next spin-up on stale frames, safely).
+
 Needs the tracker running first, publishing to 127.0.0.1:5005 (from ~/wt_fb):
     camera_utils/tracking/live_blob_track.py --centre 131.03,178.79 --publish 127.0.0.1:5005 --video-every 10 --outdir DIR
 
