@@ -14,6 +14,13 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-14 (night) — Overnight coast series: test pair, then 30 pairs launched (live, worker2, Molly's typed go)
+
+- Code: voltage-steps 6e861aa (`lab_utils/coast_series.py`: pairs of spin-up +, 600 s coast, spin-up -, 600 s coast, then a final brake; brake_offsets settings as C1-C6; `brake_offsets.py` now turns the field off on SIGTERM/SIGHUP, Mac kill test); feedback-drive e3db19f (tracker `--video-every 10`: tracks all 50 fps, saves 5 fps, ~0.66 GB/h). Launched detached (`setsid nohup`; tmux does not work on worker2).
+- Tracker (pid 586696, gps1478746563, centre 131.03,178.79): at rest 208.89 deg (11-12: 208.48), ncc 0.92 at rest (11-12: 0.95), dip to 0.73 at 300-345 deg while rotating (11-12: 0.78-0.84). Cause unknown.
+- Test pair (`--pairs 1`, host 1794711504-1794713648): O01 (+1) from rest 270 s, on target (0.4965 Hz); O02 (-1) braked the + rotation in ~40 s, reversed, then held 0.46-0.485 Hz and stopped on the 360 s duration (not on target; coast from ~0.48 Hz). Coasts ~-0.013 Hz/min, as 11-12. Final brake 0.36 -> 0.04 Hz in 25 s. End state at rest. Data Dropbox `spinup/2026-11-14/overnight/test/`.
+- Overnight: `coast_series.py --pairs 30 --ncc-min 0.62 --live` (ncc stop lowered from 0.70 for the 0.73 dip; a lost dot reads ~0.5), started 23:06 local (host ~1794715587), pid 589641, ends ~11:00 11-15. Folder worker2 `~/spinup/2026-11-14/overnight/series/`. Analysis (tracker and LES tau per coast vs time) to follow.
+
 ### 2026-11-12 (night) — Rest angle after the camera move (worker2, read only, Molly's yes)
 
 - Tracker only (`live_blob_track.py --centre 131.03,178.79 --duration 120`), no EPICS writes; front end at rest before and after (OFFSET 0, SW2R 768, OUTMON 0, DRVON OFF). Start host 1794538918.67, gps1478574136, 6001 frames, 0 dropped.
