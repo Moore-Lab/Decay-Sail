@@ -51,9 +51,9 @@ PREFIX = 'Y1:RDS-OUTS'
 GPS_PV = 'Y1:DAQ-DC0_GPS'
 CHANS = (2, 3, 4)
 SPIN = ['--map', 'g1', '--level', '800', '--w-push-max', '120', '--spin-to', '0.5', '--stop-on-target', '3',
-        '--stop-tol', '0.01', '--duration', '360', '--ncc-min', '0.70', '--enable-outputs']
+        '--stop-tol', '0.01', '--duration', '360', '--enable-outputs']
 FINAL = ['--map', 'g1', '--level', '1600', '--w-push-max', '120', '--spin-to', '0.001', '--duration', '300',
-         '--ncc-min', '0.70', '--enable-outputs']
+         '--enable-outputs']
 
 
 class Reader:
@@ -131,6 +131,8 @@ def main():
     p.add_argument('--coast', type=float, default=600.0, help='s of free coast after each spin-up (11-12: 600)')
     p.add_argument('--outdir', required=True)
     p.add_argument('--live', action='store_true', help='pass --live to brake_offsets (Molly\'s go)')
+    p.add_argument('--ncc-min', type=float, default=0.70, help='tracker match stop for every brake_offsets run (11-12: '
+                   '0.70; a lost dot reads ~0.5, ncc_elsewhere)')
     p.add_argument('--first-dir', type=int, default=1, choices=(1, -1))
     p.add_argument('--min-free-gb', type=float, default=5.0)
     p.add_argument('--no-final-brake', action='store_true', help='end without the final brake')
@@ -143,7 +145,7 @@ def main():
     n_steps = 2 * a.pairs
     print('=' * 72)
     print(f'  coast_series: {a.pairs} pairs ({n_steps} spin-ups + {a.coast:g} s coasts, ~{a.pairs * 24 / 60:.1f} h), '
-          f'first dir {a.first_dir:+d}; {"LIVE" if a.live else "DRY (brake_offsets without --live)"}')
+          f'first dir {a.first_dir:+d}; ncc-min {a.ncc_min:g}; {"LIVE" if a.live else "DRY (brake_offsets without --live)"}')
     print(f'  outdir {a.outdir}; free {free_gb(a.outdir):.1f} GB; touch {os.path.join(a.outdir, "STOP")} to end early')
     print('=' * 72)
     st0 = rd.state()
@@ -165,7 +167,7 @@ def main():
             end_why = f'free disk below {a.min_free_gb:g} GB'; break
         print(f'\n--- {name}: spin-up dir {d:+d}  ({time.strftime("%H:%M:%S")}, step {i}/{n_steps}) ---', flush=True)
         t_start = time.time()
-        reason, turns, rc = run_brake(a, SPIN + ['--dir', str(d)], os.path.join(a.outdir, f'console_{name}.txt'))
+        reason, turns, rc = run_brake(a, SPIN + ['--ncc-min', f'{a.ncc_min:g}', '--dir', str(d)], os.path.join(a.outdir, f'console_{name}.txt'))
         t_off = time.time()
         g_off = rd.gps()
         st = rd.state()
@@ -194,7 +196,7 @@ def main():
     print(f'\n--- series ends: {end_why} ({time.strftime("%H:%M:%S")}) ---')
     if a.no_final_brake:
         print('  no final brake (--no-final-brake): rotor left coasting'); return 0
-    reason, _, rc = run_brake(a, FINAL + ['--dir', str(last_dir)], os.path.join(a.outdir, 'console_final.txt'))
+    reason, _, rc = run_brake(a, FINAL + ['--ncc-min', f'{a.ncc_min:g}', '--dir', str(last_dir)], os.path.join(a.outdir, 'console_final.txt'))
     st = rd.state()
     print(f'  final brake: {reason}; end state {fmt_state(st)}')
     if reason not in ('duration', 'dry') or not offsets_zero(st):
