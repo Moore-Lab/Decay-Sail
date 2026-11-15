@@ -1,0 +1,65 @@
+O01 +1 turns 254 drop 0 ncc_min 0.731 f 0.494->0.367 band trk 33.79 les 33.90 whole trk 33.16 les 33.24
+O02 -1 turns 254 drop 0 ncc_min 0.731 f 0.493->0.366 band trk 34.09 les 34.06 whole trk 33.36 les 33.40
+O03 +1 turns 255 drop 0 ncc_min 0.730 f 0.496->0.369 band trk 33.81 les 33.84 whole trk 33.37 les 33.39
+O04 -1 swing (LES), skipped
+O05 +1 turns 254 drop 0 ncc_min 0.730 f 0.494->0.366 band trk 33.80 les 33.90 whole trk 33.15 les 33.19
+O06 -1 turns 257 drop 0 ncc_min 0.730 f 0.498->0.371 band trk 34.21 les 34.19 whole trk 33.95 les 34.00
+O07 +1 turns 254 drop 0 ncc_min 0.731 f 0.494->0.365 band trk 33.87 les 33.90 whole trk 33.04 les 33.13
+O08 -1 turns 195 drop 0 ncc_min 0.729 f 0.411->0.117 band trk nan les nan whole trk nan les 19.75
+O09 +1 turns 259 drop 0 ncc_min 0.731 f 0.501->0.374 band trk 33.95 les 34.04 whole trk 33.96 les 33.99
+O10 -1 turns 234 drop 0 ncc_min 0.730 f 0.461->0.329 band trk nan les nan whole trk nan les 29.88
+O11 +1 turns 255 drop 0 ncc_min 0.730 f 0.495->0.367 band trk 33.98 les 34.06 whole trk 33.32 les 33.37
+O12 -1 turns 255 drop 0 ncc_min 0.731 f 0.495->0.370 band trk 34.31 les 34.27 whole trk 33.89 les 33.89
+O13 +1 turns 256 drop 0 ncc_min 0.731 f 0.497->0.369 band trk 33.82 les 33.88 whole trk 33.47 les 33.51
+O14 -1 turns 257 drop 0 ncc_min 0.729 f 0.498->0.372 band trk 34.13 les 34.20 whole trk 33.97 les 34.01
+O15 +1 turns 259 drop 0 ncc_min 0.730 f 0.501->0.374 band trk 33.96 les 34.08 whole trk 33.97 les 34.02
+O16 -1 turns 255 drop 0 ncc_min 0.729 f 0.495->0.370 band trk 34.29 les 34.29 whole trk 33.86 les 33.87
+O17 +1 turns 254 drop 0 ncc_min 0.730 f 0.494->0.367 band trk 34.07 les 34.11 whole trk 33.35 les 33.36
+O18 -1 turns 256 drop 0 ncc_min 0.731 f 0.496->0.370 band trk 34.18 les 34.24 whole trk 33.83 les 33.85
+O19 +1 turns 255 drop 0 ncc_min 0.730 f 0.495->0.367 band trk 33.95 les 34.04 whole trk 33.31 les 33.39
+O20 -1 swing (LES), skipped
+O21 +1 turns 255 drop 0 ncc_min 0.729 f 0.495->0.367 band trk 34.00 les 34.11 whole trk 33.30 les 33.38
+O22 -1 turns 250 drop 0 ncc_min 0.728 f 0.486->0.359 band trk 34.33 les 34.40 whole trk 32.95 les 33.01
+O23 +1 turns 255 drop 0 ncc_min 0.729 f 0.496->0.369 band trk 33.74 les 33.77 whole trk 33.36 les 33.37
+O24 -1 turns 255 drop 0 ncc_min 0.730 f 0.495->0.370 band trk 34.29 les 34.27 whole trk 33.81 les 33.83
+O25 +1 turns 256 drop 0 ncc_min 0.729 f 0.497->0.369 band trk 33.92 les 33.93 whole trk 33.51 les 33.55
+O26 -1 turns 246 drop 0 ncc_min 0.728 f 0.479->0.351 band trk 34.17 les 34.24 whole trk nan les 32.10
+O27 +1 turns 254 drop 0 ncc_min 0.729 f 0.494->0.366 band trk 33.99 les 34.00 whole trk 33.27 les 33.32
+O28 -1 turns 254 drop 0 ncc_min 0.730 f 0.493->0.368 band trk 34.47 les 34.50 whole trk 33.85 les 33.90
+O29 +1 turns 258 drop 0 ncc_min 0.729 f 0.501->0.374 band trk 33.95 les 34.02 whole trk 33.97 les 34.00
+O30 -1 turns 257 drop 0 ncc_min 0.729 f 0.497->0.372 band trk 34.36 les 34.42 whole trk 34.13 les 34.17
+O31 +1 turns 255 drop 0 ncc_min 0.730 f 0.496->0.369 band trk 34.04 les 34.07 whole trk 33.56 les 33.58
+O32 -1 turns 255 drop 0 ncc_min 0.729 f 0.495->0.369 band trk 34.37 les 34.53 whole trk 33.86 les 33.89
+O33 +1 turns 255 drop 0 ncc_min 0.730 f 0.496->0.369 band trk 33.95 les 34.04 whole trk 33.47 les 33.47
+O34 -1 turns 255 drop 0 ncc_min 0.729 f 0.494->0.369 band trk 34.37 les 34.50 whole trk 33.86 les 33.86
+O35 +1 turns 254 drop 0 ncc_min 0.730 f 0.494->0.366 band trk 33.88 les 33.96 whole trk 33.17 les 33.26
+O36 -1 turns 255 drop 0 ncc_min 0.729 f 0.495->0.370 band trk 34.36 les 34.29 whole trk 33.98 les 33.97
+O37 +1 turns 254 drop 0 ncc_min 0.728 f 0.493->0.366 band trk 34.06 les 34.22 whole trk 33.31 les 33.32
+O38 -1 turns 252 drop 0 ncc_min 0.729 f 0.489->0.363 band trk 34.45 les 34.45 whole trk 33.47 les 33.51
+O39 +1 turns 254 drop 0 ncc_min 0.729 f 0.493->0.366 band trk 33.97 les 33.96 whole trk 33.28 les 33.32
+O40 -1 turns 259 drop 0 ncc_min 0.730 f 0.501->0.376 band trk 34.62 les 34.64 whole trk 34.71 les 34.74
+O41 +1 turns 255 drop 0 ncc_min 0.729 f 0.495->0.368 band trk 34.03 les 34.00 whole trk 33.52 les 33.58
+O42 -1 turns 257 drop 0 ncc_min 0.728 f 0.497->0.373 band trk 34.68 les 34.71 whole trk 34.40 les 34.44
+O43 +1 turns 257 drop 0 ncc_min 0.728 f 0.498->0.371 band trk 33.94 les 33.95 whole trk 33.73 les 33.77
+O44 -1 turns 255 drop 0 ncc_min 0.729 f 0.494->0.369 band trk 34.55 les 34.60 whole trk 34.09 les 34.11
+O45 +1 turns 259 drop 0 ncc_min 0.728 f 0.502->0.376 band trk 34.14 les 34.13 whole trk 34.26 les 34.31
+O46 -1 turns 254 drop 0 ncc_min 0.729 f 0.493->0.368 band trk 34.43 les 34.43 whole trk 33.88 les 33.90
+O47 +1 turns 259 drop 0 ncc_min 0.729 f 0.501->0.375 band trk 34.23 les 34.40 whole trk 34.29 les 34.34
+O48 -1 turns 246 drop 0 ncc_min 0.728 f 0.479->0.351 band trk 34.44 les 34.44 whole trk nan les 32.31
+O49 +1 turns 255 drop 0 ncc_min 0.728 f 0.495->0.368 band trk 34.08 les 34.21 whole trk 33.52 les 33.56
+O50 -1 turns 255 drop 0 ncc_min 0.728 f 0.494->0.369 band trk 34.56 les 34.61 whole trk 34.11 les 34.16
+O51 +1 turns 259 drop 0 ncc_min 0.727 f 0.502->0.377 band trk 34.11 les 34.13 whole trk 34.33 les 34.34
+O52 -1 turns 258 drop 0 ncc_min 0.729 f 0.499->0.373 band trk 34.37 les 34.42 whole trk 34.28 les 34.31
+O53 +1 turns 255 drop 0 ncc_min 0.730 f 0.495->0.368 band trk 33.87 les 33.92 whole trk 33.36 les 33.40
+O54 -1 turns 256 drop 0 ncc_min 0.729 f 0.496->0.371 band trk 34.46 les 34.52 whole trk 34.08 les 34.11
+O55 +1 turns 259 drop 0 ncc_min 0.729 f 0.502->0.375 band trk 34.00 les 34.01 whole trk 34.06 les 34.10
+O56 -1 swing (LES), skipped
+O57 +1 turns 257 drop 0 ncc_min 0.729 f 0.499->0.372 band trk 34.13 les 34.14 whole trk 33.85 les 33.90
+O58 -1 turns 258 drop 0 ncc_min 0.728 f 0.499->0.374 band trk 34.63 les 34.68 whole trk 34.59 les 34.61
+O59 +1 turns 257 drop 0 ncc_min 0.729 f 0.499->0.372 band trk 34.04 les 34.14 whole trk 33.91 les 33.96
+O60 -1 swing (LES), skipped
+tau_band_min {"dir+1": {"n": 30, "mean": 33.969957138645746, "sd": 0.11540007173206925, "sem": 0.02106907414178953, "slope_min_per_h": 0.017961127439629163, "slope_err": 0.0042057295690135724}, "dir-1": {"n": 24, "mean": 34.37980965819791, "sd": 0.1595365327474103, "sem": 0.03256525838033118, "slope_min_per_h": 0.03522927280045695, "slope_err": 0.005744189590776651}}
+  pairs {"n": 24, "mean_pct": 1.182656737385058, "sd_pct": 0.4217614549332692, "sem_pct": 0.08609169648002939, "n_positive": 24}
+tau_whole_min {"dir+1": {"n": 30, "mean": 33.571482593251204, "sd": 0.3674495805185661, "sem": 0.06708680799860982, "slope_min_per_h": 0.048094081956649264, "slope_err": 0.014613013664785776}, "dir-1": {"n": 22, "mean": 33.95010435446015, "sd": 0.38018240080030774, "sem": 0.08105516019642141, "slope_min_per_h": 0.0566254238737078, "slope_err": 0.019408473036668997}}
+  pairs {"n": 22, "mean_pct": 1.2552904956576396, "sd_pct": 1.2564926214330656, "sem_pct": 0.2678851269850684, "n_positive": 18}
+band_trk_minus_les_pct {"n": 54, "mean": -0.13925377994305302, "sd": 0.15791344375770672, "min": -0.4967970199570515, "max": 0.20523921481159224}
