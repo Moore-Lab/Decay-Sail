@@ -1,0 +1,44 @@
+O01 +1 23:11 pit snr 1865/1813 f 0.491->0.372 tau 33.24±0.85 (other ch 33.24) band 33.90±0.52
+O02 -1 23:23 yaw snr 1615/1818 f 0.490->0.371 tau 33.40±0.87 (other ch 33.40) band 34.06±0.52
+O03 +1 23:35 yaw snr 1779/2009 f 0.492->0.373 tau 33.39±0.84 (other ch 33.40) band 33.84±0.50
+O04 -1 23:51 yaw snr 913/1078 f 0.321->0.332 NOT ROTATING (swing)  [duration]
+O05 +1 00:07 yaw snr 1708/1771 f 0.490->0.371 tau 33.19±0.83 (other ch 33.20) band 33.90±0.46  [duration]
+O06 -1 00:20 yaw snr 1770/1860 f 0.494->0.376 tau 34.00±0.82 (other ch 33.99) band 34.19±0.50
+O07 +1 00:34 yaw snr 1680/1819 f 0.489->0.370 tau 33.13±0.89 (other ch 33.13) band 33.90±0.49
+O08 -1 00:50 yaw snr 989/1150 f 0.407->0.250 tau 19.75±2.47 (other ch 19.31) band -  [duration]
+O09 +1 01:04 yaw snr 1786/2164 f 0.497->0.379 tau 33.99±0.82 (other ch 34.02) band 34.04±0.52
+O10 -1 01:20 yaw snr 1311/1553 f 0.457->0.334 tau 29.88±1.13 (other ch 29.86) band -  [duration]
+O11 +1 01:33 pit snr 1661/1661 f 0.491->0.372 tau 33.37±0.86 (other ch 33.37) band 34.06±0.51
+O12 -1 01:45 yaw snr 1707/1919 f 0.491->0.374 tau 33.89±0.84 (other ch 33.89) band 34.27±0.52
+O13 +1 01:58 yaw snr 1692/1830 f 0.493->0.374 tau 33.51±0.82 (other ch 33.51) band 33.88±0.52
+O14 -1 02:10 yaw snr 1736/1855 f 0.495->0.377 tau 34.01±0.81 (other ch 34.01) band 34.20±0.55
+O15 +1 02:22 yaw snr 1821/1922 f 0.497->0.379 tau 34.02±0.84 (other ch 34.02) band 34.08±0.49
+O16 -1 02:37 yaw snr 1826/2094 f 0.492->0.374 tau 33.87±0.82 (other ch 33.88) band 34.29±0.49
+O17 +1 02:49 yaw snr 1738/1836 f 0.490->0.371 tau 33.36±0.87 (other ch 33.37) band 34.11±0.52
+O18 -1 03:03 yaw snr 1718/1857 f 0.492->0.375 tau 33.85±0.81 (other ch 33.84) band 34.24±0.51
+O19 +1 03:17 yaw snr 1504/1876 f 0.491->0.372 tau 33.39±0.85 (other ch 33.41) band 34.04±0.53
+O20 -1 03:33 yaw snr 1107/1303 f 0.306->0.335 NOT ROTATING (swing)  [duration]
+O21 +1 03:48 pit snr 1681/1586 f 0.491->0.372 tau 33.38±0.87 (other ch 33.37) band 34.11±0.50
+O22 -1 04:04 yaw snr 1763/1885 f 0.483->0.364 tau 33.01±0.91 (other ch 33.00) band 34.40±0.52  [duration]
+O23 +1 04:20 yaw snr 1818/1942 f 0.492->0.373 tau 33.37±0.85 (other ch 33.37) band 33.77±0.51
+O24 -1 04:34 yaw snr 1699/1995 f 0.491->0.374 tau 33.83±0.83 (other ch 33.82) band 34.27±0.49
+O25 +1 04:48 yaw snr 1796/2257 f 0.492->0.374 tau 33.55±0.85 (other ch 33.56) band 33.93±0.53
+O26 -1 05:04 pit snr 1882/1819 f 0.475->0.356 tau 32.10±0.93 (other ch 32.10) band 34.24±0.43  [duration]
+O27 +1 05:18 pit snr 1765/1753 f 0.489->0.371 tau 33.32±0.88 (other ch 33.30) band 34.00±0.53
+O28 -1 05:31 yaw snr 1605/1778 f 0.489->0.373 tau 33.90±0.82 (other ch 33.89) band 34.50±0.51
+O29 +1 05:46 pit snr 1901/1892 f 0.497->0.379 tau 34.00±0.83 (other ch 33.98) band 34.02±0.53
+O30 -1 05:58 yaw snr 1688/1949 f 0.493->0.377 tau 34.17±0.82 (other ch 34.16) band 34.42±0.57
+O31 +1 06:13 yaw snr 1696/1843 f 0.492->0.373 tau 33.58±0.83 (other ch 33.60) band 34.07±0.51
+O32 -1 06:25 yaw snr 1616/1916 f 0.490->0.373 tau 33.89±0.83 (other ch 33.89) band 34.53±0.47
+O33 +1 06:37 yaw snr 1696/2098 f 0.492->0.373 tau 33.47±0.85 (other ch 33.48) band 34.04±0.48
+O34 -1 06:51 pit snr 1799/1770 f 0.490->0.373 tau 33.86±0.83 (other ch 33.88) band 34.50±0.50
+O35 +1 07:04 pit snr 1834/1769 f 0.489->0.371 tau 33.26±0.83 (other ch 33.25) band 33.96±0.51
+O36 -1 07:17 yaw snr 1792/1804 f 0.491->0.374 tau 33.97±0.77 (other ch 33.96) band 34.29±0.50
+O37 +1 07:30 yaw snr 1660/1816 f 0.489->0.370 tau 33.32±0.87 (other ch 33.33) band 34.22±0.44
+O38 -1 07:46 yaw snr 1875/2009 f 0.485->0.368 tau 33.51±0.85 (other ch 33.49) band 34.45±0.52  [duration]
+tau_band_min dir+1 {'n': 19, 'mean': 33.9932, 'sd': 0.1114, 'sem': 0.0256, 'slope_min_per_h': 0.0187, 'slope_err': 0.0092}
+tau_band_min dir-1 {'n': 15, 'mean': 34.3234, 'sd': 0.1364, 'sem': 0.0352, 'slope_min_per_h': 0.0424, 'slope_err': 0.0089}
+tau_band_min pairs {'n': 15, 'mean_pct': 0.9399, 'sd_pct': 0.363, 'sem_pct': 0.0937}
+tau_whole_min dir+1 {'n': 19, 'mean': 33.4648, 'sd': 0.2649, 'sem': 0.0608, 'slope_min_per_h': 0.012, 'slope_err': 0.0243}
+tau_whole_min dir-1 {'n': 14, 'mean': 33.7977, 'sd': 0.2988, 'sem': 0.0799, 'slope_min_per_h': 0.012, 'slope_err': 0.0324}
+tau_whole_min pairs {'n': 14, 'mean_pct': 1.0245, 'sd_pct': 0.9633, 'sem_pct': 0.2574}
