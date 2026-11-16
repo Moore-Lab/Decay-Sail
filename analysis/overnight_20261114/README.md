@@ -50,6 +50,65 @@ tau from a fit of f = f0 exp(−t/tau). LES: the 2 f_rot line, rate per 40 s win
 - Per-coast fit errors (LES jackknife ~0.5 min) are ~4× the coast-to-coast scatter, so the scatter is used as the
   measured repeatability.
 
+## Per pair, and the asymmetry in signal units (`pair_plots.py`, `les_phase.py`, 2026-11-16)
+
+Labels: M measured, D derived (from measurements through a stated method or model), A assumed. Interpretations are not
+approved. Tracker per-turn rates, band 0.40–0.47 Hz (~5.5 min of each coast), 24 back-to-back pairs (+ then −; pairs
+with a swing or a low-start coast left out). Table `pair_table.csv`, summary `pair_summary.json`, plots
+`plots/pair_example.png` (one pair, slide style), `plots/pair_grid.png` (all 24), `plots/pair_vs_time.png`,
+`plots/les_phase_compare.png`.
+
+- Per coast (D, log-linear exponential fit): tau 33.97 (+) / 34.38 (−) min; coast-to-coast sd 0.12 / 0.16 min.
+  Error bars in the table and plots are formal errors from the scatter about a pure exponential (0.07 min); see the
+  residual bullet below for why they are not a noise estimate.
+- Pair difference tau(−)/tau(+) − 1 (D): **+1.18 % (sd 0.42, sem 0.09), 24/24 positive.**
+- **Equivalent constant torque** (D, under an assumed model: per pair, d|f|/dt = −|f|/tau ± b with a common tau and a
+  constant b; a direction-dependent drag would also show up in b): **b = −1.24e-6 Hz/s (sd per pair 0.44e-6, sem
+  0.09e-6)**; b·tau = −2.6 mHz at tau 34 min. Negative = along −. Which of ± is CW is not established.
+- **Signal scale** (A: torque 1.1e-18 N m from Molly's slide; I = 1.1e-11 kg m², DECISIONS ±10 %):
+  b_signal = N/(2πI) = 1.6e-8 Hz/s, independent of the damping. The slide's 78 µHz equals b_signal × 79 min, the tau in
+  `noise_budget_20261009.ipynb` (D); at 34 min it would be ~33 µHz (D).
+  - In those units (D): mean asymmetry ~78× b_signal; per-pair sd ~28×; linear trend over the night −0.58e-6 Hz/s
+    (~36×; 1.8σ, so not established).
+  - Pairs for 1σ on b_signal at this sd: ~760 (D, ASSUMING pair-to-pair scatter is independent and stationary, and
+    no systematic; neither is tested).
+- **Residuals about a pure exponential** (M/D): 0.51 mHz rms per turn; they do not average down over 10–80 s bins
+  (lag-1 autocorrelation 0.98). Averaged over the coasts they form one curve (0.57 mHz rms); the coast-to-coast
+  remainder is 0.06 mHz rms; with a curvature term per coast the per-turn rms is 0.08 mHz. So the per-turn rates are
+  not exponential in the band, the same way in each coast (M); + and − coasts cover the same band, so this shape is
+  shared within a pair (M); how much of it cancels in b depends on the fit model (not checked).
+  - Readout noise in b: scaling the formal per-pair error (0.32e-6) by 0.08/0.51 gives ~0.05e-6 (D, rough; assumes the
+    0.08 mHz remainder is white), i.e. well below the 0.44e-6 pair-to-pair sd. **What makes up the rest of the
+    pair-to-pair scatter is not identified.** (An earlier version of this README said the scatter was mostly timing
+    noise, and estimated a ~7× gain from a longer band; both withdrawn.)
+- **LES phase readout vs tracker** (`les_phase.py`; D, with these two methods only): LES 2 f-line phase timed per turn:
+  2.3 mHz per-turn scatter (tracker 0.51 with the common curvature); LES tau 1.2 % above the tracker and the FFT LES
+  (a systematic of this method, not found). Combining the two weighted by their formal errors gives b sd 0.437e-6
+  (tracker alone 0.439e-6). In-band 20 s residuals correlate 0.85 between the two readouts. A different LES estimator
+  (full waveform, both channels) has not been tried.
+
+## Local decay time vs speed (`local_tau.py`, 2026-11-16)
+
+Tracker per turn; tau from a log-linear fit inside each 0.02 Hz slice, per coast (coasts starting ≥ 0.485 Hz); mean
+and sd over coasts (D). − vs + error: from the sd/√n of each direction (D).
+
+| slice (Hz) | tau + (min) | tau − (min) | − vs + |
+|---|---|---|---|
+| 0.37–0.39 | 27.83 (sd 0.27, n 30) | 28.29 (sd 0.24, n 22) | +1.68 ± 0.25 % |
+| 0.39–0.41 | 30.27 (0.17) | 30.74 (0.23) | +1.54 ± 0.19 % |
+| 0.41–0.43 | 32.58 (0.20) | 32.98 (0.23) | +1.23 ± 0.19 % |
+| 0.43–0.45 | 34.52 (0.17) | 34.93 (0.21) | +1.20 ± 0.16 % |
+| 0.45–0.47 | 36.18 (0.15) | 36.64 (0.21) | +1.29 ± 0.15 % |
+| 0.47–0.49 | 37.59 (0.16) | 38.08 (0.20) | +1.31 ± 0.14 % |
+
+- The local tau rises ~35 % from 0.38 to 0.48 Hz, so the decay is not a single exponential over this range (D). This
+  is the common curvature in the per-pair residuals, and why tau depends on the band (34.0 at 0.40–0.47, 36.5 at
+  0.44–0.49). Seen in both readouts (in-band residual correlation 0.85). Cause not identified.
+- The − vs + difference is present in every slice (+1.2 to +1.7 %). Whether it changes with speed is not resolved at
+  this precision; no conclusion drawn.
+- The equivalent-torque fit above assumes one tau within the band; refitting with the measured speed dependence has
+  not been done, so b may change.
+
 ## Observations, not interpreted
 
 - tau depends on speed: ~34.0 min at 0.40–0.47 Hz, ~36.5 min at 0.44–0.49 Hz (+1), so damping is not purely

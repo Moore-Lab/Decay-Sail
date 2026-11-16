@@ -1,0 +1,127 @@
+O01 +1 tau LES 34.093±0.347 trk 33.789±0.075 | per-turn rms LES 2.462 trk 0.522 mHz | 20 s resid corr +0.94 (lag -1.25 s)
+O02 -1 tau LES 34.719±0.310 trk 34.091±0.069 | per-turn rms LES 2.129 trk 0.482 mHz | 20 s resid corr +0.84 (lag +5.00 s)
+O03 +1 tau LES 34.356±0.320 trk 33.813±0.073 | per-turn rms LES 2.237 trk 0.513 mHz | 20 s resid corr +0.84 (lag -4.25 s)
+O05 +1 tau LES 33.986±0.306 trk 33.796±0.073 | per-turn rms LES 2.148 trk 0.506 mHz | 20 s resid corr +0.95 (lag +1.00 s)
+O06 -1 tau LES 34.631±0.330 trk 34.205±0.074 | per-turn rms LES 2.338 trk 0.514 mHz | 20 s resid corr +0.87 (lag +2.00 s)
+O07 +1 tau LES 34.020±0.309 trk 33.873±0.071 | per-turn rms LES 2.234 trk 0.494 mHz | 20 s resid corr +0.94 (lag -3.75 s)
+O09 +1 tau LES 34.478±0.282 trk 33.949±0.075 | per-turn rms LES 1.925 trk 0.518 mHz | 20 s resid corr +0.71 (lag +3.00 s)
+O11 +1 tau LES 34.311±0.357 trk 33.985±0.072 | per-turn rms LES 2.492 trk 0.507 mHz | 20 s resid corr +0.88 (lag +2.00 s)
+O12 -1 tau LES 34.554±0.294 trk 34.308±0.077 | per-turn rms LES 2.140 trk 0.537 mHz | 20 s resid corr +0.94 (lag +2.50 s)
+O13 +1 tau LES 34.337±0.315 trk 33.824±0.074 | per-turn rms LES 2.177 trk 0.522 mHz | 20 s resid corr +0.87 (lag +0.00 s)
+O14 -1 tau LES 34.513±0.315 trk 34.128±0.077 | per-turn rms LES 2.193 trk 0.536 mHz | 20 s resid corr +0.89 (lag +0.25 s)
+O15 +1 tau LES 34.599±0.325 trk 33.963±0.072 | per-turn rms LES 2.246 trk 0.503 mHz | 20 s resid corr +0.82 (lag -0.25 s)
+O16 -1 tau LES 34.713±0.289 trk 34.294±0.068 | per-turn rms LES 2.013 trk 0.477 mHz | 20 s resid corr +0.86 (lag +4.25 s)
+O17 +1 tau LES 34.475±0.378 trk 34.071±0.078 | per-turn rms LES 2.694 trk 0.541 mHz | 20 s resid corr +0.89 (lag -5.00 s)
+O18 -1 tau LES 34.689±0.349 trk 34.182±0.069 | per-turn rms LES 2.414 trk 0.488 mHz | 20 s resid corr +0.80 (lag +5.00 s)
+O19 +1 tau LES 34.657±0.370 trk 33.946±0.072 | per-turn rms LES 2.578 trk 0.511 mHz | 20 s resid corr +0.84 (lag +2.25 s)
+O21 +1 tau LES 34.478±0.360 trk 33.997±0.074 | per-turn rms LES 2.549 trk 0.520 mHz | 20 s resid corr +0.86 (lag +0.75 s)
+O22 -1 tau LES 34.455±0.323 trk 34.325±0.074 | per-turn rms LES 2.243 trk 0.510 mHz | 20 s resid corr +0.91 (lag -5.00 s)
+O23 +1 tau LES 34.111±0.312 trk 33.739±0.074 | per-turn rms LES 2.181 trk 0.522 mHz | 20 s resid corr +0.94 (lag +4.50 s)
+O24 -1 tau LES 34.526±0.342 trk 34.286±0.069 | per-turn rms LES 2.326 trk 0.484 mHz | 20 s resid corr +0.89 (lag +2.00 s)
+O25 +1 tau LES 34.191±0.334 trk 33.920±0.076 | per-turn rms LES 2.306 trk 0.534 mHz | 20 s resid corr +0.89 (lag +1.25 s)
+O26 -1 tau LES 34.567±0.318 trk 34.175±0.070 | per-turn rms LES 2.234 trk 0.485 mHz | 20 s resid corr +0.88 (lag -4.25 s)
+O27 +1 tau LES 34.342±0.338 trk 33.992±0.073 | per-turn rms LES 2.355 trk 0.511 mHz | 20 s resid corr +0.88 (lag +4.25 s)
+O28 -1 tau LES 34.977±0.341 trk 34.474±0.075 | per-turn rms LES 2.343 trk 0.522 mHz | 20 s resid corr +0.87 (lag -0.50 s)
+O29 +1 tau LES 34.410±0.336 trk 33.953±0.074 | per-turn rms LES 2.380 trk 0.520 mHz | 20 s resid corr +0.90 (lag +4.75 s)
+O30 -1 tau LES 34.773±0.334 trk 34.362±0.079 | per-turn rms LES 2.290 trk 0.549 mHz | 20 s resid corr +0.93 (lag +4.25 s)
+O31 +1 tau LES 34.466±0.347 trk 34.037±0.070 | per-turn rms LES 2.409 trk 0.486 mHz | 20 s resid corr +0.82 (lag +5.00 s)
+O32 -1 tau LES 34.602±0.323 trk 34.371±0.072 | per-turn rms LES 2.189 trk 0.501 mHz | 20 s resid corr +0.95 (lag -4.50 s)
+O33 +1 tau LES 34.288±0.322 trk 33.953±0.074 | per-turn rms LES 2.290 trk 0.514 mHz | 20 s resid corr +0.89 (lag +1.25 s)
+O34 -1 tau LES 34.658±0.328 trk 34.366±0.073 | per-turn rms LES 2.288 trk 0.507 mHz | 20 s resid corr +0.88 (lag +5.00 s)
+O35 +1 tau LES 34.409±0.333 trk 33.880±0.071 | per-turn rms LES 2.321 trk 0.501 mHz | 20 s resid corr +0.87 (lag +5.00 s)
+O36 -1 tau LES 34.866±0.303 trk 34.358±0.069 | per-turn rms LES 2.076 trk 0.483 mHz | 20 s resid corr +0.78 (lag +3.25 s)
+O37 +1 tau LES 34.756±0.317 trk 34.059±0.068 | per-turn rms LES 2.225 trk 0.477 mHz | 20 s resid corr +0.81 (lag +5.00 s)
+O38 -1 tau LES 34.871±0.361 trk 34.453±0.072 | per-turn rms LES 2.427 trk 0.508 mHz | 20 s resid corr +0.90 (lag +4.50 s)
+O39 +1 tau LES 34.512±0.323 trk 33.966±0.068 | per-turn rms LES 2.219 trk 0.475 mHz | 20 s resid corr +0.87 (lag +3.75 s)
+O40 -1 tau LES 34.863±0.307 trk 34.621±0.071 | per-turn rms LES 2.187 trk 0.500 mHz | 20 s resid corr +0.93 (lag +5.00 s)
+O41 +1 tau LES 34.445±0.365 trk 34.035±0.070 | per-turn rms LES 2.618 trk 0.492 mHz | 20 s resid corr +0.88 (lag +3.00 s)
+O42 -1 tau LES 35.326±0.379 trk 34.685±0.074 | per-turn rms LES 2.569 trk 0.515 mHz | 20 s resid corr +0.86 (lag +0.25 s)
+O43 +1 tau LES 34.180±0.397 trk 33.941±0.078 | per-turn rms LES 2.763 trk 0.554 mHz | 20 s resid corr +0.92 (lag +1.25 s)
+O44 -1 tau LES 34.921±0.344 trk 34.550±0.068 | per-turn rms LES 2.307 trk 0.471 mHz | 20 s resid corr +0.86 (lag -1.75 s)
+O45 +1 tau LES 34.488±0.301 trk 34.143±0.072 | per-turn rms LES 2.127 trk 0.497 mHz | 20 s resid corr +0.93 (lag -4.00 s)
+O46 -1 tau LES 34.869±0.309 trk 34.434±0.075 | per-turn rms LES 2.168 trk 0.528 mHz | 20 s resid corr +0.89 (lag +3.25 s)
+O47 +1 tau LES 34.503±0.344 trk 34.231±0.073 | per-turn rms LES 2.340 trk 0.502 mHz | 20 s resid corr +0.90 (lag +4.00 s)
+O48 -1 tau LES 34.679±0.317 trk 34.437±0.083 | per-turn rms LES 2.152 trk 0.584 mHz | 20 s resid corr +0.93 (lag +3.25 s)
+O49 +1 tau LES 34.358±0.303 trk 34.080±0.076 | per-turn rms LES 2.085 trk 0.530 mHz | 20 s resid corr +0.95 (lag +0.50 s)
+O50 -1 tau LES 35.123±0.304 trk 34.555±0.064 | per-turn rms LES 2.083 trk 0.447 mHz | 20 s resid corr +0.73 (lag +5.00 s)
+O51 +1 tau LES 34.432±0.324 trk 34.113±0.075 | per-turn rms LES 2.280 trk 0.523 mHz | 20 s resid corr +0.92 (lag +3.00 s)
+O52 -1 tau LES 35.081±0.399 trk 34.366±0.076 | per-turn rms LES 2.616 trk 0.528 mHz | 20 s resid corr +0.82 (lag -4.25 s)
+O53 +1 tau LES 34.294±0.347 trk 33.874±0.069 | per-turn rms LES 2.476 trk 0.478 mHz | 20 s resid corr +0.88 (lag +4.00 s)
+O54 -1 tau LES 34.739±0.340 trk 34.458±0.076 | per-turn rms LES 2.287 trk 0.533 mHz | 20 s resid corr +0.92 (lag +1.25 s)
+O55 +1 tau LES 34.384±0.289 trk 34.001±0.069 | per-turn rms LES 2.021 trk 0.481 mHz | 20 s resid corr +0.91 (lag +4.25 s)
+O57 +1 tau LES 34.529±0.331 trk 34.134±0.074 | per-turn rms LES 2.288 trk 0.512 mHz | 20 s resid corr +0.89 (lag +4.50 s)
+O58 -1 tau LES 35.246±0.373 trk 34.633±0.078 | per-turn rms LES 2.480 trk 0.537 mHz | 20 s resid corr +0.74 (lag -4.00 s)
+O59 +1 tau LES 34.380±0.313 trk 34.042±0.069 | per-turn rms LES 2.127 trk 0.479 mHz | 20 s resid corr +0.91 (lag +4.00 s)
+{
+ "n_coasts": 54,
+ "n_pairs": 24,
+ "per_turn_rms_mHz": {
+  "les": 2.2876916204737823,
+  "trk": 0.5105561645680905
+ },
+ "tau_err_formal_min": {
+  "les": 0.32645904709899676,
+  "trk": 0.07282214086326005
+ },
+ "resid20_corr_all": 0.8534180923867944,
+ "resid20_rms_mHz": {
+  "trk": 0.4969640961650981,
+  "les": 0.666751693320936
+ },
+ "tau_scatter_min": {
+  "les": {
+   "1": 0.17770907384811624,
+   "-1": 0.23268271693992906
+  },
+  "trk": {
+   "1": 0.11540007173207772,
+   "-1": 0.15953653274740848
+  }
+ },
+ "tau_mean_min": {
+  "les": {
+   "1": 34.375619279604095,
+   "-1": 34.79009074312534
+  },
+  "trk": {
+   "1": 33.969957138645746,
+   "-1": 34.379809658197885
+  }
+ },
+ "b_les": {
+  "mean": -1.2569639704708552e-06,
+  "sd": 7.422784872443334e-07,
+  "sem": 1.5151696173280074e-07,
+  "formal_per_pair": 1.442227847613289e-06,
+  "sd_over_signal": 46.63873284889087,
+  "pairs_for_1sigma": 2175.171401750212
+ },
+ "b_trk": {
+  "mean": -1.242640138380025e-06,
+  "sd": 4.3918292690132947e-07,
+  "sem": 8.964783955419175e-08,
+  "formal_per_pair": 3.198294059601823e-07,
+  "sd_over_signal": 27.594677134705602,
+  "pairs_for_1sigma": 761.4662061686441
+ },
+ "b_comb": {
+  "mean": -1.242967461667238e-06,
+  "sd": 4.368686151717442e-07,
+  "sem": 8.917543265058992e-08,
+  "formal_per_pair": 3.128066588114775e-07,
+  "sd_over_signal": 27.449264640149966,
+  "pairs_for_1sigma": 753.4621292849872
+ },
+ "diff_les_pct": {
+  "mean": 1.2098592426850194,
+  "sd": 0.7156624675685832,
+  "n_pos": 23
+ },
+ "diff_trk_pct": {
+  "mean": 1.1826567373850025,
+  "sd": 0.4217614549332747,
+  "n_pos": 24
+ },
+ "b_les_minus_trk_sd": 6.466253096021487e-07,
+ "b_les_trk_corr": 0.4995991765487443
+}

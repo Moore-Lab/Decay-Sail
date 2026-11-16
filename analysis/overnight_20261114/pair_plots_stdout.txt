@@ -1,0 +1,53 @@
+{
+ "n_pairs": 24,
+ "band": [
+  0.4,
+  0.47
+ ],
+ "diff_pct_mean": 1.1826567373850025,
+ "diff_pct_sd": 0.4217614549332747,
+ "diff_pct_sem": 0.08609169648003051,
+ "b_mean": -1.242640138380025e-06,
+ "b_sd": 4.3918292690132947e-07,
+ "b_sem": 8.964783955419175e-08,
+ "b_trend_per_h": -4.473682055659003e-08,
+ "b_trend_err": 2.424542110941584e-08,
+ "f_eq_uHz_mean": -2554.397380043036,
+ "f_eq_uHz_sd": 905.9264747925425,
+ "signal_assumed": {
+  "N": 1.1e-18,
+  "I": 1.1e-11,
+  "b_Hz_per_s": 1.591549430918953e-08,
+  "f_eq_at_79min_uHz": 75.43944302555838,
+  "f_eq_at_current_tau_uHz": 32.705163660584134
+ },
+ "ratio_b_mean_to_signal": -78.07738259580982,
+ "ratio_b_sd_to_signal": 27.594677134705602,
+ "pairs_for_1sigma_signal": 761.4662061686441,
+ "b_change_over_night": -5.75181301896078e-07,
+ "b_err_formal_median": 3.198294059601823e-07
+}
+O01/O02 h 0.00  tau+ 33.79±0.07  tau- 34.09±0.07  diff +0.89±0.30 %  b -9.348e-07  f_eq -1908 uHz  resid 0.50 mHz
+O05/O06 h 0.94  tau+ 33.80±0.07  tau- 34.21±0.07  diff +1.21±0.30 %  b -1.284e-06  f_eq -2624 uHz  resid 0.51 mHz
+O11/O12 h 2.36  tau+ 33.98±0.07  tau- 34.31±0.08  diff +0.95±0.31 %  b -1.016e-06  f_eq -2086 uHz  resid 0.52 mHz
+O13/O14 h 2.78  tau+ 33.82±0.07  tau- 34.13±0.08  diff +0.90±0.31 %  b -9.578e-07  f_eq -1957 uHz  resid 0.53 mHz
+O15/O16 h 3.19  tau+ 33.96±0.07  tau- 34.29±0.07  diff +0.97±0.29 %  b -1.019e-06  f_eq -2091 uHz  resid 0.49 mHz
+O17/O18 h 3.64  tau+ 34.07±0.08  tau- 34.18±0.07  diff +0.33±0.31 %  b -3.271e-07  f_eq -671 uHz  resid 0.51 mHz
+O21/O22 h 4.62  tau+ 34.00±0.07  tau- 34.33±0.07  diff +0.97±0.31 %  b -1.016e-06  f_eq -2087 uHz  resid 0.51 mHz
+O23/O24 h 5.14  tau+ 33.74±0.07  tau- 34.29±0.07  diff +1.62±0.30 %  b -1.697e-06  f_eq -3471 uHz  resid 0.50 mHz
+O25/O26 h 5.62  tau+ 33.92±0.08  tau- 34.17±0.07  diff +0.75±0.30 %  b -7.767e-07  f_eq -1590 uHz  resid 0.51 mHz
+O27/O28 h 6.12  tau+ 33.99±0.07  tau- 34.47±0.07  diff +1.42±0.31 %  b -1.491e-06  f_eq -3069 uHz  resid 0.52 mHz
+O29/O30 h 6.58  tau+ 33.95±0.07  tau- 34.36±0.08  diff +1.20±0.32 %  b -1.275e-06  f_eq -2619 uHz  resid 0.53 mHz
+O31/O32 h 7.04  tau+ 34.04±0.07  tau- 34.37±0.07  diff +0.98±0.29 %  b -1.036e-06  f_eq -2130 uHz  resid 0.49 mHz
+O33/O34 h 7.44  tau+ 33.95±0.07  tau- 34.37±0.07  diff +1.22±0.30 %  b -1.273e-06  f_eq -2613 uHz  resid 0.51 mHz
+O35/O36 h 7.88  tau+ 33.88±0.07  tau- 34.36±0.07  diff +1.41±0.29 %  b -1.481e-06  f_eq -3038 uHz  resid 0.49 mHz
+O37/O38 h 8.31  tau+ 34.06±0.07  tau- 34.45±0.07  diff +1.16±0.29 %  b -1.223e-06  f_eq -2519 uHz  resid 0.49 mHz
+O39/O40 h 8.81  tau+ 33.97±0.07  tau- 34.62±0.07  diff +1.93±0.29 %  b -2.018e-06  f_eq -4161 uHz  resid 0.49 mHz
+O41/O42 h 9.23  tau+ 34.03±0.07  tau- 34.68±0.07  diff +1.91±0.30 %  b -2.001e-06  f_eq -4133 uHz  resid 0.50 mHz
+O43/O44 h 9.66  tau+ 33.94±0.08  tau- 34.55±0.07  diff +1.80±0.30 %  b -1.853e-06  f_eq -3815 uHz  resid 0.51 mHz
+O45/O46 h10.12  tau+ 34.14±0.07  tau- 34.43±0.08  diff +0.85±0.30 %  b -9.056e-07  f_eq -1867 uHz  resid 0.51 mHz
+O47/O48 h10.54  tau+ 34.23±0.07  tau- 34.44±0.08  diff +0.60±0.32 %  b -6.577e-07  f_eq -1358 uHz  resid 0.54 mHz
+O49/O50 h11.00  tau+ 34.08±0.08  tau- 34.56±0.06  diff +1.39±0.29 %  b -1.434e-06  f_eq -2958 uHz  resid 0.49 mHz
+O51/O52 h11.44  tau+ 34.11±0.08  tau- 34.37±0.08  diff +0.74±0.31 %  b -7.836e-07  f_eq -1613 uHz  resid 0.52 mHz
+O53/O54 h11.90  tau+ 33.87±0.07  tau- 34.46±0.08  diff +1.72±0.30 %  b -1.829e-06  f_eq -3756 uHz  resid 0.51 mHz
+O57/O58 h12.86  tau+ 34.13±0.07  tau- 34.63±0.08  diff +1.46±0.31 %  b -1.534e-06  f_eq -3172 uHz  resid 0.52 mHz
