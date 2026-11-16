@@ -1,0 +1,11 @@
+61 runs, 691563 good frames, 113329 writes, 29054 pushes
+const 92.5 ms: rms 0.4747 rad/s^2 (n 691563)
+const iter 0: rms 0.4712 rad/s^2
+const iter 1: rms 0.4711 rad/s^2
+const iter 2: rms 0.4711 rad/s^2
+  best const delay per run: median 75 ms, range 50-85
+grid iter 0: rms 0.4603 rad/s^2
+grid iter 1: rms 0.4603 rad/s^2
+grid iter 2: rms 0.4603 rad/s^2
+  grid phase mod tick per run (ms): 30 30 40 45 50 55 60 65 70 80 80 85 90 95 100 100 105 110 120 125 5 10 20 25 25 30 40 40 45 55 60 65 70 75 80 80 85 95 100 105 110 110 115 120 5 10 15 20 20 30 35 40 45 50 55 60 65 70 75 80 85
+  delta per run: median 10 ms; counts {0.0: 3, 0.01: 51, 0.02: 7}

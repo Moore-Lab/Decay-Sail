@@ -1,0 +1,11 @@
+median s (live logs in brackets for the "live" case) | reached 0.48 Hz | stop on target | stalls
+live         +1: rev   nan  ->0.45  nan  0.45->0.49  nan  ->stop  nan  total   nan | 0.48 Hz by median  196 s (6/24) | stop 0/24 | stalls 11  [live 70 / 28 / 58 / 17 / 199, stalls 0/30]
+live         -1: rev   nan  ->0.45  nan  0.45->0.49  nan  ->stop  nan  total   nan | 0.48 Hz by median  136 s (16/24) | stop 0/24 | stalls 7  [live 31 / 25 / 59 / 30 / 158, stalls 4/30]
+centre       +1: rev    45  ->0.45   23  0.45->0.49   27  ->stop   11  total   106 | 0.48 Hz by median   83 s (24/24) | stop 24/24 | stalls 0
+centre       -1: rev    38  ->0.45   20  0.45->0.49   16  ->stop    9  total    83 | 0.48 Hz by median   67 s (24/24) | stop 24/24 | stalls 0
+sync         +1: rev    35  ->0.45   16  0.45->0.49   12  ->stop   13  total    77 | 0.48 Hz by median   59 s (24/24) | stop 24/24 | stalls 0
+sync         -1: rev    35  ->0.45   13  0.45->0.49    9  ->stop   22  total    80 | 0.48 Hz by median   54 s (24/24) | stop 24/24 | stalls 0
+centre_1600  +1: rev    19  ->0.45   18  0.45->0.49   25  ->stop   47  total   108 | 0.48 Hz by median   46 s (24/24) | stop 24/24 | stalls 0
+centre_1600  -1: rev    20  ->0.45   12  0.45->0.49   10  ->stop   44  total    87 | 0.48 Hz by median   40 s (24/24) | stop 24/24 | stalls 0
+sync_1600    +1: rev    18  ->0.45   10  0.45->0.49    7  ->stop   13  total    47 | 0.48 Hz by median   31 s (24/24) | stop 24/24 | stalls 0
+sync_1600    -1: rev    20  ->0.45   10  0.45->0.49    2  ->stop   40  total    73 | 0.48 Hz by median   32 s (24/24) | stop 23/24 | stalls 0

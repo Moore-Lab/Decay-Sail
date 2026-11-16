@@ -37,6 +37,11 @@ tau from a fit of f = f0 exp(−t/tau). LES: the 2 f_rot line, rate per 40 s win
   (sd 0.42, sem 0.09). **− is higher in all 24 pairs** in both readouts (LES +0.10 to +2.08 %).
 - **Tracker vs LES, same coast:** tracker/LES − 1 = −0.14 % (sd 0.16 %, range −0.50 to +0.21 %, 54 coasts). The two
   readouts agree coast by coast to well within the coast-to-coast scatter.
+- **Time bases.** The front-end clock (`Y1:DAQ-DC0_GPS` read at each field-off, vs worker2's NTP host time, 60
+  points over 13.6 h) runs **+0.123 % fast** (fit residual sd 0.42 s, from the 1 s caget resolution). The tracker's
+  frame clock matches host time to ~1e-5 (2,785,195 frames in 55,703.9 s). If the LES samples run on the same
+  front-end clock (assumed), LES tau is 0.12 % long in real seconds, which accounts for the −0.14 % tracker/LES
+  difference. LES tau corrected by 1/1.00123: +1 33.99, −1 34.37 min. Pair ratios are unaffected.
 - **Band 0.44–0.49 Hz (the 11-12 band), tracker:** +1 36.51 (sd 0.12, n 30), −1 36.97 (sd 0.19, n 20) min; pairs
   +1.21 % (sem 0.10, 20/20 positive). 11-12 tracker, same band: 36.2 / 36.8 min, − minus + +1.47 ± 0.57 % (3 pairs,
   `analysis/coast_pairs_20261112/coast_pairs.json`; the interim version of this README misquoted it as −1.47). So the shorter tau in the 0.40–0.47 band is the band, not a change since 11-12.
