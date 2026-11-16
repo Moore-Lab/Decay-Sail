@@ -72,6 +72,11 @@ with a swing or a low-start coast left out). Table `pair_table.csv`, summary `pa
     (~36×; 1.8σ, so not established).
   - Pairs for 1σ on b_signal at this sd: ~760 (D, ASSUMING pair-to-pair scatter is independent and stationary, and
     no systematic; neither is tested).
+- **gamma at fixed speed** (D; `pair_plots.gamma_mid`: gamma = −d ln f/dt where f = 0.435 Hz, from a quadratic in
+  log f over the band, so the common curvature is modelled; ± formal from the per-turn noise): gamma(+) 0.4916 mHz,
+  gamma(−) 0.4857 mHz (sd between coasts 1.7 / 2.3 µHz; per-coast error ~0.15 µHz). Δgamma = gamma(−) − gamma(+) =
+  −5.77 µHz (sd 2.12, sem 0.43; per-pair error ~0.22 µHz). The expected recoil changes Δgamma by 2·b_signal/f =
+  0.073 µHz (A: N, I as below). Pair values differ by ~10× their errors (M/D); cause of the variation not identified.
 - **Residuals about a pure exponential** (M/D): 0.51 mHz rms per turn; they do not average down over 10–80 s bins
   (lag-1 autocorrelation 0.98). Averaged over the coasts they form one curve (0.57 mHz rms); the coast-to-coast
   remainder is 0.06 mHz rms; with a curvature term per coast the per-turn rms is 0.08 mHz. So the per-turn rates are

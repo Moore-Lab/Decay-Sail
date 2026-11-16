@@ -25,7 +25,14 @@
  "ratio_b_sd_to_signal": 27.594677134705602,
  "pairs_for_1sigma_signal": 761.4662061686441,
  "b_change_over_night": -5.75181301896078e-07,
- "b_err_formal_median": 3.198294059601823e-07
+ "b_err_formal_median": 3.198294059601823e-07,
+ "gamma_mid_Hz": 0.435,
+ "dgamma_uHz_mean": -5.771968074645659,
+ "dgamma_uHz_sd": 2.121180089932344,
+ "dgamma_uHz_sem": 0.4329840727404314,
+ "dgamma_err_uHz_median": 0.2214269005320474,
+ "gamma_err_mHz_median": 0.00015452584239958631,
+ "dgamma_signal_uHz": 0.07317468647903233
 }
 O01/O02 h 0.00  tau+ 33.79±0.07  tau- 34.09±0.07  diff +0.89±0.30 %  b -9.348e-07  f_eq -1908 uHz  resid 0.50 mHz
 O05/O06 h 0.94  tau+ 33.80±0.07  tau- 34.21±0.07  diff +1.21±0.30 %  b -1.284e-06  f_eq -2624 uHz  resid 0.51 mHz
