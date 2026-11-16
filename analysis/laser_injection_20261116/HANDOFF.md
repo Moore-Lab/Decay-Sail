@@ -51,6 +51,24 @@ a branch, tested on worker2, Molly's go.
   "Torque-per-mW drop (4.5×)" is open. `analysis/laser_stepdown_sensitivity_notes.md`: PD counts/mW and N m/PD count.
 - Molly's memory note: don't use Aug-2026 old-setup results in current reasoning; argue from current measurements.
 
+## Before the next live run (Molly, 2026-11-16)
+
+- **Re-centre the tracker.** Overnight 11-14/15 it ran 3.0 px off: the camera image moved ~2 px since the 11-12
+  re-centring (static-board registration; the rotor axis did not move relative to the stator). Corrected centre then
+  (128.98, 176.60), but the image drifts ~1 px/day, so re-derive it before the run, e.g. a short rest clip and
+  `camera_utils/tracking/blob_core.register_centre`, or a circle fit to the dot over a few turns. Details:
+  `analysis/drive_fit_20261114/README.md` section 1. Coast damping is unaffected (whole-turn timing); the spin-up
+  controller's angles are.
+
+## Later: faster flips (Molly, 2026-11-16: may need to come back to this)
+
+Spin-ups take ~2.5–3.5 min (median 199 s +, 158 s −; brake/reverse 70 / 31 s; 0.45 → 0.49 Hz ~60 s), and 4/30 −
+spin-ups never went over the top. Gate G1 (`analysis/drive_fit_20261114/README.md`) is **not passed**: the
+closed-loop sim with the fitted plant is 3–5× worse than the live runs. Next step there, Mac only: open-loop replay of
+the 11-14/15 drive logs, (a) logged frames through `choose_spin`, compared with the logged choice; (b) from each landing,
+the fitted plant over one 125 ms hold vs the angle 125 ms later, by angle bin. Only then controller changes (tracker
+centre, map offset −1.5 to −2.5°, tick-synchronous look-ahead, level 1600, end at ≥ 0.48 Hz) and a live trial series.
+
 ## Open design questions (to discuss with Molly)
 
 1. Torque per mW on the current rotor and beam geometry: measure first (e.g. a short coast pair at one power)?
