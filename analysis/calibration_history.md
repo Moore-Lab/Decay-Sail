@@ -86,3 +86,16 @@ Combined with damping 6.4× worse, the sustainable rotation rate
 the rotor at a power that would have worked before the tilt stage came out, and it is a
 torque-coupling change as well as a damping change — worth separating once the new stage
 is in.
+
+---
+
+## 2026-11-16: PD scale for the laser-injection test
+
+- **PD 222 counts/mW** (M): `Y1:RDS-PD_INMON` 685.5 counts (median of 359 samples, sd 10.5; dark −0.9) with the
+  660 nm laser at `LASER_OFFSET` 1000 counts, against **3.08 mW on the Ophir just before the chamber window**
+  (Molly). The PD samples after the ND filter position and before the chamber, so it reads the power into the window.
+  Supersedes the 411 counts/mW of 2026-10-09 for the current setup.
+- **ND1 transmission 0.098** (M, PD ratio 66.7 / 685.5, dark-subtracted): ~0.30 mW into the window.
+- Window: AR-coated; the coating is to be confirmed (Molly). The power is measured before the window, so torque per mW
+  quoted against these numbers includes the window loss.
+- Torque per mW from the laser-on coasts: `analysis/laser_injection_20261116/` (to come).
