@@ -1,0 +1,13 @@
+gp vs baro_pressure {'corr': -0.5881927145244679, 'slope': -0.0004344877450716948}
+gm vs baro_pressure {'corr': -0.7917681199068681, 'slope': -0.0007336460794813462}
+dg vs baro_pressure {'corr': -0.3425277002126335, 'slope': -0.2991567242626562}
+baro_pressure vs hour 0.9886375728690123
+gp vs humidity {'corr': 0.37177030116251575, 'slope': 0.8626142608742785}
+gm vs humidity {'corr': 0.3532565863450318, 'slope': 1.0281652173969564}
+dg vs humidity {'corr': 0.06038160562085662, 'slope': 165.6501286965563}
+humidity vs hour -0.41299261420066513
+gp vs temperature {'corr': 0.06149421299791987, 'slope': 0.0007630976746349472}
+gm vs temperature {'corr': -0.2900967253394186, 'slope': -0.004515641006172872}
+dg vs temperature {'corr': -0.35979686379881737, 'slope': -5.278960783765368}
+temperature vs hour 0.1540074340980132
+ranges over the pull window: {'baro_pressure': [1008.3041136363637, 1017.5325853658537], 'humidity': [17.61904761904762, 19.863636363636363], 'temperature': [22.975, 23.67906976744188]}

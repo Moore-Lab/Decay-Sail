@@ -114,6 +114,29 @@ and sd over coasts (D). − vs + error: from the sd/√n of each direction (D).
 - The equivalent-torque fit above assumes one tau within the band; refitting with the measured speed dependence has
   not been done, so b may change.
 
+## Room environment and chamber gas (`ambient_compare.py`, 2026-11-16)
+
+- **Room sensor** (GHS, InfluxDB bucket `xsphere`, 1-min means, pulled 2026-11-16; data Dropbox
+  `spinup/2026-11-14/overnight/ambient/`). Where the sensor sits relative to the apparatus is not recorded. Plot
+  `plots/ambient_vs_gamma.png`.
+  - Temperature (M): only ever reads 23.0 or 23.4 °C, switching back and forth all night: ~0.4 °C resolution, no
+    trend visible at that resolution. Humidity ~19 %, also coarse.
+  - Pressure (M): rose steadily 1009.3 → ~1017 hPa (+0.8 %; weather).
+  - Against gamma at 0.435 Hz (D, 24 pairs): correlation with room pressure −0.79 (gamma−), −0.59 (gamma+), −0.34
+    (Δgamma). Room pressure is almost linear in time (correlation with hour 0.99), so one night cannot separate
+    "follows pressure" from "drifts with time". Temperature and humidity show no clear relation, at their resolution.
+- **Chamber pressure 1.7e-7 mbar** (Molly, 2026-11-16; when it was read relative to the run, and whether it changed
+  overnight, not recorded; the gauge is not logged, STATUS).
+- **Gas damping estimate** (D, order of magnitude): free-molecular, drag coefficients of order 1 (A), sail upright in
+  the plane of the spin axis (A), SAL-001 dimensions (`logs/2026-q3.md` 2026-09-30: wing r 0.88–1.88 × 1.40 mm, bar
+  0–0.88 × 0.70 mm per half, ~4.0 mm² per face), disk Ø3.5 mm (thickness to be measured, STATUS), I = 1.1e-11 kg m².
+  Sail ~1–2e-7 /s, disk (shear) ~0.6e-7 /s: **gamma_gas ~0.15–0.3 µHz** (factor ~2), i.e. ~0.05 % of gamma
+  (~490 µHz) and ~25× smaller than gamma's overnight change (~5 µHz).
+  - So the measured damping and its drift are not chamber gas, and room pressure cannot act through the gas (0.8 % of
+    gamma_gas ~ 0.002 µHz). Indirect paths (mechanical) are not excluded and not evidenced.
+  - gamma_gas is larger than the recoil's change in Δgamma (0.073 µHz). It should be the same for both spin
+    directions and cancel in Δgamma (A, not tested); logging the chamber gauge during runs would test it.
+
 ## Observations, not interpreted
 
 - tau depends on speed: ~34.0 min at 0.40–0.47 Hz, ~36.5 min at 0.44–0.49 Hz (+1), so damping is not purely
