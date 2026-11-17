@@ -36,15 +36,16 @@ BAND, F_MID = PP.BAND, PP.F_MID
 
 
 def load_tracker(no_cache):
-    csvs = sorted(glob.glob(os.path.join(D, 'tracker', 'blob_live_gps*.csv')))
+    csvs = sorted(glob.glob(os.path.join(D, 'tracker*', 'blob_live_gps*.csv')))   # tracker/, tracker2/ (restarts)
     if not csvs:
-        sys.exit(f'no tracker CSV in {D}/tracker')
+        sys.exit(f'no tracker CSV in {D}/tracker*')
     cache = os.path.join(HERE, 'plots', 'tracker_cache.npz')
     if os.path.exists(cache) and not no_cache:
         z = np.load(cache)
         return z['k'], z['h'], z['a'], z['n']
-    k, h, a, n = [], [], [], []
+    K, H, A, N = [], [], [], []
     for path in csvs:
+        k, h, a, n = [], [], [], []
         with open(path) as fh:
             for r in csv.DictReader(l for l in fh if not l.startswith('#')):
                 try:
@@ -52,7 +53,11 @@ def load_tracker(no_cache):
                     n.append(float(r['ncc']))
                 except (ValueError, TypeError, KeyError):
                     continue   # partial or empty-field rows (lost dot, last line of a growing file)
-    k, h, a, n = map(np.array, (k, h, a, n))
+        k, h = np.array(k), np.array(h)
+        # each tracker process restarts its frame counter: shift it so k/FPS ~ host time (frame timing stays exact)
+        K.append(k + int(round(np.median(h * TC.FPS - k)))); H.append(h); A.append(np.array(a)); N.append(np.array(n))
+        print(f'{os.path.relpath(path, D)}: {len(k)} frames, {(h[-1] - h[0]) / 3600:.2f} h')
+    k, h, a, n = (np.concatenate(x) for x in (K, H, A, N))
     os.makedirs(os.path.dirname(cache), exist_ok=True)
     np.savez(cache, k=k, h=h, a=a, n=n)
     return k, h, a, n

@@ -1,6 +1,6 @@
-# Laser injection test: HANDOFF (updated 2026-11-16 evening)
+# Laser injection test: HANDOFF (updated 2026-11-17)
 
-**State: overnight interleaved ND4 run in progress (started 19:43 local, ends ~06:30–07:00).** Labels: M measured,
+**State: ND4 interleaved night done and analysed (2026-11-17); ND2 night next.** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
 
 ## Goal (Molly)
@@ -42,22 +42,32 @@ value on every exit; `laser.csv` logs setpoint, readback, PD per switch and coas
 Analysis: laser effect = mean Δγ(on pairs) − mean Δγ(off pairs). Checks A and B passed on worker2 (rotor at rest; B with
 `lab_utils/coast_series_stub_brake.py`, whose fake final brake makes the test exit 2 — harmless). Not yet merged.
 
-## Overnight 2026-11-16/17 (running)
+## Overnight 2026-11-16/17 (done; analysis 2026-11-17, interpretations not approved)
 
-ND4 in (~0.31 µW, ~0.7× recoil, ND4 transmission unmeasured), beam open, `--pairs 24 --laser-pattern off,on,on,off
---ncc-min 0.62 --live`, pid 752075, worker2 `~/spinup/2026-11-16/laser/night_nd4_il`, tracker pid 691391 (centre
-128.62,176.54). **Expected: no visible laser effect** (D: ~0.05 µHz vs ~0.9 µHz error for 12+12 pairs). Use: the first
-interleaved baseline, drift within the night, start of the near-recoil record. An on−off difference ≫ 2–3 µHz would not
-be the laser.
+ND4, `--pairs 24 --laser-pattern off,on,on,off --ncc-min 0.62 --live`, worker2 `~/spinup/2026-11-16/laser/night_nd4_il2`
+(first launch `night_nd4_il` stopped at 50 s: room lights off, tracker lost; relaunched with tracker2). 19:52–05:45,
+48/48 coasts on target, no stops; tracker 10.1 h, 0 dropped frames, ncc ≥ 0.77.
+- **Laser on − off Δγ = −1.13 ± 1.04 µHz (M, `coasts.py`; worker2's whole-band fit −1.6 ± 1.0).** Consistent with 0;
+  expected +0.05. Off −5.06 ± 0.76, on −6.19 ± 0.71; ABBA blocks and a drift fit give the same.
+- **CW/CCW asymmetry reproduced from 14–15 Nov** (M, `night_plots.py`): τ(−)/τ(+) − 1 = +1.14 % (sd 0.56), 24/24 pairs
+  (+1.18 % then); Δγ all pairs −5.63 (sd 2.56); local τ vs speed table the same. off1's +0.9 looks like one outlier.
+- **ND4 transmission from the night's PD (M):** on − off step 0.065 counts = 0.29 µW = 9.5e-5 of no filter → ~0.7× recoil.
+  PD 1-s trend fetched by worker2 (Dropbox `.../laser/pd_trend/`); PD also sees room light (~4 µW-equiv. lights off).
+  A 31 µW period 18:31–18:51 on 11-16 is not in the logs (ND2 trial? ask Molly).
+- **No anomaly vs measured power** (`pd_vs_dgamma.py`, `pd_lag.py`): r(PD, Δγ) within state not significant; delay and
+  thermal-lag scans (night PD only) max |r| 0.49, reached by chance in 21 % of shifted-PD trials.
+- Plots for the PI: Claude doc "Laser injection, 16–17 Nov: notes for PI" (https://claude.ai/artifact/Qm2V7UF1anicjtWFgKsJUs).
+- Beam spot (top camera, ND1/no filter frames): left/lower-left of the hub, ~25–30 px from the axis; side camera being
+  set up (`camera_utils/SIDE_CAMERA_BRIEF.md`). Rotor nudged 11-17 11:37 to ±30° swing (worker2, Molly's go).
 
 ## Next (exact steps)
 
-1. Morning: worker2 copies small files to Dropbox; then on the Mac:
-   `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 pair_panels.py`
-   (`coasts.py` labels pairs by the `laser on/off` line in each `coast_On.txt` and prints on − off per interleaved
-   run; `pair_panels.py` covers only off1/on so far).
-2. Ophir: ND4 transmission at full laser power, holder untouched; then set `--laser-on` for exactly 1× (0.42 µW).
-3. Decide with Molly: more ND4 nights vs ND2 interleaved (D: ~6σ in one night) to demonstrate power scaling.
+1. After each run: `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 night_plots.py`
+   (`night_plots.py` has RUN = 'night_nd4_il2' hard-coded; `coasts.py` reads every `tracker*/` folder).
+2. Ophir: ND2 (and ND3) transmission at full power, holder untouched (ND4 now known from the PD).
+3. Plan discussed 11-17 (Molly to confirm): ND2 interleaved (D: ~+5 µHz, ~5σ in one night) with the 405 nm imaging
+   beam off for the first ~8 pairs, then on (tests whether the 405 beam makes the −5 µHz offset). Then box the optics,
+   shield the PD from room light, log temperature (TSP01B) and pressure with every run.
 4. Pair-to-pair scatter (~2.1 µHz) sets how close to the recoil is reachable (D: 5σ at 1× needs ~4e4 pairs per arm):
    temperature/pressure logging (STATUS) and the baseline jump.
 5. Merge `laser-interleave` after a clean night (Molly's call).
