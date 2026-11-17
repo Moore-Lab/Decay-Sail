@@ -36,12 +36,22 @@ Files in OUTDIR, per step n (O01, O02, ...; odd = +1, even = -1):
   console_On.txt   brake_offsets output        brake_<host>.csv  brake_offsets log
   coast_On.txt     field_off_host, end_state, coast_end_host, fe_gps (coast_pairs.py format, plus extras)
   series.csv       one row per step: name, dir, start/field-off/coast-end host times, FE GPS, stop reason, last turns
+
+LASER INTERLEAVING (2026-11-16, branch laser-interleave; optional, off unless --laser-pattern is given):
+    --laser-pattern off,on,on,off   cycled, one entry per PAIR. Before each pair's + spin-up the script writes
+                                    Y1:RDS-OUTS_LASER_OFFSET = --laser-on (default 1000) or --laser-off (default 0),
+                                    waits --laser-settle s (default 30), then spins up. The laser never changes during
+                                    a pair. The beam path (ND filter, block) is untouched: set it by hand.
+    This is the ONLY EPICS write this script makes, and only with --live (dry: printed, not written). On every exit
+    (end, STOP, safety stop, error, Ctrl-C, SIGTERM/SIGHUP) the laser offset is restored to the value read at the
+    start. laser.csv: one row per switch and per coast start/end: host, FE GPS, pair, state, setpoint, readback, PD.
 """
 import argparse
 import csv
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -54,6 +64,68 @@ SPIN = ['--map', 'g1', '--level', '800', '--w-push-max', '120', '--spin-to', '0.
         '--stop-tol', '0.01', '--duration', '360', '--enable-outputs']
 FINAL = ['--map', 'g1', '--level', '1600', '--w-push-max', '120', '--spin-to', '0.001', '--duration', '300',
          '--enable-outputs']
+LASER_PV = 'Y1:RDS-OUTS_LASER_OFFSET'
+PD_PV = 'Y1:RDS-PD_INMON'
+
+
+class Laser:
+    """Laser offset switching for --laser-pattern. Writes LASER_PV only when live; restore() puts back the start value."""
+
+    def __init__(self, a, rd):
+        self.a, self.rd = a, rd
+        self.pattern = [s.strip() for s in a.laser_pattern.split(',')] if a.laser_pattern else []
+        bad = [s for s in self.pattern if s not in ('on', 'off')]
+        if bad:
+            raise SystemExit(f'--laser-pattern entries must be on/off, got {bad}')
+        self.start = rd.get(LASER_PV) if self.pattern else None
+        self.state = None
+        self.f = None
+        if self.pattern:
+            path = os.path.join(a.outdir, 'laser.csv')
+            new = not os.path.exists(path)
+            self.f = open(path, 'a', buffering=1)
+            if new:
+                self.f.write('host,fe_gps,pair,event,state,setpoint,readback,pd\n')
+            self.log(0, 'start', None, self.start)
+
+    def log(self, pair, event, state, setpoint):
+        if self.f:
+            self.f.write(f'{time.time():.3f},{self.rd.gps()},{pair},{event},{state or ""},'
+                         f'{"" if setpoint is None else setpoint},{self.rd.get(LASER_PV)},{self.rd.get(PD_PV)}\n')
+
+    def set_for_pair(self, pair):
+        """pair counts from 1. Returns True if the laser changed (then settle)."""
+        if not self.pattern:
+            return False
+        want = self.pattern[(pair - 1) % len(self.pattern)]
+        val = self.a.laser_on if want == 'on' else self.a.laser_off
+        changed = want != self.state
+        if self.a.live:
+            import epics
+            epics.caput(LASER_PV, val, wait=True, timeout=3.0)
+        else:
+            print(f'  [dry] would write {LASER_PV} = {val:g}')
+        self.state = want
+        self.log(pair, 'set', want, val)
+        print(f'  laser {want.upper()} for pair {pair} ({LASER_PV} = {val:g}, readback {self.rd.get(LASER_PV)})',
+              flush=True)
+        if changed and self.a.laser_settle > 0:
+            time.sleep(self.a.laser_settle)
+            self.log(pair, 'settled', want, val)
+        return changed
+
+    def restore(self):
+        if not self.pattern or self.start is None:
+            return
+        if self.a.live:
+            import epics
+            epics.caput(LASER_PV, self.start, wait=True, timeout=3.0)
+        self.log(0, 'restored', None, self.start)
+        print(f'  laser offset restored to the start value {self.start:g} (readback {self.rd.get(LASER_PV)})')
+
+
+def _sigexit(signum, frame):
+    raise SystemExit(f'killed ({signal.Signals(signum).name})')
 
 
 class Reader:
@@ -138,15 +210,33 @@ def main():
     p.add_argument('--no-final-brake', action='store_true', help='end without the final brake')
     p.add_argument('--no-epics', action='store_true', help='skip read-only cagets (Mac tests)')
     p.add_argument('--brake-script', default=os.path.join(HERE, 'brake_offsets.py'), help=argparse.SUPPRESS)
+    p.add_argument('--laser-pattern', default='', help='per-pair laser states, cycled, e.g. off,on,on,off (default: '
+                   'laser untouched)')
+    p.add_argument('--laser-on', type=float, default=1000.0, help='LASER_OFFSET for "on" (default 1000)')
+    p.add_argument('--laser-off', type=float, default=0.0, help='LASER_OFFSET for "off" (default 0)')
+    p.add_argument('--laser-settle', type=float, default=30.0, help='s to wait after a laser change (default 30)')
     a = p.parse_args()
-    a.outdir = os.path.abspath(os.path.expanduser(a.outdir))
-    os.makedirs(a.outdir, exist_ok=True)
+    signal.signal(signal.SIGTERM, _sigexit)
+    signal.signal(signal.SIGHUP, _sigexit)
+    os.makedirs(os.path.abspath(os.path.expanduser(a.outdir)), exist_ok=True)
     rd = Reader(not a.no_epics)
+    a.outdir = os.path.abspath(os.path.expanduser(a.outdir))
+    laser = Laser(a, rd)
+    try:
+        return series(a, rd, laser)
+    finally:
+        laser.restore()
+
+
+def series(a, rd, laser):
     n_steps = 2 * a.pairs
     print('=' * 72)
     print(f'  coast_series: {a.pairs} pairs ({n_steps} spin-ups + {a.coast:g} s coasts, ~{a.pairs * 24 / 60:.1f} h), '
           f'first dir {a.first_dir:+d}; ncc-min {a.ncc_min:g}; {"LIVE" if a.live else "DRY (brake_offsets without --live)"}')
     print(f'  outdir {a.outdir}; free {free_gb(a.outdir):.1f} GB; touch {os.path.join(a.outdir, "STOP")} to end early')
+    if laser.pattern:
+        print(f'  laser pattern per pair {",".join(laser.pattern)} (cycled); on {a.laser_on:g} / off {a.laser_off:g}; '
+              f'settle {a.laser_settle:g} s; start value {laser.start} (restored on exit)')
     print('=' * 72)
     st0 = rd.state()
     if not offsets_zero(st0):
@@ -166,6 +256,8 @@ def main():
         if free_gb(a.outdir) < a.min_free_gb:
             end_why = f'free disk below {a.min_free_gb:g} GB'; break
         print(f'\n--- {name}: spin-up dir {d:+d}  ({time.strftime("%H:%M:%S")}, step {i}/{n_steps}) ---', flush=True)
+        if i % 2 == 1:
+            laser.set_for_pair((i + 1) // 2)
         t_start = time.time()
         reason, turns, rc = run_brake(a, SPIN + ['--ncc-min', f'{a.ncc_min:g}', '--dir', str(d)], os.path.join(a.outdir, f'console_{name}.txt'))
         t_off = time.time()
@@ -183,11 +275,13 @@ def main():
             return 2
         cf = open(os.path.join(a.outdir, f'coast_{name}.txt'), 'w')
         cf.write(f'field_off_host {t_off:.9f}\nfe_gps_field_off {g_off}\ndir {d}\nstop {reason}\n'
-                 f'end_state {fmt_state(st)}\n'); cf.flush()
+                 f'end_state {fmt_state(st)}\n' + (f'laser {laser.state}\n' if laser.pattern else '')); cf.flush()
+        laser.log((i + 1) // 2, f'coast_start {name}', laser.state, None)
         print(f'  {name}: {"on target" if on_target else reason}; coasting {a.coast:g} s (nothing written)', flush=True)
         asked = coast(a, a.coast)
         t_end = time.time()
         cf.write(f'coast_end_host {t_end:.9f}\nfe_gps_coast_end {rd.gps()}\n'); cf.close()
+        laser.log((i + 1) // 2, f'coast_end {name}', laser.state, None)
         sf.write(f'{name},{d},{t_start:.3f},{t_off:.3f},{t_end:.3f},{g_off},"{reason}","{turns}",{int(on_target)},'
                  f'{free_gb(a.outdir):.1f}\n')
         if asked:
