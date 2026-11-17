@@ -2,6 +2,9 @@
 """Nudge the rotor: set it swinging about its rest angle (or calm it back down), with electrodes off afterwards.
 A thin wrapper around brake_offsets.py with the recipe used on 2026-11-17 (worker2, Molly's go): kick phase A, then
 pump along the motion until the swing reaches the target, field off. (2026-11-17)
+The pump stops by turning points (brake_offsets --pump-stop turning): the swing is measured at each turning point and at
+most (target - swing) / --per-push more pushes follow. The first live runs (11:37, 14:22) used the old trailing-window
+stop and overshot by 9-14 deg (aim 30 -> 42, aim 25 -> 39); the plant selftest shows the new stop at aim 18 -> 18.6.
 
     python3 lab_utils/nudge.py                  # check the tracker, print the plan (dry; nothing written)
     python3 lab_utils/nudge.py --live           # do it: swing to +-25 deg (default), electrodes back to 0
@@ -59,6 +62,7 @@ def listen(port, secs):
 def main():
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     p.add_argument('--swing', type=float, default=25.0, help='deg: target swing amplitude (half peak-to-peak), default 25 (max ~29 about the 207 deg rest angle)')
+    p.add_argument('--per-push', type=float, default=1.2, help='deg of swing growth per push assumed by the stop (11-17: 0.6-1.3)')
     p.add_argument('--calm', action='store_true', help='brake the present swing down instead of pumping it up')
     p.add_argument('--kick', type=float, default=2400.0, help='counts on phase A for the starting kick (11-17 recipe: 2400)')
     p.add_argument('--kick-below', type=float, default=5.0, help='deg: kick only if the present swing is below this')
@@ -88,6 +92,8 @@ def main():
             print('! tracker angles are stale'); return 1
         if r[:, 2].min() < a.ncc_min:
             print(f'! ncc {r[:, 2].min():.3f} below {a.ncc_min}: check the lights and the camera image'); return 1
+        if not a.calm and half >= a.swing:
+            print(f'! already swinging +-{half:.1f} deg, at or above the target +-{a.swing:g}: nothing to do (--calm to reduce it)'); return 1
         if not a.calm:
             room = min(med - SAFE[0], SAFE[1] - med) - 2.0
             if a.swing > room:
@@ -104,7 +110,8 @@ def main():
     if a.calm:
         cmd += ['--duration', f'{a.duration or 120:g}']
     else:
-        cmd += ['--pump-to', f'{a.swing:g}', '--duration', f'{a.duration or 90:g}']
+        cmd += ['--pump-to', f'{a.swing:g}', '--duration', f'{a.duration or 90:g}', '--pump-stop', 'turning',
+                '--pump-per-push', f'{a.per_push:g}']
         if kick:
             cmd += ['--kick', f'{a.kick:g}']
     if a.live:

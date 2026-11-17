@@ -196,6 +196,35 @@ class TurnTimer:
         return len(r) >= n_turns and all(abs(x / f_target - 1.0) < tol for x in r)
 
 
+class TurnPoints:
+    """Swing turning points (extrema) from successive angles, with hysteresis h deg. half() = half the angle between the
+    last two turning points: the swing amplitude as of the latest turning point (2026-11-17: the pump stop compared the
+    trailing 4-s pp/2 with the target every frame, so it fired mid half swing after a half swing of pushes, ~10 deg late)."""
+    def __init__(self, h=0.5):
+        self.h = h; self.dir = 0; self.hi = self.lo = self.ext = None; self.tps = []
+
+    def add(self, t, th):
+        if self.dir == 0:                            # direction not yet known: wait for a move of more than h
+            if self.hi is None:
+                self.hi = self.lo = (t, th); return None
+            self.hi = (t, th) if th > self.hi[1] else self.hi
+            self.lo = (t, th) if th < self.lo[1] else self.lo
+            if self.hi[1] - self.lo[1] > self.h:
+                self.dir = 1 if self.hi[0] > self.lo[0] else -1
+                self.ext = self.hi if self.dir > 0 else self.lo
+            return None
+        if (th - self.ext[1]) * self.dir > 0:        # still moving the same way: extend the extreme
+            self.ext = (t, th); return None
+        if abs(th - self.ext[1]) > self.h:           # reversed by more than h: the extreme was a turning point
+            tp = self.ext; self.tps.append(tp); self.tps = self.tps[-4:]
+            self.dir = -self.dir; self.ext = (t, th)
+            return tp
+        return None
+
+    def half(self):
+        return abs(self.tps[-1][1] - self.tps[-2][1]) / 2 if len(self.tps) >= 2 else None
+
+
 class Safety:
     def __init__(self, grow, safe, fps=50.0, win=4.0):
         self.grow, self.safe, self.n = grow, safe, int(win * fps)
@@ -216,7 +245,8 @@ class Safety:
 
 
 def cmd_run(a, ep=None, src=None):
-    for k_, v_ in dict(spin_to=0.0, dir=1, tol=0.05, w_push_max=90.0, w_cap=500.0, stop_on_target=0, stop_tol=0.01).items():   # callers without spin args
+    for k_, v_ in dict(spin_to=0.0, dir=1, tol=0.05, w_push_max=90.0, w_cap=500.0, stop_on_target=0, stop_tol=0.01,
+                       pump_stop='window', pump_per_push=1.2).items():   # callers without spin args
         if not hasattr(a, k_):
             setattr(a, k_, v_)
     lv = a.level
@@ -226,7 +256,7 @@ def cmd_run(a, ep=None, src=None):
           f'map {getattr(a, "map", "b2")}, safe {a.safe[0]:g}-{a.safe[1]:g} deg, ' + ('no growth limit (pump)' if a.pump_to > 0 else f'grow limit {a.grow}x') + '; outputs '
           f'{"ON" if a.enable_outputs else "OFF (timing test)"}; {"LIVE" if a.live else "DRY"}'
           + (f'; kick {a.kick_phase} {a.kick:g} counts {a.kick_hold:g} s + {a.kick_settle:g} s settle' if a.kick > 0 else '')
-          + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else '')
+          + (f'; PUMP to +-{a.pump_to:g} deg' + (f' (stop by turning points, {a.pump_per_push:g} deg per push)' if a.pump_stop == 'turning' else '') if a.pump_to > 0 else '')
           + (f'; SPIN to {a.spin_to:g} Hz dir {a.dir:+d}, push below {a.w_push_max:g} deg/s, cap {a.w_cap:g} deg/s, NO safe range'
              + (f'; STOP ON TARGET after {a.stop_on_target} turns within {100 * a.stop_tol:g} %' if getattr(a, 'stop_on_target', 0) > 0 else '')
              if getattr(a, 'spin_to', 0) > 0 else ''))
@@ -261,6 +291,7 @@ def cmd_run(a, ep=None, src=None):
     trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
     hist_k = []                                         # (frame index, unwrapped angle) for the speed cap
     TT = None                                           # spin: per-turn rates (TurnTimer)
+    TP = TurnPoints(); budget = None                    # pump --pump-stop turning: turning points, pushes left
 
     def killed(signum, frame):                          # SIGTERM/SIGHUP -> same exit as Ctrl-C: field off in finally.
         for sg in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):   # ignore repeats so they can't cut the finally short
@@ -312,6 +343,7 @@ def cmd_run(a, ep=None, src=None):
             hist.append((ht, ang_u)); hist = hist[-8:]
             hist_k.append((k, ang_u)); hist_k = hist_k[-8:]
             S.add(ang)
+            tp_new = TP.add(ht, ang)
             note = ''
             if phase in ('kick', 'settle'):
                 if not (a.safe[0] <= ang <= a.safe[1]):
@@ -324,6 +356,8 @@ def cmd_run(a, ep=None, src=None):
                     print(f'  observing {a.observe:g} s (field off) ...')
             if phase == 'observe' and now - t_start >= a.observe:
                 meas = S.amp(); S.A0 = max(meas, 1.0); phase = 'brake'; t_brake = now
+                if a.pump_to > 0 and a.pump_stop == 'turning' and TP.half() is not None:
+                    budget = int((a.pump_to - TP.half()) / a.pump_per_push)
                 print(f'  start swing +-{meas:.2f} deg measured' + (' (growth limit uses a 1.0 deg floor)' if meas < 1.0 else '')
                       + f'; braking for up to {a.duration:g} s')
             if phase == 'brake' and a.spin_to > 0:
@@ -355,7 +389,14 @@ def cmd_run(a, ep=None, src=None):
             elif phase == 'brake' and a.pump_to > 0:
                 if not (a.safe[0] <= ang <= a.safe[1]):
                     reason = f'angle {ang:.1f} outside {a.safe}'; break
-                if S.amp() >= a.pump_to:
+                if a.pump_stop == 'turning':
+                    if tp_new is not None and TP.half() is not None:
+                        budget = int((a.pump_to - TP.half()) / a.pump_per_push)
+                        note = f'tp={tp_new[1]:.1f};half={TP.half():.1f};budget={budget}'
+                    if budget is not None and budget <= 0:
+                        reason = (f'pump target reached: push budget used (aim +-{a.pump_to:g}; last swing measured at a turning '
+                                  f'point +-{TP.half():.1f} deg, before the last pushes)'); break
+                elif S.amp() >= a.pump_to:
                     reason = f'pump target reached: swing +-{S.amp():.1f} deg'; break
                 if now - t_brake >= a.duration:
                     reason = 'duration'; break
@@ -385,6 +426,8 @@ def cmd_run(a, ep=None, src=None):
                 for n, v in zip(CHANS, out):
                     cur[n] = v
                 choice = 'off' if est['q'] < 0 else 'ABC'[est['q']]
+                if a.pump_to > 0 and a.pump_stop == 'turning' and budget is not None and est['q'] >= 0:
+                    budget -= 1
                 est = {k2: (f'{v:.3f}' if isinstance(v, float) else v) for k2, v in est.items()}
             log.write(f'{now:.6f},{k},{ht:.6f},{ang:.3f},{ncc:.3f},{phase},{est["th"]},{est["w_dps"]},{est["th_p"]},{choice},'
                       f'{cur[2]:g},{cur[4]:g},{cur[3]:g},{w0 if w0 == "" else f"{w0:.6f}"},{w1 if w1 == "" else f"{w1:.6f}"},{note}\n')
@@ -460,7 +503,8 @@ def selftest():
              ('wrong-sign push: must stop on growth', -1.0, 'grow', 22.0, 0.0),
              ('from rest, no kick: field stays off (rest zone)', 1.0, 'rest', 0.0, 0.0),
              ('from rest, kick 1200 then brake (plant pushes ~V^2, so 1200 here ~ 2400 if linear)', 1.0, 'kick', 0.0, 1200.0),
-             ('pump from +-8 deg to +-18 deg, then stop', 1.0, 'pump', 8.0, 0.0))
+             ('pump from +-8 deg to +-18 deg, then stop', 1.0, 'pump', 8.0, 0.0),
+             ('pump from +-8 deg to +-18 deg, turning-point stop: coasting swing must not pass 18 + 3', 1.0, 'pump_turn', 8.0, 0.0))
     for label, gain, want, amp0, kick in cases:
         if B is None:
             break
@@ -476,7 +520,8 @@ def selftest():
         a = ap.Namespace(level=800.0, duration=40.0, observe=5.0, safe=(190.0, 236.0), grow=1.2, stale=0.5, ncc_min=0.8,
                          port=0, outdir=os.path.join('/tmp', 'brake_selftest'), enable_outputs=True, live=True,
                          c_assumed=0.03, min_push=0.15, rest_amp=1.5, kick=kick, kick_phase='B', kick_hold=2.0,
-                         kick_settle=10.0, pump_to=18.0 if want == 'pump' else 0.0)
+                         kick_settle=10.0, pump_to=18.0 if want.startswith('pump') else 0.0,
+                         pump_stop='turning' if want == 'pump_turn' else 'window', pump_per_push=1.2)
         import contextlib, io
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
@@ -496,8 +541,15 @@ def selftest():
             good = 'duration' in st and fin < 10
         elif want == 'grow':
             good = 'swing' in st or 'outside' in st
-        elif want == 'pump':
+        elif want.startswith('pump'):
             good = 'pump target reached' in st
+            th = []
+            for _ in range(500):                      # coast 10 s with the field off: the swing the pump actually left
+                th.append(pl()[2])
+            coast = (max(th) - min(th)) / 2
+            print(f'     swing while coasting after the stop: +-{coast:.1f} deg (aim 18)')
+            if want == 'pump_turn':
+                good &= coast <= 21.0
         elif want == 'rest':
             good = 'duration' in st and ch.count('off') >= 0.95 * len(ch)
         else:
@@ -535,6 +587,11 @@ def main():
     r.add_argument('--pump-to', type=float, default=0.0, help='deg: PUMP instead of brake (push along the motion) until the '
                    'swing reaches this, then stop (G1, spin-up plan). Uses the B2 map, 45-deg periodic, outside 187-238 '
                    'assumed. The growth limit is off; --safe still applies (set it wider, e.g. 150,280)')
+    r.add_argument('--pump-stop', default='window', choices=('window', 'turning'),
+                   help='pump: when to stop. window = trailing 4-s pp/2 >= --pump-to, checked every frame (overshoots ~10 deg, '
+                   '2026-11-17); turning = swing measured at each turning point, then at most (target - swing) / '
+                   '--pump-per-push more pushes')
+    r.add_argument('--pump-per-push', type=float, default=1.2, help='deg of swing growth per push (11-17: 0.6-1.3 at 800 counts)')
     r.add_argument('--spin-to', type=float, default=0.0, help='Hz: SPIN-UP governor (2026-11-11 amended rule): pump over the '
                    'top and hold this mean rotation rate along --dir; no safe angle range; stops on --duration or --w-cap')
     r.add_argument('--dir', type=int, default=1, choices=(1, -1), help='spin direction (increasing angle = +1)')
