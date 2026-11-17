@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-16 (evening, local) — Laser injection: blocked / ND1 pairs, interleave hardware check, overnight ND4 interleaved (live, worker2, Molly's typed go)
+
+- Setup: 660 nm laser, `LASER_OFFSET` 1000 = 3.08 mW on the Ophir just before the chamber window (Molly); beam on one side of the sail. PD after the ND, before the chamber: 222 counts/mW (`analysis/calibration_history.md`). Tracker re-centred to (128.62, 176.54) from a rest clip (board shift vs 11-12 still); laser-on rest clip: no ncc change (scattered-light check).
+- Runs (`coast_series.py`, voltage-steps 6e861aa, `--ncc-min 0.62`): off1 (1 pair, beam blocked before the chamber, FE GPS start 1478919846), on (1 pair, ND1 0.30 mW, from 1478921892, ended early by STOP). All four spin-ups on target, end states clean.
+- Seen (M, `gamma_mid` at 0.435 Hz): off1 Δγ = +0.90 ± 0.27 µHz; ND1 Δγ = +53.11 ± 0.21 µHz (γ(+) −27, γ(−) +25 µHz; mean γ −0.9). Laser torque ~7.9e-16 N m, ~2.6e-15 N m/mW at the window (D, I ±10 %). off1 is +6.7 µHz from the 11-14/15 mean (−5.77, sd 2.12): unexplained. Lab busy from ~18:00 (logged).
+- Interleave: `coast_series --laser-pattern` (branch laser-interleave 60a4d3b). Check A (offset 1000→0→1000 by hand): PD back within 1 % in ~10 s, steady within 0.3 %. Check B (stub brake, laser only): switching, logging and restore correct. PD at offset 0 reads ~1.1 counts above the covered-PD dark with ND1 (~1.7 % of full power; two dark methods, tentative).
+- Overnight: ND4 in (~0.31 µW, ~0.7× recoil, ND4 transmission not yet measured), `--pairs 24 --laser-pattern off,on,on,off --live`, pid 752075, from 19:43 local (FE GPS 1478928294), outdir worker2 `~/spinup/2026-11-16/laser/night_nd4_il`.
+- Data: Dropbox `spinup/2026-11-16/laser/`. Analysis: `analysis/laser_injection_20261116/` (HANDOFF, `coasts.py`, `pair_panels.py`).
+
 ### 2026-11-14 (night) — Overnight coast series: test pair, then 30 pairs launched (live, worker2, Molly's typed go)
 
 - Code: voltage-steps 6e861aa (`lab_utils/coast_series.py`: pairs of spin-up +, 600 s coast, spin-up -, 600 s coast, then a final brake; brake_offsets settings as C1-C6; `brake_offsets.py` now turns the field off on SIGTERM/SIGHUP, Mac kill test); feedback-drive e3db19f (tracker `--video-every 10`: tracks all 50 fps, saves 5 fps, ~0.66 GB/h). Launched detached (`setsid nohup`; tmux does not work on worker2).
