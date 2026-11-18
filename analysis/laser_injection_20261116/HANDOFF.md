@@ -71,6 +71,11 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   (earlier nights 2.1–2.6).
 - Asymmetry again: τ(−)/τ(+) − 1 = +1.34 % (sd 0.76), 22/24 (M, `RUN=nd3_night ... python3 night_plots.py`).
 - Low off pairs 8, 9 (21:16–22:05; −14.5, −13.4) and 12 (23:02; −12.2). PD, tracker ncc and temperature flat at 21:15–22:05.
+- **Air temperature (M, TSP01B `ext_T0_C`; one probe hanging in air near the table, away from lights, Molly; `ext_T1_C`
+  is an identical copy):** 23.6–24.8 °C, sd 0.22. The internal sensor (27.4–28.0) reads ~3.6 °C high (self-heating?). During
+  the run the air cycles at ~23 min, the pair period (FFT peaks 22.7–24.2 min); after the run that period is gone (85, 43 min).
+  + coasts 0.105 ± 0.046 °C warmer than − coasts. Δγ vs (T− − T+) per pair r = −0.45, p = 0.03 (one of ~8 tests); γ per
+  coast vs T, RH: none (p > 0.1). Cause of the cycle unknown (drive electronics, laser, computers near the table?).
 - **Light step 22:42 (M, cause unknown):** PD +0.37 counts in both laser states for the rest of the night, ncc min
   0.79 → 0.83 at the same time; on − off PD step unchanged (0.80). Δγ mean unchanged across it. A lab mate may have been
   in (Molly); not confirmed.
