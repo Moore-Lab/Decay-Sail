@@ -31,7 +31,10 @@ high power first (the CW/CCW difference should be obvious), then lower power ove
 - ND1 transmission 0.098 (PD ratio). ND4 (and ND3) transmission at 660 nm: **not measured — Ophir at full power, same
   holder untouched (to do).**
 - PD dark: −0.93 (PD covered), −0.9 (ND4 in); +0.19 with ND1 and `LASER_OFFSET` 0 → the laser at offset 0 still emits
-  ~1.7 % of full power (tentative, two dark methods). Off pairs therefore carry ~1.7 % of the on light.
+  ~1.7 % of full power (tentative, two dark methods). **Not supported (2026-11-18):** the covered-PD dark also blocks
+  room light, and the laser-off PD with ND3/ND2 in (~0.5, room light) is higher than with ND1 (+0.19), so the excess is
+  room light; leakage at offset 0 is consistent with 0 (D, rough bound ≲0.5 % of full power). Test: block the beam vs
+  offset 0, room light unchanged.
 - Laser switching (check A): back within 1 % in ~10 s after 0→1000 (overshoot +4–6 % for ~4 s), within 0.3 % after.
 
 ## Interleaving (branch `laser-interleave`, 60a4d3b; Mac worktree `~/Desktop/VSCode/decay_sail_wt_li`, worker2 `~/wt_li`)
