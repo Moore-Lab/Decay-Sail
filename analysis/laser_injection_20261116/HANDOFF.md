@@ -70,6 +70,9 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   Expected +0.63 (D: PD step 0.80 counts = 3.6 µW, ND3 transmission 1.2e-3, ~9× recoil).** Pair scatter sd 3.3–3.9 µHz
   (earlier nights 2.1–2.6).
 - Asymmetry again: τ(−)/τ(+) − 1 = +1.34 % (sd 0.76), 22/24 (M, `RUN=nd3_night ... python3 night_plots.py`).
+- **405 nm imaging beam off for this night (Molly, 2026-11-18).** vs ND4 night (beam on): Δγ all pairs −6.58 ± 0.75 vs
+  −5.63 ± 0.52 (diff −0.95 ± 0.91), asymmetry +1.34 ± 0.15 vs +1.14 ± 0.11 % (diff +0.20 ± 0.19); local-τ bands also
+  +0.8–2.0 % on both nights (M). The imaging beam is not needed for the offset; turning it off did not reduce it.
 - Low off pairs 8, 9 (21:16–22:05; −14.5, −13.4) and 12 (23:02; −12.2). PD, tracker ncc and temperature flat at 21:15–22:05.
 - **Air temperature (M, TSP01B `ext_T0_C`; one probe hanging in air near the table, away from lights, Molly; `ext_T1_C`
   is an identical copy):** 23.6–24.8 °C, sd 0.22. The internal sensor (27.4–28.0) reads ~3.6 °C high (self-heating?). During
