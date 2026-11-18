@@ -1,6 +1,6 @@
 # Laser injection test: HANDOFF (updated 2026-11-17)
 
-**State: ND4 interleaved night done and analysed (2026-11-17); ND2 night next.** Labels: M measured,
+**State: ND4 (11-16/17) and ND3 (11-17/18) interleaved nights done and analysed; neither resolves the laser (ND3 +2.05 ± 1.47 vs +0.63 expected).** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
 
 ## Goal (Molly)
@@ -59,6 +59,26 @@ ND4, `--pairs 24 --laser-pattern off,on,on,off --ncc-min 0.62 --live`, worker2 `
 - Plots for the PI: Claude doc "Laser injection, 16–17 Nov: notes for PI" (https://claude.ai/artifact/Qm2V7UF1anicjtWFgKsJUs).
 - Beam spot (top camera, ND1/no filter frames): left/lower-left of the hub, ~25–30 px from the axis; side camera being
   set up (`camera_utils/SIDE_CAMERA_BRIEF.md`). Rotor nudged 11-17 11:37 to ±30° swing (worker2, Molly's go).
+
+## ND3 night 2026-11-17/18 (done; analysis 2026-11-18, interpretations not approved)
+
+`coast_series.py --pairs 24 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62
+--live` (worker2 `~/wt_li` 60a4d3b), `~/spinup/2026-11-17/laser/nd3_night`, 18:16–04:34; 48/48 coasts (44 on target; O08,
+O20, O26, O38 stopped on duration at 0.50–0.51 Hz, all − reversals, fit normally); tracker 12 h, 0 dropped frames.
+TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see below); display 1.6e-7 mbar at launch.
+- **On − off Δγ = +2.05 ± 1.47 µHz (M, `LASER_DIR=.../2026-11-17/laser python3 coasts.py`; worker2 +2.40 ± 1.32).
+  Expected +0.63 (D: PD step 0.80 counts = 3.6 µW, ND3 transmission 1.2e-3, ~9× recoil).** Pair scatter sd 3.3–3.9 µHz
+  (earlier nights 2.1–2.6).
+- Asymmetry again: τ(−)/τ(+) − 1 = +1.34 % (sd 0.76), 22/24 (M, `RUN=nd3_night ... python3 night_plots.py`).
+- Low off pairs 8, 9 (21:16–22:05; −14.5, −13.4) and 12 (23:02; −12.2). PD, tracker ncc and temperature flat at 21:15–22:05.
+- **Light step 22:42 (M, cause unknown):** PD +0.37 counts in both laser states for the rest of the night, ncc min
+  0.79 → 0.83 at the same time; on − off PD step unchanged (0.80). Δγ mean unchanged across it. A lab mate may have been
+  in (Molly); not confirmed.
+- coast_series stop-on-target misses when per-turn rates jitter ±2 % (4/48): loosen (e.g. 3 of 5 within 1.5 %) on the
+  branch before another night.
+- Edwards gauge: `/dev/ttyUSB0` (Prolific PL2303) gives no reply to `?GA1`/`?V913` at 9600/19200/38400; `log_pressure.py`
+  also fails to open this adapter (DTR ioctl EIO; open with `dsrdtr=True, rtscts=True`). Next: DB9 pin 2–3 loopback.
+- Rotor left swinging ±46° about 216° after the final brake (below the 176° safe edge): `nudge.py --calm --live` first.
 
 ## Next (exact steps)
 

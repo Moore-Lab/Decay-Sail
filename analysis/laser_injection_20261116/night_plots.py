@@ -19,7 +19,9 @@ import numpy as np
 import coasts as C
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RUN = 'night_nd4_il2'
+RUN = os.environ.get('RUN', 'night_nd4_il2')   # RUN=nd3_night LASER_DIR=... for later nights
+LABEL = os.environ.get('LABEL', 'ND4 interleaved night 2026-11-16/17')
+TAG = '' if RUN == 'night_nd4_il2' else f'_{RUN}'   # later nights write their own files
 SIG = 0.073          # expected recoil change in delta gamma (uHz), derived (N 1.1e-18 N m, I 1.1e-11 kg m^2)
 EDGES = np.arange(0.37, 0.495, 0.02)
 
@@ -46,7 +48,9 @@ def coast_turns(name, k, h, a, n):
 
 def main():
     k, h, a, n = C.load_tracker(False)
-    names = sorted(os.path.basename(p)[6:-4] for p in glob.glob(os.path.join(C.D, RUN, 'coast_O*.txt')))
+    names = sorted(os.path.basename(p)[6:-4] for p in glob.glob(os.path.join(C.D, RUN, 'coast_O*.txt'))
+                   if 'coast_end_host' in C.read_meta(p))   # skip a coast still running (mid-night snapshot)
+    names = names[:len(names) // 2 * 2]                           # whole pairs only
     cs = [coast_turns(nm, k, h, a, n) for nm in names]
     t_first = cs[0]['host']
     pairs = []
@@ -56,7 +60,7 @@ def main():
                           gp=1e6 * P['g'], gpe=1e6 * P['ge'], gm=1e6 * M['g'], gme=1e6 * M['ge'],
                           dg=1e6 * (M['g'] - P['g']), dge=1e6 * float(np.hypot(P['ge'], M['ge'])),
                           taup=P['tau'] / 60, taum=M['tau'] / 60, P=P, M=M))
-    with open(os.path.join(HERE, 'night_pairs.csv'), 'w', newline='') as fh:
+    with open(os.path.join(HERE, f'night_pairs{TAG}.csv'), 'w', newline='') as fh:
         cols = ['pair', 'laser', 'hour', 'gp', 'gpe', 'gm', 'gme', 'dg', 'dge', 'taup', 'taum']
         w = csv.writer(fh); w.writerow(cols)
         for p in pairs:
@@ -96,7 +100,7 @@ def main():
         r['pct_err'] = 100 * np.hypot(r['sd+1'] / np.sqrt(r['n+1']), r['sd-1'] / np.sqrt(r['n-1'])) / r['tau+1']
         loc.append(r)
     S['local_tau'] = loc
-    json.dump(S, open(os.path.join(HERE, 'night_summary.json'), 'w'), indent=1)
+    json.dump(S, open(os.path.join(HERE, f'night_summary{TAG}.json'), 'w'), indent=1)
     print(json.dumps({k_: v for k_, v in S.items() if k_ != 'local_tau'}, indent=1))
     for r in loc:
         print(f"{r['band']}  +{r['tau+1']:.2f} (sd {r['sd+1']:.2f}, n {r['n+1']})  -{r['tau-1']:.2f} (sd {r['sd-1']:.2f}, "
@@ -140,17 +144,17 @@ def plots(pairs, S):
     ax.set_xlabel('time since entering the band (min)'); ax.set_ylabel('rotor frequency (Hz)')
     ax.set_title(f'Free coast-down, + vs −, {C.BAND[0]:.2f}–{C.BAND[1]:.2f} Hz band (tracker, per turn; 1-min means shown)',
                  fontsize=12)
-    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', 'night_pair_example.png'), dpi=150)
+    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_example{TAG}.png'), dpi=150)
 
     nc = 6; nr = int(np.ceil(len(pairs) / nc))
     fig, axs = plt.subplots(nr, nc, figsize=(18, 3 * nr), sharex=True, sharey=True)
     for ax, p in zip(axs.flat, pairs):
         panel(ax, p)
     fig.supxlabel('time since entering the band (min)'); fig.supylabel('rotor frequency (Hz)')
-    fig.suptitle(f'All {len(pairs)} pairs, ND4 interleaved night 2026-11-16/17, {C.BAND[0]:.2f}–{C.BAND[1]:.2f} Hz '
+    fig.suptitle(f'All {len(pairs)} pairs, {LABEL}, {C.BAND[0]:.2f}–{C.BAND[1]:.2f} Hz '
                  f'(tracker; dark = +, light = −; red title and shading = 660 nm laser on); γ in mHz at {C.PP.F_MID} Hz, '
                  f'Δγ = γ(−) − γ(+)')
-    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', 'night_pair_grid.png'), dpi=110)
+    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_grid{TAG}.png'), dpi=110)
 
     hv = np.array([p['hour'] for p in pairs]); on = np.array([p['laser'] == 'on' for p in pairs])
     dg = np.array([p['dg'] for p in pairs]); de = np.array([p['dge'] for p in pairs])
@@ -177,7 +181,7 @@ def plots(pairs, S):
     ax[2].set_ylabel('µHz'); ax[2].legend(frameon=False, fontsize=9, loc='upper left'); ax[2].grid(alpha=0.3)
     ax[2].set_title('Pair-to-pair variation vs the signal (assumed N 1.1e-18 N m, I 1.1e-11 kg m²)', fontsize=10)
     ax[2].set_xlabel('hours after the first coast (19:52 EST, 11-16)')
-    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', 'night_pair_vs_time.png'), dpi=130)
+    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_vs_time{TAG}.png'), dpi=130)
 
 
 if __name__ == '__main__':

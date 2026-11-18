@@ -31,15 +31,17 @@ sys.path.insert(0, ON)
 import tracker_coasts as TC   # noqa: E402
 import pair_plots as PP       # noqa: E402
 
-D = os.path.expanduser('~/Library/CloudStorage/Dropbox/Microspheres/TFINER/data/spinup/2026-11-16/laser')
+D = os.path.expanduser(os.environ.get('LASER_DIR', '~/Library/CloudStorage/Dropbox/Microspheres/TFINER/data/spinup/2026-11-16/laser'))   # LASER_DIR=.../2026-11-17/laser for later nights
 BAND, F_MID = PP.BAND, PP.F_MID
+TAG = '' if 'LASER_DIR' not in os.environ else '_' + os.path.basename(os.path.dirname(D))   # later days: own outputs
 
 
 def load_tracker(no_cache):
-    csvs = sorted(glob.glob(os.path.join(D, 'tracker*', 'blob_live_gps*.csv')))   # tracker/, tracker2/ (restarts)
+    csvs = sorted(glob.glob(os.path.join(D, 'tracker*', 'blob_live_gps*.csv'))          # tracker/, tracker2/ (restarts)
+                  + glob.glob(os.path.join(D, '*', 'tracker*', 'blob_live_gps*.csv')))  # or inside a run folder (11-17 on)
     if not csvs:
         sys.exit(f'no tracker CSV in {D}/tracker*')
-    cache = os.path.join(HERE, 'plots', 'tracker_cache.npz')
+    cache = os.path.join(HERE, 'plots', f'tracker_cache_{os.path.basename(os.path.dirname(D))}.npz')
     if os.path.exists(cache) and not no_cache:
         z = np.load(cache)
         return z['k'], z['h'], z['a'], z['n']
@@ -148,11 +150,11 @@ def main():
             print(f"\n{run}: on {v['on'].mean():+.2f} (sd {v['on'].std(ddof=1):.2f}, n {len(v['on'])}), "
                   f"off {v['off'].mean():+.2f} (sd {v['off'].std(ddof=1):.2f}, n {len(v['off'])}); "
                   f"on - off = {d:+.2f} +- {e:.2f} uHz (error from the pair scatter)")
-    with open(os.path.join(HERE, 'coasts_table.csv'), 'w', newline='') as fh:
+    with open(os.path.join(HERE, f'coasts_table{TAG}.csv'), 'w', newline='') as fh:
         keys = sorted({kk for r in rows for kk in r})
         w = csv.DictWriter(fh, keys); w.writeheader(); w.writerows(rows)
     json.dump(dict(baseline=dict(mean_uHz=bm, sd_uHz=bs, n=len(base)), pairs=pairs),
-              open(os.path.join(HERE, 'coasts_summary.json'), 'w'), indent=1)
+              open(os.path.join(HERE, f'coasts_summary{TAG}.json'), 'w'), indent=1)
     plot(rows, pairs, bm, bs)
 
 
@@ -180,7 +182,7 @@ def plot(rows, pairs, bm, bs):
     ax[1].set_ylabel('Δγ = γ(−) − γ(+) (µHz)'); ax[1].set_xlabel('hours since first coast'); ax[1].legend(fontsize=8)
     fig.suptitle('Laser injection 2026-11-16: per coast and per pair (tracker, 0.40-0.47 Hz)')
     os.makedirs(os.path.join(HERE, 'plots'), exist_ok=True)
-    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', 'laser_pairs.png'), dpi=130)
+    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'laser_pairs{TAG}.png'), dpi=130)
 
 
 if __name__ == '__main__':
