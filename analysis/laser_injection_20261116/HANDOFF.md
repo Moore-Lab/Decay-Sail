@@ -132,6 +132,15 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   `.../2026-11-16/laser/les_nd1/`):** laser on − off of Δγ LES +52.4 ± 5.5 vs tracker +52.2 µHz (single pairs; M; ± ~5 from pair scatter, ± 0.3 formal).
   Per coast LES − tracker −0.5 to −2.5 µHz, as on the ND4 night. At 10× the ND2 glare the camera-free readout gives the
   same laser effect.
+- **Side camera (11-17, worker2 `side-camera` branch 3c12597, not pushed; results Dropbox `spinup/2026-11-17/side_camera/`,
+  videos `videos/side_camera_2026-11-17/`), D:** beam b = 1.34 ± 0.05 mm from the axis (projected); two radial Al wings
+  (r 0.88–1.88 mm, A); beam on a wing −47..+27° from face-on (geometric ±44.5°), twice per turn; spot ≈ 0.35–0.55 ×
+  0.55–0.75 mm; no beam walk ND3→ND4.
+- **Light budget (`light_budget.py`, 2026-11-19, D, rough):** on a radial plate the torque while lit is (1 + R) P b / c,
+  independent of the wing angle (8.9e-15 N m/mW for a perfect mirror). Turn-averaged maximum with R 0.9: 4.2e-15
+  (geometric window) / 3.5e-15 (measured 74° window) N m/mW; measured 2.6e-15 ± 14 % = 0.62–0.74 of it. Radiation
+  pressure alone can account for the push (an earlier chat estimate that it exceeded the limit used a wrong window
+  and an angle factor that cancels; retracted). R, I and the wing geometry are assumed.
 
 ## Next (exact steps)
 
