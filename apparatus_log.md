@@ -14,6 +14,12 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-18/19 (local) — Laser injection: ND2 interleaved run, 40 pairs (live, worker2, Molly's typed go)
+
+- Ran: `coast_series.py --pairs 40 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62 --outdir ~/spinup/2026-11-18/laser/nd2_run --live` (worker2 `~/wt_li`, laser-interleave 60a4d3b), 11:51 11-18 to 04:16 11-19, FE GPS 1479072968 to ~1479132100 (last coast end 1479131790 + final brake). ND2 in; 405 nm imaging beam off. Tracker 18 h, 0 dropped frames, ncc ≥ 0.824; TSP01B logging.
+- Saw (M): 80/80 coasts on target. Laser on − off Δγ = +5.3 ± 1.6 µHz with the O39 pair dropped (+7.4 ± 2.6 all pairs); expected +5.3 (D, PD step 6.77 counts = 30.5 µW). O39 (+, laser off, 19:34–19:44) ~9 % extra drag from ~19:38, cause unknown. Air probe dipped to 17.6 °C 23:50–00:15 with the internal sensor and humidity unchanged. Rotor left swinging ±51° after the final brake.
+- Data: Dropbox `spinup/2026-11-18/laser/{nd2_run,pd_trend}` (rclone check 0 differences; worker2 AVI deleted). Analysis: `analysis/laser_injection_20261116/HANDOFF.md`, `nd2_checks.py`; PI notes https://claude.ai/artifact/GjDhtekFq9DRv4JHaZfYJJ.
+
 ### 2026-11-16 (evening, local) — Laser injection: blocked / ND1 pairs, interleave hardware check, overnight ND4 interleaved (live, worker2, Molly's typed go)
 
 - Setup: 660 nm laser, `LASER_OFFSET` 1000 = 3.08 mW on the Ophir just before the chamber window (Molly); beam on one side of the sail. PD after the ND, before the chamber: 222 counts/mW (`analysis/calibration_history.md`). Tracker re-centred to (128.62, 176.54) from a rest clip (board shift vs 11-12 still); laser-on rest clip: no ncc change (scattered-light check).

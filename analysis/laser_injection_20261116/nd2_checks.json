@@ -1,0 +1,131 @@
+{
+ "rule_uHz": 15.0,
+ "nights": {
+  "ND4": {
+   "median": -84.94,
+   "sd": 3.57,
+   "flagged": {},
+   "max_unflagged": 8.5,
+   "no_halves": [
+    "O10",
+    "O13"
+   ]
+  },
+  "ND3": {
+   "median": -84.39,
+   "sd": 3.18,
+   "flagged": {},
+   "max_unflagged": 9.0,
+   "no_halves": [
+    "O08",
+    "O20",
+    "O26",
+    "O36",
+    "O40"
+   ]
+  },
+  "ND2": {
+   "median": -83.49,
+   "sd": 5.77,
+   "flagged": {
+    "O39": -37.7
+   },
+   "max_unflagged": 11.4,
+   "no_halves": [
+    "O32",
+    "O54",
+    "O77"
+   ]
+  }
+ },
+ "nd2_all": {
+  "plain": [
+   7.44,
+   2.65
+  ],
+  "linear": [
+   7.44,
+   2.62
+  ],
+  "quadratic": [
+   7.43,
+   2.66
+  ],
+  "abba": [
+   7.44,
+   2.32
+  ],
+  "abba_blocks": [
+   5.5,
+   2.02,
+   5.9,
+   2.98,
+   26.24,
+   5.3,
+   9.09,
+   7.66,
+   10.11,
+   -0.42
+  ]
+ },
+ "nd2_rule": {
+  "plain": [
+   5.31,
+   1.62
+  ],
+  "linear": [
+   5.31,
+   1.53
+  ],
+  "quadratic": [
+   5.2,
+   1.47
+  ],
+  "abba": [
+   5.19,
+   1.02
+  ],
+  "abba_blocks": [
+   5.5,
+   2.02,
+   5.9,
+   2.98,
+   3.76,
+   5.3,
+   9.09,
+   7.66,
+   10.11,
+   -0.42
+  ]
+ },
+ "nd2_dropped_pairs": [
+  20
+ ],
+ "mean_gamma_on_minus_off": [
+  0.46,
+  0.52
+ ],
+ "dg_sd_rule": {
+  "on": 5.01,
+  "off": 5.08
+ },
+ "pd": {
+  "on_mean": 7.353,
+  "off_mean": 0.585,
+  "step_mean": 6.768,
+  "step_min": 6.713,
+  "step_max": 6.834,
+  "power_uW": 30.5,
+  "expected_uHz": 5.3
+ },
+ "air": {
+  "range": [
+   18.95,
+   24.52
+  ],
+  "plus_minus_minus": 0.003,
+  "sem": 0.135,
+  "r_dT_dg": -0.2,
+  "n": 39
+ }
+}

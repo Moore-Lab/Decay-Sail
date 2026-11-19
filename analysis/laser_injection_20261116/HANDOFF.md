@@ -1,6 +1,6 @@
-# Laser injection test: HANDOFF (updated 2026-11-17)
+# Laser injection test: HANDOFF (updated 2026-11-19)
 
-**State: ND4 (11-16/17) and ND3 (11-17/18) interleaved nights done and analysed; neither resolves the laser (ND3 +2.05 ± 1.47 vs +0.63 expected).** Labels: M measured,
+**State: ND4, ND3 and ND2 interleaved nights done. ND2 (11-18/19) shows the laser: +5.3 ± 1.6 µHz vs +5.3 expected (one outlier pair dropped by a rule not yet approved); ND4 and ND3 do not resolve it.** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
 
 ## Goal (Molly)
@@ -88,6 +88,25 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 - Edwards gauge: `/dev/ttyUSB0` (Prolific PL2303) gives no reply to `?GA1`/`?V913` at 9600/19200/38400; `log_pressure.py`
   also fails to open this adapter (DTR ioctl EIO; open with `dsrdtr=True, rtscts=True`). Next: DB9 pin 2–3 loopback.
 - Rotor left swinging ±46° about 216° after the final brake (below the 176° safe edge): `nudge.py --calm --live` first.
+
+## ND2 run 2026-11-18/19 (done; analysis 2026-11-19, interpretations not approved)
+
+`coast_series.py --pairs 40 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62
+--live` (worker2 `~/wt_li` 60a4d3b), `~/spinup/2026-11-18/laser/nd2_run`, 11:51–04:16; 80/80 coasts on target; tracker
+18 h, 0 dropped frames, ncc ≥ 0.824; imaging beam off. PI notes: https://claude.ai/artifact/GjDhtekFq9DRv4JHaZfYJJ.
+- **On − off Δγ = +5.31 ± 1.62 µHz with the O39 pair dropped (linear drift +5.31 ± 1.53, quadratic +5.20 ± 1.47, ABBA
+  +5.19 ± 1.02); all 40 pairs +7.44 ± 2.65 (M, `coasts.py`, `nd2_checks.py` → `nd2_checks.json`). Expected +5.3 (D: PD
+  step 6.77 counts = 30.5 µW from the 1-s trend over coast windows, ±1 % over the run; ~70× recoil).** worker2's
+  exponential-τ fit: +5.6 ± 1.6 / +7.6 ± 2.6.
+- **Outlier rule (proposed 2026-11-18 during the run, after pair 24; not approved by Molly):** γ in 0.44–0.49 and
+  0.38–0.43 Hz per coast; flag if (h1 − h2) is > 15 µHz from the night's median; drop the pair; blind to laser state.
+  Flags only O39 (−37.7) across ND4, ND3 and ND2 (largest others 8.5, 9.0, 11.4). O39: +, laser off, 19:34–19:44
+  (not 20:34 as first relayed), ~9 % extra drag from ~19:38, tracker normal; cause unknown.
+- Pair scatter sd 5.0 µHz per state (ND4 2.6, ND3 3.3–3.9). Asymmetry +1.19 % (sd 1.85, 31/40). Mean γ on − off +0.5 ± 0.5.
+- Air (ext_T0_C) 23.0–24.5 °C; + minus − coasts −0.05 ± 0.05 °C (ND3's +0.1 not repeated); dip to 17.6 °C
+  23:50–00:15 (pairs 30–31) with internal T and RH flat: local to the probe? Δγ in those pairs normal. Pair-period
+  cycle not checked yet.
+- Rotor left swinging ±51° (final brake stopped on duration): `nudge.py --calm --live` first (Molly's go).
 
 ## Next (exact steps)
 
