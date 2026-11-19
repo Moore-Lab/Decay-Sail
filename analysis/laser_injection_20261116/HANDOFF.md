@@ -114,6 +114,12 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   on angle (glare?), not a torque. Expected real laser bump (D, 45° window): 5.8e-5 (ND2), 5.8e-3 rad/s² (full power).
   Δγ is not affected (a fixed angle error cancels over whole turns). Angle-resolved push needs 660 nm kept out of the
   top camera first.
+- **Glare check (`glare_frames.py` on worker2, Molly's go 13:20; output Dropbox `spinup/2026-11-18/laser/glare/`):** the
+  top camera sees the ND2 laser (M). Laser on − off mean images per 10° of rotor angle: rms 1.87 counts per bin vs
+  0.16 for off A − off B (11×), max 159 counts; strong in rotor angles 40–130° and 210–310°, weak at 140–200° and
+  320–30°, streaks along the spokes rotating with the rotor; all-angle mean: a streak on the hub just lower-left of the
+  axis (x 85–110, y 150–200 px, on or near the white dot's r ≈ 23 px path) and a fixed glint at (115, 83). Consistent
+  with the f² angle-profile pattern being glare biasing the dot match (not shown directly).
 
 ## Next (exact steps)
 
