@@ -150,6 +150,8 @@ def plot(rows, pairs, res):
         m = [i for i, r in enumerate(rows) if r['laser'] == s_]
         ax[1].errorbar(idx[m], [rows[i]['g_les'] - rows[i]['g_trk'] for i in m], [rows[i]['g_les_err'] for i in m],
                        fmt='o', color=c, ms=4, capsize=2, label=f'laser {s_}')
+    dd = np.array([r['g_les'] - r['g_trk'] for r in rows if np.isfinite(r['g_les']) and np.isfinite(r['g_trk'])])
+    ax[1].axhline(dd.mean(), color='#1f3b73', ls='--', lw=1, label=f'mean {dd.mean():+.2f} µHz (sd {dd.std(ddof=1):.2f})')
     ax[1].axhline(0, color='0.5', lw=0.8); ax[1].set_xlabel('coast (in order)'); ax[1].set_ylabel('LES − tracker (µHz)')
     ax[1].set_title('Difference per coast', fontsize=11); ax[1].grid(alpha=0.3); ax[1].legend(frameon=False)
     for k, (key, lab) in enumerate((('dg_trk', 'tracker'), ('dg_les', 'LES'))):
@@ -159,7 +161,7 @@ def plot(rows, pairs, res):
     if EXPECTED is not None:
         ax[2].axhline(EXPECTED, color=con, ls='--', lw=1, label=f'expected ({EXPECTED:+g})')
     ax[2].axhline(0, color='0.5', lw=0.8)
-    ax[2].set_xticks([0, 1]); ax[2].set_xticklabels(['tracker', 'LES']); ax[2].set_xlim(-0.6, 1.8)
+    ax[2].set_xticks([0, 1]); ax[2].set_xticklabels(['tracker', 'LES']); ax[2].set_xlim(-0.6, 2.2)
     ax[2].set_ylabel('laser on − off of Δγ (µHz)'); ax[2].legend(frameon=False, fontsize=9)
     ax[2].set_title('Laser effect, each readout', fontsize=11); ax[2].grid(alpha=0.3)
     fig.suptitle(f'{LABEL}: the LES (405 nm beam, no camera) vs the tracker (camera)', fontsize=12)
