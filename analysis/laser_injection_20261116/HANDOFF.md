@@ -120,6 +120,12 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   320–30°, streaks along the spokes rotating with the rotor; all-angle mean: a streak on the hub just lower-left of the
   axis (x 85–110, y 150–200 px, on or near the white dot's r ≈ 23 px path) and a fixed glint at (115, 83). Consistent
   with the f² angle-profile pattern being glare biasing the dot match (not shown directly).
+- **LES vs tracker, ND4 night (`les_vs_tracker.py`, LES fetched by worker2 2026-11-19 to Dropbox
+  `spinup/2026-11-16/laser/les/`):** LES 2f line SNR ~840–1080 in every coast. γ per coast LES − tracker −1.25 µHz
+  (sd 0.96, 48 coasts; laser off −1.49 ± 0.19, on −1.02 ± 0.19). Laser on − off of Δγ: LES −0.95 ± 1.37, tracker
+  −1.13 ± 1.04 (M). The two readouts agree; no sign the laser biases the tracker's γ. LES_SUM_IN1 averaged only
+  ~3.1 counts that night although the LES lines were strong, so SUM_IN1 is not a reliable on/off indicator for the
+  405 nm beam (the "beam off" for ND3 rests on Molly's word and the weak ND3 lines, not on SUM).
 
 ## Next (exact steps)
 
