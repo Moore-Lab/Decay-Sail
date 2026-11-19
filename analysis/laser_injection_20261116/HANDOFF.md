@@ -141,6 +141,14 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   (geometric window) / 3.5e-15 (measured 74° window) N m/mW; measured 2.6e-15 ± 14 % = 0.62–0.74 of it. Radiation
   pressure alone can account for the push (an earlier chat estimate that it exceeded the limit used a wrong window
   and an angle factor that cancels; retracted). R, I and the wing geometry are assumed.
+- **Bursts vs steady, and the hill (`bursts_vs_steady.py`, simulation, 2026-11-19, D):** with the measured hill, a push
+  in two 74° windows gives the same Δγ as a steady push of the same turn-averaged torque (ratio 0.979 at ND1 torque,
+  0.999 at full power). Check with no hill: γ 490.01, Δγ 51.87 vs 51.89 expected. **But the hill amplifies both drag and
+  torque in the fitted γ by ~1.3× at 0.435 Hz** (drag 490 → 646 µHz; torque Δγ 51.9 → 66.8). If that holds for the
+  real rotor, N = Δγ π I f overstates the laser torque by ~1.3 (2.6e-15 → ~2.0e-15 N m/mW, light budget 47–57 % of
+  maximum) and the real drag torque, and the recoil's Δγ would be ~0.094 µHz instead of 0.073. The laser/recoil power
+  equivalence (0.42 µW) is unchanged (both amplified alike). Factor depends on the hill and speed; not yet checked
+  against data.
 
 ## Next (exact steps)
 
