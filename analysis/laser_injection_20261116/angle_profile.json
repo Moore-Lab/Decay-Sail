@@ -1,0 +1,33 @@
+{
+ "sg_frames": 11,
+ "band_Hz": [
+  0.4,
+  0.47
+ ],
+ "bins_deg": 10.0,
+ "expected_peak_rad_s2": {
+  "full_3.08mW": 0.005824,
+  "ND1": 0.0005672727272727272,
+  "ND2": 5.767272727272727e-05
+ },
+ "dir+1": {
+  "n_off": 19,
+  "n_on": 20,
+  "turns_in_band_off": 2848,
+  "hill_peak_to_peak": 7.9331,
+  "rms_A_minus_B": 0.00997,
+  "formal_A_minus_B": 0.01312,
+  "rms_on_minus_off": 0.01977,
+  "mean_on_minus_off": -8.7e-05
+ },
+ "dir-1": {
+  "n_off": 20,
+  "n_on": 20,
+  "turns_in_band_off": 3049,
+  "hill_peak_to_peak": 7.9321,
+  "rms_A_minus_B": 0.00743,
+  "formal_A_minus_B": 0.01259,
+  "rms_on_minus_off": 0.01899,
+  "mean_on_minus_off": -0.000323
+ }
+}

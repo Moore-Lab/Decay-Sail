@@ -106,6 +106,14 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   23:50–00:15 (pairs 30–31) with internal T and RH flat: local to the probe? Δγ in those pairs normal. Pair-period
   cycle not checked yet.
 - Rotor left swinging ±51° (final brake stopped on duration): `nudge.py --calm --live` first (Molly's go).
+- **Torque against rotor angle (`angle_profile.py`, 2026-11-19, observations):** θ̈ from the 50 fps tracker angles,
+  averaged by angle in the 0.40–0.47 Hz band. Hill θ̈ 7.9 rad/s² peak to peak, the same for + and − (lab-fixed,
+  speed-independent). Laser-off halves A − B: 45° bump height noise 2.7–4.6 mrad/s² with ~1450 turns per half. Laser
+  on − off shows a ±20–40 mrad/s² pattern, the same in both directions and scaling as f² (0.78–0.81× at 0.39 Hz,
+  1.07–1.12× at 0.47 Hz, vs 0.82 / 1.17 for f²): kinematic, i.e. a laser-on tracker angle error of ~0.002° depending
+  on angle (glare?), not a torque. Expected real laser bump (D, 45° window): 5.8e-5 (ND2), 5.8e-3 rad/s² (full power).
+  Δγ is not affected (a fixed angle error cancels over whole turns). Angle-resolved push needs 660 nm kept out of the
+  top camera first.
 
 ## Next (exact steps)
 
