@@ -45,10 +45,10 @@ def hill_profile():
     return prof - prof.mean()          # rad/s^2 per 10 deg bin, conservative part
 
 
-def simulate(P_mW, hill, turns=4, dt=1e-3):
+def simulate(P_mW, hill, turns=4, dt=1e-3, om0=None):
     nbar = K * P_mW
     npk = nbar * 360.0 / WIN
-    th, om = 0.0, 2 * np.pi * F0
+    th, om = 0.0, (om0 if om0 is not None else 2 * np.pi * F0)
     T, W, TH = [], [], []
     t = 0.0
     ctr = np.arange(len(hill)) * 360 / len(hill) + 180 / len(hill) if hill is not None else None
@@ -76,10 +76,34 @@ def main():
     print(f'recoil: torque {RECOIL_NM:.1e} N m always on; per turn {RECOIL_NM / I * T / (2 * np.pi) * 1e6:.3f} uHz '
           f'({RECOIL_NM / I * T / (2 * np.pi) / (GAMMA * T * F0) * 100:.3f} % of the drag loss per turn)')
     hill = hill_profile()
-    plot(hill)
+    hill, om0 = calibrate(hill)
+    plot(hill, om0)
 
 
-def plot(hill):
+FMAX, FMIN = 0.629, 0.269   # Hz, measured within turns averaging 0.43-0.44 Hz (ND2, laser off, 886 turns)
+
+
+def calibrate(hill):
+    """Scale the smoothed hill and pick the start speed so one turn averages F0 and peaks at FMAX (measured)."""
+    def turn(sc, om0):
+        t, f, th = simulate(0.0, hill * sc, turns=1, om0=om0)
+        return 1 / t[-1], f.max(), f.min()
+    sc = 1.0
+    for _ in range(30):
+        lo, hi = 0.5, 6.0                      # start speed (rad/s) giving a turn average of F0
+        for _ in range(40):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if turn(sc, mid)[0] < F0 else (lo, mid)
+        om0 = (lo + hi) / 2
+        fm, fx, fn = turn(sc, om0)
+        sc *= ((FMAX ** 2 - fn ** 2) / max(fx ** 2 - fn ** 2, 1e-9)) ** 0.5 if fx < FMAX - 1e-3 or fx > FMAX + 1e-3 else 1.0
+        if abs(fx - FMAX) < 1e-3:
+            break
+    print(f'model hill scaled x{sc:.2f}; one turn: mean {fm:.3f} Hz, max {fx:.3f}, min {fn:.3f} (measured max {FMAX}, min {FMIN})')
+    return hill * sc, om0
+
+
+def plot(hill, om0):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -98,14 +122,14 @@ def plot(hill):
     ax[0].set_xlabel('time (s)'); ax[0].set_ylabel('rotation rate − 0.435 Hz (mHz)'); ax[0].legend(frameon=False, loc='lower left')
     ax[0].set_title('(a) Without the hill: the laser adds a kick each time the sail passes the beam (shaded)', fontsize=11)
     # (b) with the measured hill: the raw speed
-    t2, f2, _ = simulate(0.0, hill); t3, f3, th3 = simulate(3.08, hill)
+    t2, f2, _ = simulate(0.0, hill, om0=om0); t3, f3, th3 = simulate(3.08, hill, om0=om0)
     ax[1].plot(t2, f2, color=coff, label='laser off'); ax[1].plot(t3, f3, color=con, lw=1, ls='--', label='laser on, full power')
     ax[1].set_xlabel('time (s)'); ax[1].set_ylabel('rotation rate (Hz)'); ax[1].legend(frameon=False, loc='upper right')
-    ax[1].set_title('(b) With the measured once-per-turn hill: the laser kicks are invisible in the raw speed', fontsize=11)
+    ax[1].set_title('(b) With the once-per-turn hill (scaled to the measured 0.27–0.63 Hz swing): the laser kicks are invisible', fontsize=11)
     # (c) on - off difference with the hill, compared at the same rotor angle (not the same time)
-    tb, fb, thb = simulate(0.0, hill)
+    tb, fb, thb = simulate(0.0, hill, om0=om0)
     for lab, P in POWERS.items():
-        ta, fa, tha = simulate(P, hill)
+        ta, fa, tha = simulate(P, hill, om0=om0)
         grid = np.linspace(0, min(tha[-1], thb[-1]), 4000)
         d = np.interp(grid, tha, fa) - np.interp(grid, thb, fb)
         ax[2].plot(grid / 360, d * 1e6, label=lab)
