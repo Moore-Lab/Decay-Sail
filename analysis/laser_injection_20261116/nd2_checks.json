@@ -101,6 +101,10 @@
  "nd2_dropped_pairs": [
   20
  ],
+ "nd2_hodges_lehmann_all": [
+  5.72,
+  1.82
+ ],
  "mean_gamma_on_minus_off": [
   0.46,
   0.52

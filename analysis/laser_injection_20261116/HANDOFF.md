@@ -1,6 +1,6 @@
 # Laser injection test: HANDOFF (updated 2026-11-19)
 
-**State: ND4, ND3 and ND2 interleaved nights done. ND2 (11-18/19) shows the laser: +5.3 ± 1.6 µHz vs +5.3 expected (one outlier pair dropped by a rule not yet approved); ND4 and ND3 do not resolve it.** Labels: M measured,
+**State: ND4, ND3 and ND2 interleaved nights done. ND2 (11-18/19) shows the laser: all pairs +7.4 ± 2.6 µHz (median-based +5.7 ± 1.8) vs +5.3 expected; ND4 and ND3 do not resolve it.** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
 
 ## Goal (Molly)
@@ -94,14 +94,13 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 `coast_series.py --pairs 40 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62
 --live` (worker2 `~/wt_li` 60a4d3b), `~/spinup/2026-11-18/laser/nd2_run`, 11:51–04:16; 80/80 coasts on target; tracker
 18 h, 0 dropped frames, ncc ≥ 0.824; imaging beam off. PI notes: https://claude.ai/artifact/GjDhtekFq9DRv4JHaZfYJJ.
-- **On − off Δγ = +5.31 ± 1.62 µHz with the O39 pair dropped (linear drift +5.31 ± 1.53, quadratic +5.20 ± 1.47, ABBA
-  +5.19 ± 1.02); all 40 pairs +7.44 ± 2.65 (M, `coasts.py`, `nd2_checks.py` → `nd2_checks.json`). Expected +5.3 (D: PD
-  step 6.77 counts = 30.5 µW from the 1-s trend over coast windows, ±1 % over the run; ~70× recoil).** worker2's
-  exponential-τ fit: +5.6 ± 1.6 / +7.6 ± 2.6.
-- **Outlier rule (proposed 2026-11-18 during the run, after pair 24; not approved by Molly):** γ in 0.44–0.49 and
-  0.38–0.43 Hz per coast; flag if (h1 − h2) is > 15 µHz from the night's median; drop the pair; blind to laser state.
-  Flags only O39 (−37.7) across ND4, ND3 and ND2 (largest others 8.5, 9.0, 11.4). O39: +, laser off, 19:34–19:44
-  (not 20:34 as first relayed), ~9 % extra drag from ~19:38, tracker normal; cause unknown.
+- **On − off Δγ, all 40 pairs: +7.44 ± 2.65 µHz (mean), +5.72 ± 1.82 (Hodges–Lehmann, bootstrap error); expected +5.3
+  (D: PD step 6.77 counts = 30.5 µW from the 1-s trend over coast windows, ±1 % over the run; ~70× recoil)** (M,
+  `coasts.py`, `nd2_checks.py` → `nd2_checks.json`). Without the O39 pair, for reference: +5.31 ± 1.62 (linear drift
+  +5.31 ± 1.53, quadratic +5.20 ± 1.47, ABBA +5.19 ± 1.02). worker2's exponential-τ fit: +7.6 ± 2.6 / +5.6 ± 1.6.
+- **No outlier rule (Molly, 2026-11-19): all pairs stay in the headline.** O39 (+, laser off, 19:34–19:44, not 20:34
+  as first relayed): ~9 % extra drag from ~19:38, tracker normal, cause unknown. γ(0.44–0.49) − γ(0.38–0.43 Hz) per
+  coast vs the night's median: O39 −37.7 µHz; no other of 176 coasts on ND4/ND3/ND2 beyond 11.4 (`nd2_checks.py`).
 - Pair scatter sd 5.0 µHz per state (ND4 2.6, ND3 3.3–3.9). Asymmetry +1.19 % (sd 1.85, 31/40). Mean γ on − off +0.5 ± 0.5.
 - Air (ext_T0_C) 23.0–24.5 °C; + minus − coasts −0.05 ± 0.05 °C (ND3's +0.1 not repeated); dip to 17.6 °C
   23:50–00:15 (pairs 30–31) with internal T and RH flat: local to the probe? Δγ in those pairs normal. Pair-period

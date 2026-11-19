@@ -4,7 +4,8 @@ Mac only; reads the Dropbox tracker caches made by `coasts.py` (run it first for
 
     python3 nd2_checks.py     # prints; writes nd2_checks.json
 
-1. Outlier rule (proposed 2026-11-18 evening during the run, before pairs 25-40 were seen; Molly has not approved it):
+1. Half-coast screen (proposed 2026-11-18 as an outlier rule; Molly 2026-11-19: not adopted, all pairs stay in the
+   headline; the screen is kept as a diagnostic):
    per coast, gamma in two fixed speed bands, h1 0.44-0.49 Hz and h2 0.38-0.43 Hz (quadratic in log f, at band centre).
    A coast is flagged if (h1 - h2) differs from that night's median (h1 - h2) by more than 15 uHz (~5x the per-half
    scatter of 2-3 uHz seen on the ND4/ND3 nights). Its pair is dropped. Applied to all three nights, blind to laser state.
@@ -141,6 +142,11 @@ def main():
     S['nd2_all'] = fits(dg, on, idx)
     S['nd2_rule'] = fits(dg[keep], on[keep], idx[keep])
     S['nd2_dropped_pairs'] = [p['pair'] for p in P if p['flag']]
+    d = np.subtract.outer(dg[on], dg[~on])
+    rng = np.random.default_rng(0)
+    boot = [np.median(np.subtract.outer(rng.choice(dg[on], on.sum()), rng.choice(dg[~on], (~on).sum()))) for _ in range(2000)]
+    S['nd2_hodges_lehmann_all'] = [round(float(np.median(d)), 2), round(float(np.std(boot)), 2)]
+    print('Hodges-Lehmann on - off, all pairs:', S['nd2_hodges_lehmann_all'])
     S['mean_gamma_on_minus_off'] = fits(mg[keep], on[keep], idx[keep])['plain']
     S['dg_sd_rule'] = {'on': round(float(dg[keep & on].std(ddof=1)), 2), 'off': round(float(dg[keep & ~on].std(ddof=1)), 2)}
     print(f'\nND2 dropped pairs: {S["nd2_dropped_pairs"]}')

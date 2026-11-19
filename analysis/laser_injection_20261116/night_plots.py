@@ -22,6 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RUN = os.environ.get('RUN', 'night_nd4_il2')   # RUN=nd3_night LASER_DIR=... for later nights
 LABEL = os.environ.get('LABEL', 'ND4 interleaved night 2026-11-16/17')
 TAG = '' if RUN == 'night_nd4_il2' else f'_{RUN}'   # later nights write their own files
+EXPECTED = os.environ.get('EXPECTED', '+0.05')   # expected laser on - off (uHz, D) for this night's filter, e.g. EXPECTED=+5.3 for ND2
 SIG = 0.073          # expected recoil change in delta gamma (uHz), derived (N 1.1e-18 N m, I 1.1e-11 kg m^2)
 EDGES = np.arange(0.37, 0.495, 0.02)
 
@@ -105,10 +106,29 @@ def main():
     for r in loc:
         print(f"{r['band']}  +{r['tau+1']:.2f} (sd {r['sd+1']:.2f}, n {r['n+1']})  -{r['tau-1']:.2f} (sd {r['sd-1']:.2f}, "
               f"n {r['n-1']})  {r['pct']:+.2f} +- {r['pct_err']:.2f} %")
-    plots(pairs, S)
+    plots(pairs, S, t_first)
 
 
-def plots(pairs, S):
+def offscale(ax, x, y, lo, hi, fmt):
+    """Keep the y range on the bulk of the points; mark points outside [lo, hi] at the edge with their value."""
+    ax.set_ylim(lo, hi)
+    for xi, yi in zip(x, y):
+        if yi < lo or yi > hi:
+            ye = lo if yi < lo else hi
+            ax.annotate(fmt.format(yi), (xi, ye), xytext=(-8, 6 if yi < lo else -12), textcoords='offset points', fontsize=8,
+                        color='0.3', ha='right')
+            ax.plot(xi, ye, 'v' if yi < lo else '^', color='0.3', ms=7, clip_on=False)
+
+
+def robust_range(v, pad):
+    v = np.asarray(v, float)
+    med = np.median(v); mad = 1.4826 * np.median(np.abs(v - med))
+    ok = np.abs(v - med) <= max(6 * mad, 1e-9)
+    return v[ok].min() - pad, v[ok].max() + pad
+
+
+def plots(pairs, S, t_first):
+    from datetime import datetime
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -150,11 +170,13 @@ def plots(pairs, S):
     fig, axs = plt.subplots(nr, nc, figsize=(18, 3 * nr), sharex=True, sharey=True)
     for ax, p in zip(axs.flat, pairs):
         panel(ax, p)
+    for ax in axs.flat[len(pairs):]:
+        ax.set_visible(False)
     fig.supxlabel('time since entering the band (min)'); fig.supylabel('rotor frequency (Hz)')
     fig.suptitle(f'All {len(pairs)} pairs, {LABEL}, {C.BAND[0]:.2f}–{C.BAND[1]:.2f} Hz '
                  f'(tracker; dark = +, light = −; red title and shading = 660 nm laser on); γ in mHz at {C.PP.F_MID} Hz, '
                  f'Δγ = γ(−) − γ(+)')
-    fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_grid{TAG}.png'), dpi=110)
+    fig.tight_layout(rect=(0, 0, 1, 1 - 0.35 / nr)); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_grid{TAG}.png'), dpi=110)
 
     hv = np.array([p['hour'] for p in pairs]); on = np.array([p['laser'] == 'on' for p in pairs])
     dg = np.array([p['dg'] for p in pairs]); de = np.array([p['dge'] for p in pairs])
@@ -164,6 +186,10 @@ def plots(pairs, S):
                        fmt='o', color=cp, mfc=mfc, ms=5, capsize=2, label=f'+, {lab}')
         ax[0].errorbar(hv[m] + 0.08, [p['gm'] for p, mm in zip(pairs, m) if mm], [p['gme'] for p, mm in zip(pairs, m) if mm],
                        fmt='s', color=cm, mfc=mfc, ms=5, capsize=2, label=f'−, {lab}')
+    gall = [p['gp'] for p in pairs] + [p['gm'] for p in pairs]
+    lo, hi = robust_range(gall, 3)
+    if min(gall) < lo or max(gall) > hi:
+        offscale(ax[0], np.r_[hv, hv + 0.08], gall, lo, hi, '{:.1f} (off scale)')
     ax[0].set_ylabel('γ at 0.435 Hz (µHz)'); ax[0].legend(frameon=False, ncol=2, fontsize=9); ax[0].grid(alpha=0.3)
     ax[0].set_title(f"γ per coast (± formal, median per pair {S['dge_median']:.2f} µHz; sd between coasts "
                     f"{S['gamma_sd_plus']:.1f} (+) and {S['gamma_sd_minus']:.1f} (−) µHz); filled = laser on", fontsize=10)
@@ -174,13 +200,17 @@ def plots(pairs, S):
     ax[1].axhline(0, color='0.5', lw=0.8)
     ax[1].set_ylabel('Δγ = γ(−) − γ(+) (µHz)'); ax[1].legend(frameon=False, fontsize=9, loc='lower right'); ax[1].grid(alpha=0.3)
     ax[1].set_title(f"Pair difference (± formal per pair); on − off = {S['on_minus_off']:+.2f} ± {S['on_minus_off_err']:.2f} µHz "
-                    f"(expected at ND4 ≈ +0.05)", fontsize=10)
+                    f"(expected {EXPECTED})", fontsize=10)
+    lo, hi = robust_range(dg, 4)
+    if dg.min() < lo or dg.max() > hi:
+        offscale(ax[1], hv, dg, lo, hi, 'Δγ {:.1f} (off scale)')
+        offscale(ax[2], hv, dg - S['all']['dg_mean'], lo - S['all']['dg_mean'], hi - S['all']['dg_mean'], '{:.1f} (off scale)')
     ax[2].errorbar(hv, dg - S['all']['dg_mean'], de, fmt='o', color='k', ms=5, capsize=2, label='Δγ minus the night mean, per pair')
     ax[2].axhspan(-SIG, SIG, color='C2', alpha=0.35, label=f'± expected recoil change in Δγ ({SIG} µHz)')
     ax[2].axhline(0, color='0.5', lw=0.8)
     ax[2].set_ylabel('µHz'); ax[2].legend(frameon=False, fontsize=9, loc='upper left'); ax[2].grid(alpha=0.3)
     ax[2].set_title('Pair-to-pair variation vs the signal (assumed N 1.1e-18 N m, I 1.1e-11 kg m²)', fontsize=10)
-    ax[2].set_xlabel('hours after the first coast (19:52 EST, 11-16)')
+    ax[2].set_xlabel(f"hours after the first coast ({datetime.fromtimestamp(t_first):%H:%M %Z %m-%d} local)".replace('  ', ' '))
     fig.tight_layout(); fig.savefig(os.path.join(HERE, 'plots', f'night_pair_vs_time{TAG}.png'), dpi=130)
 
 
