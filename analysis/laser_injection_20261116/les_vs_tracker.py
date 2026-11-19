@@ -5,6 +5,7 @@ does not bias the tracker's gamma. Mac only; reads Dropbox spinup/2026-11-16/las
 coasts_table.csv (tracker gamma, from coasts.py).
 
     python3 les_vs_tracker.py      # prints; les_vs_tracker.csv; plots/les_vs_tracker_nd4.png (gitignored)
+    RUNS=off1,on LESDIR=les_nd1 LABEL='ND1 pairs 16 Nov' python3 les_vs_tracker.py    # blocked vs ND1 single pairs
 
 LES: PIT and YAW _OUT_DQ, 1024 Hz, front-end clock; coast windows from each coast file (fe_gps_field_off + 5 s to
 fe_gps_coast_end - 2 s). Rate per 40 s window every 10 s from the line at 2x the rotation rate (CLAUDE.md), as
@@ -27,12 +28,28 @@ import les_coasts as L   # noqa: E402
 import pair_plots as PP  # noqa: E402
 
 D = os.path.expanduser('~/Library/CloudStorage/Dropbox/Microspheres/TFINER/data/spinup/2026-11-16/laser')
-RUN = 'night_nd4_il2'
+RUN = os.environ.get('RUN', 'night_nd4_il2')            # RUNS=off1,on LESDIR=les_nd1 for the ND1 pairs (11-16)
+RUNS = os.environ.get('RUNS', RUN).split(',')
+LESDIR = os.environ.get('LESDIR', 'les')
+TAG = '' if RUNS == ['night_nd4_il2'] else '_' + '_'.join(RUNS)
+LABEL = os.environ.get('LABEL', 'ND4 night 16–17 Nov')
+EXPECTED = float(os.environ['EXPECTED']) if os.environ.get('EXPECTED') else (0.05 if RUNS == ['night_nd4_il2'] else None)
 
 
 def load_les():
-    L.D = D
-    return L.load_les()
+    """Contiguous LES chunks from D/LESDIR (same file format and gap check as les_coasts.load_les)."""
+    chunks = sorted(glob.glob(os.path.join(D, LESDIR, 'les_*.npz')), key=lambda p: int(os.path.basename(p).split('_')[1]))
+    if not chunks:
+        sys.exit(f'no LES files in {os.path.join(D, LESDIR)}')
+    g0 = None; pit = []; yaw = []
+    for p in chunks:
+        z = np.load(p)
+        if g0 is None:
+            g0 = float(z['gps0'])
+        if int(round((float(z['gps0']) - g0) * L.FS)) != sum(len(x) for x in pit):
+            raise RuntimeError(f'{p}: gap or overlap')
+        pit.append(z['pit'].astype(float)); yaw.append(z['yaw'].astype(float))
+    return g0, np.concatenate(pit), np.concatenate(yaw)
 
 
 def meta(p):
@@ -49,12 +66,12 @@ def meta(p):
 def main():
     g0, pit, yaw = load_les()
     g1 = g0 + len(pit) / L.FS
-    trk = {r['name']: r for r in csv.DictReader(open(os.path.join(HERE, 'coasts_table.csv'))) if r['run'] == RUN}
+    trk = {(r['run'], r['name']): r for r in csv.DictReader(open(os.path.join(HERE, 'coasts_table.csv'))) if r['run'] in RUNS}
     rows = []
-    for p in sorted(glob.glob(os.path.join(D, RUN, 'coast_O*.txt'))):
+    for run, p in [(rn, p) for rn in RUNS for p in sorted(glob.glob(os.path.join(D, rn, 'coast_O*.txt')))]:
         nm = os.path.basename(p)[6:-4]
         m = meta(p)
-        if 'fe_gps_coast_end' not in m:
+        if 'fe_gps_coast_end' not in m or 'fe_gps_field_off' not in m:
             continue
         a, b = m['fe_gps_field_off'] + 5, m['fe_gps_coast_end'] - 2
         if a < g0 or b > g1:
@@ -66,10 +83,11 @@ def main():
         v = tr[ch]
         s = (v[:, 1] >= PP.BAND[0]) & (v[:, 1] <= PP.BAND[1])
         t, f = v[s, 0], v[s, 1]
-        r = dict(name=nm, dir=1 if int(nm[1:]) % 2 else -1, laser=m['laser'], channel=ch, snr=snr[ch], n_win=int(s.sum()))
-        tg = trk.get(nm, {}).get('gamma_mHz') or ''
+        las = m.get('laser') or ('on' if run == 'on' else 'off')    # the 11-16 single pairs have no laser line
+        r = dict(run=run, name=nm, dir=1 if int(nm[1:]) % 2 else -1, laser=las, channel=ch, snr=snr[ch], n_win=int(s.sum()))
+        tg = trk.get((run, nm), {}).get('gamma_mHz') or ''
         r['g_trk'] = 1e3 * float(tg) if tg else np.nan
-        r['g_trk_err'] = 1e3 * float(trk[nm]['gamma_err_mHz']) if tg else np.nan
+        r['g_trk_err'] = 1e3 * float(trk[(run, nm)]['gamma_err_mHz']) if tg else np.nan
         if s.sum() >= 15 and v[0, 1] >= PP.BAND[1]:
             r['g_les'] = 1e6 * PP.gamma_mid(t, f)[0]
             r['g_les_err'] = 1e6 * PP.jk(lambda idx: PP.gamma_mid(t[idx], f[idx])[0], len(t))
@@ -78,7 +96,7 @@ def main():
         rows.append(r)
         print(f"{nm} {r['dir']:+d} {r['laser']:>3} {ch} snr {snr[ch]:.0f}  gamma LES {r['g_les']:.1f} +- {r['g_les_err']:.1f}  "
               f"tracker {r['g_trk']:.2f} +- {r['g_trk_err']:.2f} uHz")
-    with open(os.path.join(HERE, 'les_vs_tracker.csv'), 'w', newline='') as fh:
+    with open(os.path.join(HERE, f'les_vs_tracker{TAG}.csv'), 'w', newline='') as fh:
         w = csv.DictWriter(fh, list(rows[0].keys())); w.writeheader(); w.writerows(rows)
 
     ok = [r for r in rows if np.isfinite(r['g_les']) and np.isfinite(r['g_trk'])]
@@ -87,18 +105,27 @@ def main():
     for s_ in ('off', 'on'):
         x = np.array([r['g_les'] - r['g_trk'] for r in ok if r['laser'] == s_])
         print(f"  laser {s_}: mean {x.mean():+.2f} +- {x.std(ddof=1) / np.sqrt(len(x)):.2f} (n {len(x)})")
-    by = {r['name']: r for r in rows}
+    by = {(r['run'], r['name']): r for r in rows}
     pairs = []
-    for i in range(1, 100, 2):
-        pn, mn = f'O{i:02d}', f'O{i + 1:02d}'
-        if pn in by and mn in by:
-            P, M = by[pn], by[mn]
-            pairs.append(dict(pair=(i + 1) // 2, laser=P['laser'], dg_les=M['g_les'] - P['g_les'], dg_trk=M['g_trk'] - P['g_trk']))
+    for run in RUNS:
+        for i in range(1, 100, 2):
+            pn, mn = (run, f'O{i:02d}'), (run, f'O{i + 1:02d}')
+            if pn in by and mn in by:
+                P, M = by[pn], by[mn]
+                pairs.append(dict(run=run, pair=(i + 1) // 2, laser=P['laser'], dg_les=M['g_les'] - P['g_les'],
+                                  dg_les_err=float(np.hypot(P['g_les_err'], M['g_les_err'])), dg_trk=M['g_trk'] - P['g_trk'],
+                                  dg_trk_err=float(np.hypot(P['g_trk_err'], M['g_trk_err']))))
+                print(f"pair {run} {i}/{i + 1} laser {P['laser']}: dgamma LES {pairs[-1]['dg_les']:+.2f} +- {pairs[-1]['dg_les_err']:.2f}, "
+                      f"tracker {pairs[-1]['dg_trk']:+.2f} +- {pairs[-1]['dg_trk_err']:.2f}")
     res = {}
     for key in ('dg_les', 'dg_trk'):
         on = np.array([q[key] for q in pairs if q['laser'] == 'on' and np.isfinite(q[key])])
         off = np.array([q[key] for q in pairs if q['laser'] == 'off' and np.isfinite(q[key])])
-        res[key] = (on.mean() - off.mean(), np.hypot(on.std(ddof=1) / np.sqrt(len(on)), off.std(ddof=1) / np.sqrt(len(off))), len(on), len(off))
+        if len(on) > 1 and len(off) > 1:
+            err = np.hypot(on.std(ddof=1) / np.sqrt(len(on)), off.std(ddof=1) / np.sqrt(len(off)))
+        else:                                     # single pairs: formal errors
+            e = np.array([q[key + '_err'] for q in pairs if np.isfinite(q[key])]); err = float(np.sqrt(np.sum(e ** 2)))
+        res[key] = (on.mean() - off.mean(), err, len(on), len(off))
         print(f"{key}: laser on - off {res[key][0]:+.2f} +- {res[key][1]:.2f} uHz (pairs on {len(on)}, off {len(off)})")
     plot(rows, pairs, res)
 
@@ -129,15 +156,16 @@ def plot(rows, pairs, res):
         v, e, non, noff = res[key]
         ax[2].errorbar(k, v, e, fmt='o', ms=8, capsize=4, color='#1f3b73')
         ax[2].annotate(f'{v:+.2f} ± {e:.2f}', (k, v), xytext=(10, 0), textcoords='offset points', va='center')
-    ax[2].axhline(0.05, color=con, ls='--', lw=1, label='expected at ND4 (+0.05)')
+    if EXPECTED is not None:
+        ax[2].axhline(EXPECTED, color=con, ls='--', lw=1, label=f'expected ({EXPECTED:+g})')
     ax[2].axhline(0, color='0.5', lw=0.8)
     ax[2].set_xticks([0, 1]); ax[2].set_xticklabels(['tracker', 'LES']); ax[2].set_xlim(-0.6, 1.8)
     ax[2].set_ylabel('laser on − off of Δγ (µHz)'); ax[2].legend(frameon=False, fontsize=9)
     ax[2].set_title('Laser effect, each readout', fontsize=11); ax[2].grid(alpha=0.3)
-    fig.suptitle('ND4 night 16–17 Nov: the LES (405 nm beam, no camera) vs the tracker (camera)', fontsize=12)
+    fig.suptitle(f'{LABEL}: the LES (405 nm beam, no camera) vs the tracker (camera)', fontsize=12)
     fig.tight_layout()
     os.makedirs(os.path.join(HERE, 'plots'), exist_ok=True)
-    fig.savefig(os.path.join(HERE, 'plots', 'les_vs_tracker_nd4.png'), dpi=120)
+    fig.savefig(os.path.join(HERE, 'plots', f'les_vs_tracker{TAG or "_nd4"}.png'), dpi=120)
 
 
 if __name__ == '__main__':

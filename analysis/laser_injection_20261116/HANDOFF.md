@@ -126,6 +126,10 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   −1.13 ± 1.04 (M). The two readouts agree; no sign the laser biases the tracker's γ. LES_SUM_IN1 averaged only
   ~3.1 counts that night although the LES lines were strong, so SUM_IN1 is not a reliable on/off indicator for the
   405 nm beam (the "beam off" for ND3 rests on Molly's word and the weak ND3 lines, not on SUM).
+- **LES vs tracker, ND1 pairs 11-16 (`RUNS=off1,on LESDIR=les_nd1 python3 les_vs_tracker.py`; LES in Dropbox
+  `.../2026-11-16/laser/les_nd1/`):** laser on − off of Δγ LES +52.4 ± 5.5 vs tracker +52.2 ± 0.3 µHz (single pairs; M).
+  Per coast LES − tracker −0.5 to −2.5 µHz, as on the ND4 night. At 10× the ND2 glare the camera-free readout gives the
+  same laser effect.
 
 ## Next (exact steps)
 
