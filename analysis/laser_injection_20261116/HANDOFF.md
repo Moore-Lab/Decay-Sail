@@ -16,9 +16,11 @@ high power first (the CW/CCW difference should be obvious), then lower power ove
 | off1 (1 pair) | blocked before chamber | +0.90 ± 0.27 | 11-14/15 night: −5.77, sd 2.12 (24 pairs) |
 | on (1 pair) | ND1, 0.30 mW at window | +53.11 ± 0.21 | γ(+) −27.0, γ(−) +25.2, mean γ −0.9 |
 
-- **S1 = +52.2 µHz** (M) at 0.30 mW: ~25× the pair scatter. Equal and opposite shifts, mean γ unchanged (no heating
+- **S1 = +52.2 ± ~5 µHz** (M) at 0.30 mW (error D, corrected 2026-11-19: one pair per state, so it is the pair-to-pair
+  scatter, 2.1–5 µHz per pair on the nights, × √2 ≈ 3–7 µHz; the ±0.2 in the table is the fit error only): ~25× the pair scatter. Equal and opposite shifts, mean γ unchanged (no heating
   seen to ~2 µHz). Laser helps the + direction.
-- **Torque ~7.9e-16 N m; ~2.6e-15 N m/mW at the window** (D: Δγ·π·I·f, I = 1.1e-11 ±10 %). Window AR-coated (coating to
+- **Torque ~7.9e-16 N m; ~2.6e-15 N m/mW at the window, each ±~10 % from S1 and ±10 % from I** (D: Δγ·π·I·f, I = 1.1e-11 ±10 %).
+  Every expected value scaled from S1 carries the same ~10 % (ND2 +5.3 ± 0.5, ND3 +0.63 ± 0.06, ND4 +0.05). Window AR-coated (coating to
   be confirmed, Molly); power measured before it.
 - **Recoil equivalent (D): 1.1e-18 / 2.6e-15 ≈ 0.42 µW** at the window.
 - **Baseline moved (M, unexplained):** off1 is +6.7 µHz (3.1 sd) from the 11-14/15 mean, both γ moved in opposite
@@ -127,7 +129,7 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   ~3.1 counts that night although the LES lines were strong, so SUM_IN1 is not a reliable on/off indicator for the
   405 nm beam (the "beam off" for ND3 rests on Molly's word and the weak ND3 lines, not on SUM).
 - **LES vs tracker, ND1 pairs 11-16 (`RUNS=off1,on LESDIR=les_nd1 python3 les_vs_tracker.py`; LES in Dropbox
-  `.../2026-11-16/laser/les_nd1/`):** laser on − off of Δγ LES +52.4 ± 5.5 vs tracker +52.2 ± 0.3 µHz (single pairs; M).
+  `.../2026-11-16/laser/les_nd1/`):** laser on − off of Δγ LES +52.4 ± 5.5 vs tracker +52.2 µHz (single pairs; M; ± ~5 from pair scatter, ± 0.3 formal).
   Per coast LES − tracker −0.5 to −2.5 µHz, as on the ND4 night. At 10× the ND2 glare the camera-free readout gives the
   same laser effect.
 
