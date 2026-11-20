@@ -1,4 +1,4 @@
-# Laser injection test: HANDOFF (updated 2026-11-19)
+# Laser injection test: HANDOFF (updated 2026-11-20)
 
 **State: ND4, ND3 and ND2 interleaved nights done. ND2 (11-18/19) shows the laser: all pairs +7.4 ± 2.6 µHz (median-based +5.7 ± 1.8) vs +5.3 expected; ND4 and ND3 do not resolve it.** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
@@ -98,7 +98,7 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 --live` (worker2 `~/wt_li` 60a4d3b), `~/spinup/2026-11-18/laser/nd2_run`, 11:51–04:16; 80/80 coasts on target; tracker
 18 h, 0 dropped frames, ncc ≥ 0.824; imaging beam off. PI notes: https://claude.ai/artifact/GjDhtekFq9DRv4JHaZfYJJ.
 - **On − off Δγ, all 40 pairs: +7.44 ± 2.65 µHz (mean), +5.72 ± 1.82 (Hodges–Lehmann, bootstrap error); expected +5.3
-  (D: PD step 6.77 counts = 30.5 µW from the 1-s trend over coast windows, ±1 % over the run; ~70× recoil)** (M,
+  (D: PD step 6.77 counts = 30.5 µW from the 1-s trend over coast windows, ±1 % over the run; ~59× recoil with the hill factor 1.23, ~73× without; see Bursts vs steady)** (M,
   `coasts.py`, `nd2_checks.py` → `nd2_checks.json`). Without the O39 pair, for reference: +5.31 ± 1.62 (linear drift
   +5.31 ± 1.53, quadratic +5.20 ± 1.47, ABBA +5.19 ± 1.02). worker2's exponential-τ fit: +7.6 ± 2.6 / +5.6 ± 1.6.
 - **No outlier rule (Molly, 2026-11-19): all pairs stay in the headline.** O39 (+, laser off, 19:34–19:44, not 20:34
@@ -182,14 +182,17 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 
 ## Next (exact steps)
 
-1. After each run: `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 night_plots.py`
-   (`night_plots.py` has RUN = 'night_nd4_il2' hard-coded; `coasts.py` reads every `tracker*/` folder).
+1. After each run: `cd analysis/laser_injection_20261116 && LASER_DIR=<day>/laser python3 coasts.py --no-cache &&
+   RUN=<run folder> python3 night_plots.py` (`night_plots.py` defaults to RUN = 'night_nd4_il2' if RUN is not set;
+   `coasts.py` reads every `tracker*/` folder).
 2. Ophir: ND2 (and ND3) transmission at full power, holder untouched (ND4 now known from the PD).
-3. Plan discussed 11-17 (Molly to confirm): ND2 interleaved (D: ~+5 µHz, ~5σ in one night) with the 405 nm imaging
-   beam off for the first ~8 pairs, then on (tests whether the 405 beam makes the −5 µHz offset). Then box the optics,
-   shield the PD from room light, log temperature (TSP01B) and pressure with every run.
-4. Pair-to-pair scatter (~2.1 µHz) sets how close to the recoil is reachable (D: 5σ at 1× needs ~4e4 pairs per arm):
-   temperature/pressure logging (STATUS) and the baseline jump.
+3. ND2 interleaved: done 11-18/19 (above). The 405 nm beam was off for all of ND3 and ND2, and the offset stayed
+   (ND3 section), so the planned off/on split is no longer needed. Still to do: box the optics, shield the PD from
+   room light, log temperature (TSP01B) and pressure with every run.
+4. Pair-to-pair scatter sets how close to the recoil is reachable. It has grown night by night (M): 2.1 (11-14/15),
+   2.6 (ND4), 3.3–3.9 (ND3), 5.0 µHz (ND2; 5.0 also with O39 dropped); cause unknown. D: 5σ at 1× recoil (0.073 µHz)
+   needs ~4e4 pairs per arm at 2.1 µHz, ~2.3e5 at 5.0 (~0.66× those if the hill factor holds, recoil 0.09 µHz).
+   Leads: temperature/pressure logging (STATUS) and the baseline jump.
 5. Merge `laser-interleave` after a clean night (Molly's call).
 
 ## Background numbers (pre-run design, D)
