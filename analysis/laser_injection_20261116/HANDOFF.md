@@ -156,6 +156,18 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   (1.22 / 1.30 with 3-bin smoothing), vs simulation 1.29 / 1.32. Window width does not enter (steady and windowed agree).
   Not yet tested against an independent measurement (e.g. τ against speed).
 
+- **Glare vs dot (`glare_dot_zoom.py`, 2026-11-20, M, averages):** in mean images per 10° (ND2 night) the glare sits
+  beside the white dot, never on it (0 overlapping pixels; on - off inside the dot 3-9 counts of ~200-255).
+- **Open, for Molly + PI (2026-11-20):**
+  - Hill factor: put ÷1.23 into the PI notes / light budget? Molly will discuss with the PI first; PI notes unchanged.
+  - The recoil cannot be switched off: the laser-off Δγ offset is ~-6 µHz (ND4 -5.6, ND3 -6.6; unexplained, moved
+    6.7 µHz between days), ~70x the recoil (~0.09 µHz). Needs a modulation (Pb-212 decay, 10.6 h; source / no source).
+  - What the PI's F0 = 0.81 fN assumes: activity and time, escape fraction, hemisphere, source position (1.38 mm assumed).
+  - Alpha charging and heating could add torques the laser does not.
+- **glare_raw run (2026-11-20, worker2, staged):** one + spin-up to 0.5 Hz, laser at ~ND2 (PD 7.0-8.9; filter not
+  confirmed), then laser on 2-3 min / off 1 min while coasting; tracker 50 fps, AVI every 10th frame. Upload to Dropbox
+  spinup/2026-11-20/laser/glare_raw/. Next: pull single frames at 230-280 deg and check glare vs dot.
+
 ## Next (exact steps)
 
 1. After each run: `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 night_plots.py`
