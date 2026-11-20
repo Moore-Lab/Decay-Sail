@@ -147,8 +147,12 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   torque in the fitted γ by ~1.3× at 0.435 Hz** (drag 490 → 646 µHz; torque Δγ 51.9 → 66.8). If that holds for the
   real rotor, N = Δγ π I f overstates the laser torque by ~1.3 (2.6e-15 → ~2.0e-15 N m/mW, light budget 47–57 % of
   maximum) and the real drag torque, and the recoil's Δγ would be ~0.094 µHz instead of 0.073. The laser/recoil power
-  equivalence (0.42 µW) is unchanged (both amplified alike). Factor depends on the hill and speed; not yet checked
-  against data.
+  equivalence (0.42 µW) is unchanged (both amplified alike). Factor depends on the hill and speed.
+  Cross-check without the hill model (D, assumes the hill is conservative): from energy and lap time, torque factor =
+  ⟨ω⁻³⟩/⟨ω⁻¹⟩³ and drag factor = ⟨ω⟩⟨ω⁻³⟩/⟨ω⁻¹⟩² (averages over rotor angle). With the MEASURED speed in 36 angle
+  bins (ND2 laser off, turns averaging 0.435 Hz, `sawtooth_windows.measured_speed_vs_angle`): torque 1.23, drag 1.31
+  (1.22 / 1.30 with 3-bin smoothing), vs simulation 1.29 / 1.32. Window width does not enter (steady and windowed agree).
+  Not yet tested against an independent measurement (e.g. τ against speed).
 
 ## Next (exact steps)
 
