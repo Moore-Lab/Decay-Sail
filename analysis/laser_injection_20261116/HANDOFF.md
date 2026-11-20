@@ -22,7 +22,8 @@ high power first (the CW/CCW difference should be obvious), then lower power ove
 - **Torque ~7.9e-16 N m; ~2.6e-15 N m/mW at the window, each ±~10 % from S1 and ±10 % from I** (D: Δγ·π·I·f, I = 1.1e-11 ±10 %).
   Every expected value scaled from S1 carries the same ~10 % (ND2 +5.3 ± 0.5, ND3 +0.63 ± 0.06, ND4 +0.05). Window AR-coated (coating to
   be confirmed, Molly); power measured before it.
-- **Recoil equivalent (D): 1.1e-18 / 2.6e-15 ≈ 0.42 µW** at the window.
+- **Recoil equivalent (D): 1.1e-18 / 2.6e-15 ≈ 0.42 µW** at the window; ~0.52 µW if the hill factor 1.23 holds
+  (see Bursts vs steady below; ND2 30.5 µW is then ~59× the recoil, not 73×).
 - **Baseline moved (M, unexplained):** off1 is +6.7 µHz (3.1 sd) from the 11-14/15 mean, both γ moved in opposite
   senses (looks like a torque). So non-interleaved comparisons across days are not trustworthy below ~10 µHz.
 - Plots: `plots/laser_pair_panels.png` (blocked vs ND1 coasts), `plots/laser_pairs.png` (gitignored; rerun scripts).
@@ -147,7 +148,8 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   torque in the fitted γ by ~1.3× at 0.435 Hz** (drag 490 → 646 µHz; torque Δγ 51.9 → 66.8). If that holds for the
   real rotor, N = Δγ π I f overstates the laser torque by ~1.3 (2.6e-15 → ~2.0e-15 N m/mW, light budget 47–57 % of
   maximum) and the real drag torque, and the recoil's Δγ would be ~0.094 µHz instead of 0.073. The laser/recoil power
-  equivalence (0.42 µW) is unchanged (both amplified alike). Factor depends on the hill and speed.
+  equivalence is NOT unchanged (corrected 2026-11-19): the recoil torque is a predicted absolute value, so its laser
+  equivalent rises by the factor (0.42 → ~0.52 µW at 1.23) and its Δγ to ~0.090 µHz; consistent both ways. Factor depends on the hill and speed.
   Cross-check without the hill model (D, assumes the hill is conservative): from energy and lap time, torque factor =
   ⟨ω⁻³⟩/⟨ω⁻¹⟩³ and drag factor = ⟨ω⟩⟨ω⁻³⟩/⟨ω⁻¹⟩² (averages over rotor angle). With the MEASURED speed in 36 angle
   bins (ND2 laser off, turns averaging 0.435 Hz, `sawtooth_windows.measured_speed_vs_angle`): torque 1.23, drag 1.31
