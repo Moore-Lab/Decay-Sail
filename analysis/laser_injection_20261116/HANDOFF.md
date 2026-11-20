@@ -168,6 +168,12 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   confirmed), then laser on 2-3 min / off 1 min while coasting; tracker 50 fps, AVI every 10th frame. Upload to Dropbox
   spinup/2026-11-20/laser/glare_raw/. Next: pull single frames at 230-280 deg and check glare vs dot.
 
+- **Offset stability (`offset_stability.py`, 2026-11-20, M):** laser-off Δγ night means 11-14/15 −5.77 ± 0.43,
+  ND4 −5.06 ± 0.76, ND3 −7.61 ± 1.13, ND2 −9.46 ± 2.40 (all pairs; median −7.37); chi2 5.8 for 3 dof (p ~0.12), so
+  consistent with one constant ~−5.9 µHz at the ~1 µHz level. Within nights, means of 2/4/6 laser-off pairs scatter as
+  pure pair noise (no wander seen; few blocks). 11-16 off1 (+0.9) is a single pair, not evidence of a day-scale jump.
+  Recoil ~0.09 µHz: needs stability tested ~30x finer than these data can.
+
 ## Next (exact steps)
 
 1. After each run: `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 night_plots.py`
