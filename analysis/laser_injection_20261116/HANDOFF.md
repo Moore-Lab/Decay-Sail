@@ -174,6 +174,12 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   pure pair noise (no wander seen; few blocks). 11-16 off1 (+0.9) is a single pair, not evidence of a day-scale jump.
   Recoil ~0.09 µHz: needs stability tested ~30x finer than these data can.
 
+- **Idea (2026-11-20, not run): test the hill factor from data.** Track omega^2 at a fixed rotor angle (e.g. 205 deg)
+  turn by turn per coast (50 fps tracker); at fixed angle the hill term is the same, so I*omega*domega/dt gives the
+  torque by energy, no lap-rate fit. Compare laser on vs off (ND1 pair, ND2 night) with N = Delta gamma pi I f: ratio
+  should be ~1.23 if the hill factor is right. Within-turn sawtooth at full power: not useful without a 660 nm camera
+  filter (glare ~100x ND2 would fake mHz-level speed changes vs a ~0.2 mHz kick).
+
 ## Next (exact steps)
 
 1. After each run: `cd analysis/laser_injection_20261116 && python3 coasts.py --no-cache && python3 night_plots.py`
