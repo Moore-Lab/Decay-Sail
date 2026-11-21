@@ -185,8 +185,15 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   ND3 −16.4 / −8.5 / −6.7, ND2 −14.2 / −9.9 / −6.7 µHz (2.4–2.9 % of γ in the low band, 1.0–1.5 % in the high band):
   still falling at the top of the range. Pair sd minus fit error, torque-equivalent at 0.435 Hz (D): ND4 5.7 / 2.6 /
   3.1, ND3 7.1 / 4.0 / 4.8 µHz, so the scatter drops from the low to the middle band, then not further. Pair residuals
-  correlate 0.37–0.55 between adjacent bands, ~0 between the low and high band (minutes-scale wander within a coast,
-  not a per-coast constant; D).
+  correlate low–mid 0.37–0.55, mid–high −0.05 to 0.16, low–high ~0 (each ±~0.2); no timescale follows from this
+  (corrected 2026-11-21; see G1).
+- **G1, within-coast vs per-coast (`g1_within_coast.py` → `g1_<run>.json`, 2026-11-21, M; interpretation not
+  approved):** 10-block jackknife of γ within each coast, rms 2.5–2.8 µHz, matches the coast-to-coast sd (1.9–2.5;
+  ND2 + 8.0 with O39, MAD 3.25) on all three nights: the scatter is made within the coast. The formal fit error
+  (0.13–0.17) assumes white per-turn noise and is ~20× too small. Fit residuals are red (power at periods > 1 min
+  7–12× that at < 20 s). Rough torque spectrum, ND4 (D, scratch script, I 1.1e-11, r 1.38 mm): flat ~6–7e-13 N/√Hz
+  at periods 30 s–5 min, ~100× thermal; readout dominates below 30 s. Pairs are independent:
+  sd(Δγ) ≈ √(sd γ+² + sd γ−²) in every band. Gas drag at 1.6e-7 mbar is ~1e-10 /s (D), negligible.
 - **glare_raw run 2026-11-20 (worker2; deviated from the plan, `run_log.txt` in Dropbox `.../2026-11-20/laser/glare_raw/`):**
   spun up with the laser on; ND out and offset 1500 from 13:50 (PD ~2450 counts ≈ 11 mW, D); no laser-off coast. Tracker
   (13:47–14:12) shows the laser accelerating the rotor 0.51 → 0.65 Hz in 21 min (M); fit f∞ 0.82 ± 0.01 Hz, τ 31.6 min,
