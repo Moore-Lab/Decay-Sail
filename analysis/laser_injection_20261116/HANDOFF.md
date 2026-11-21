@@ -180,6 +180,22 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   should be ~1.23 if the hill factor is right. Within-turn sawtooth at full power: not useful without a 660 nm camera
   filter (glare ~100x ND2 would fake mHz-level speed changes vs a ~0.2 mHz kick).
 
+- **Pair scatter and offset against speed (`band_scatter.py`, 2026-11-20, M; interpretations not approved):** γ per
+  coast in 0.37–0.41 / 0.41–0.45 / 0.45–0.49 Hz (`band_scatter_<run>.json`). Laser-off Δγ: ND4 −13.6 / −5.3 / −4.6,
+  ND3 −16.4 / −8.5 / −6.7, ND2 −14.2 / −9.9 / −6.7 µHz (2.4–2.9 % of γ in the low band, 1.0–1.5 % in the high band):
+  still falling at the top of the range. Pair sd minus fit error, torque-equivalent at 0.435 Hz (D): ND4 5.7 / 2.6 /
+  3.1, ND3 7.1 / 4.0 / 4.8 µHz, so the scatter drops from the low to the middle band, then not further. Pair residuals
+  correlate 0.37–0.55 between adjacent bands, ~0 between the low and high band (minutes-scale wander within a coast,
+  not a per-coast constant; D).
+- **glare_raw run 2026-11-20 (worker2; deviated from the plan, `run_log.txt` in Dropbox `.../2026-11-20/laser/glare_raw/`):**
+  spun up with the laser on; ND out and offset 1500 from 13:50 (PD ~2450 counts ≈ 11 mW, D); no laser-off coast. Tracker
+  (13:47–14:12) shows the laser accelerating the rotor 0.51 → 0.65 Hz in 21 min (M); fit f∞ 0.82 ± 0.01 Hz, τ 31.6 min,
+  implied torque 3.0e-14 N m vs 2.9e-14 from the calibration (D). Laser stayed on to ~17:21, then off; the coast
+  from ~0.8 Hz was not recorded (no tracker; LES off, imaging beam off).
+- **Clock:** host − `Y1:DAQ-DC0_GPS` moved from 315947891.97 (11-16) to ~315947476 (11-20) (worker2 session, M).
+  `pd_trend.py`, `pd_vs_dgamma.py`, `pd_lag.py` hard-code the 11-16 value: fine for the ND4 night (≲50 s), wrong by
+  minutes for later nights. Read the offset per run before reusing them.
+
 ## Next (exact steps)
 
 1. After each run: `cd analysis/laser_injection_20261116 && LASER_DIR=<day>/laser python3 coasts.py --no-cache &&
