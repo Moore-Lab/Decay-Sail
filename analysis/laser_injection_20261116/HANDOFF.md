@@ -242,8 +242,15 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   account for ≲ 0.5 µHz of the ~2.5 µHz per-coast noise. Hill ANGLE (phase of the 1-per-turn part): scatter about the
   night trend 0.07–0.09° (error ~0.02°). Pair Δγ vs angle difference between its coasts: ND2 r 0.65 (p 1e-5),
   with ΔT: scatter 5.1 → 2.8 µHz; ND3 r 0.34 (p 0.11), 3.5 → 3.4. Angle difference correlates with ΔT (r −0.4, −0.6).
-  ~15 tests; estimator drifts −1.1°/10 min within every coast (speed dependence, unexplained). Check pending; test on
-  the 11-22 run with the method frozen in advance.
+  ~15 tests; estimator drifts −1.1°/10 min within every coast (speed dependence, unexplained).
+  Estimator check 2026-11-22 (`G3_DETREND=1`, `G3_PBAND`; `g3_hill_<run>_chk*.json`): removing the within-turn drag
+  trend before taking the angle shrinks the angle scatter ~40 % (0.070 → 0.042°, 0.069 → 0.037°) and the correlation
+  stays, same sign: ND2 r 0.53 (p 8e-4; circular-shift null 1/34), ND3 r 0.44 (p 0.03; null 0/21). Speed-matched turns
+  only (0.43–0.44 Hz): ND2 0.41, ND3 0.23. Speed differences between coasts (sd 0.0002 Hz) do not carry it.
+  **Frozen test for the 11-22 5-min run (set 2026-11-22 before the data arrived):** `G3_DETREND=1`, angle band and γ band
+  both 0.44–0.49 Hz (the coasts run ~0.50 → 0.44), pairs (O1,O2), (O3,O4)…, pair Δγ = γ(−) − γ(+) with its mean removed,
+  Δangle = angle(−) − angle(+). Pass: r > 0.3, positive sign, and fewer than 5 % of circular shifts of Δangle against Δγ
+  reach |r|. Report the coefficient (ND2/ND3 30–44 µHz/deg at 0.435 Hz) and the scatter with/without the term.
 - **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
   the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
   Dropbox `spinup/2026-11-21/phaseB/`.

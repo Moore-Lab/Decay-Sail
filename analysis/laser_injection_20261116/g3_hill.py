@@ -21,6 +21,11 @@ import night_plots as NP
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NB = 36
+# estimator check (2026-11-22): G3_PBAND='lo,hi' measures the angle only on turns in that speed band (speed-matched);
+# G3_DETREND=1 removes the within-turn drag (linear-in-time) part before taking the angle. Output gets suffix G3_TAG.
+PBAND = tuple(float(x) for x in os.environ.get('G3_PBAND', '0.40,0.47').split(','))
+DETREND = os.environ.get('G3_DETREND', '0') == '1'
+TAG = os.environ.get('G3_TAG', '')
 I = 1.1e-11
 
 
@@ -71,24 +76,29 @@ def main():
             y = w2 - w2.mean()
             tb = np.empty(NB); tb[order] = np.arange(NB)            # time order of the bins within the turn
             X = np.column_stack([tmpl[d], tb - tb.mean()])
-            S.append(np.linalg.lstsq(X, y, rcond=None)[0][0]); F.append(fr); Tm.append(tm)
-            PH.append(np.angle(np.sum(y * np.exp(-1j * th_c))))     # phase of the 1-per-turn part of the hill (rad)
+            cf = np.linalg.lstsq(X, y, rcond=None)[0]
+            S.append(cf[0]); F.append(fr); Tm.append(tm)
+            yp = y - cf[1] * (tb - tb.mean()) if DETREND else y
+            PH.append(np.angle(np.sum(yp * np.exp(-1j * th_c))))     # phase of the 1-per-turn part of the hill (rad)
         S, F, Tm, PH = map(np.array, (S, F, Tm, PH))
         PH = np.degrees(np.unwrap(PH))
         b = (F >= 0.40) & (F <= 0.47)
         if b.sum() < 10:
             continue
         hi = (F > 0.455) & b; lo = (F < 0.425) & b
+        pb = (F >= PBAND[0]) & (F <= PBAND[1])
         row = dict(name=nm, dir=d, laser=m.get('laser', ''), host=m['field_off_host'], n_turns=int(b.sum()),
                    s=float(S[b].mean()), s_err=float(S[b].std(ddof=1) / np.sqrt(b.sum())),
                    s_hi_minus_lo=float(S[hi].mean() - S[lo].mean()) if hi.sum() > 3 and lo.sum() > 3 else None,
                    s_slope_per_10min=float(600 * np.polyfit(Tm[b] - Tm[b][0], S[b], 1)[0]),
-                   phase_deg=float(PH[b].mean()), phase_err=float(PH[b].std(ddof=1) / np.sqrt(b.sum())),
+                   phase_deg=float(PH[pb].mean()) if pb.sum() >= 3 else None,
+                   phase_err=float(PH[pb].std(ddof=1) / np.sqrt(pb.sum())) if pb.sum() >= 3 else None,
+                   phase_n=int(pb.sum()), phase_f_mean=float(F[pb].mean()) if pb.sum() else None,
                    phase_slope_deg_per_10min=float(600 * np.polyfit(Tm[b] - Tm[b][0], PH[b], 1)[0]))
         if nm in extra:
             row.update(gamma_res=extra[nm]['gamma_res'], T=extra[nm]['T'], gamma=extra[nm]['gamma'], jk=extra[nm]['jk'])
         out['coasts'].append(row)
-    json.dump(out, open(os.path.join(HERE, f'g3_hill_{NP.RUN}.json'), 'w'), indent=1)
+    json.dump(out, open(os.path.join(HERE, f'g3_hill_{NP.RUN}{TAG}.json'), 'w'), indent=1)
     c = out['coasts']; A_ = lambda key: np.array([r[key] for r in c if r.get(key) is not None], float)
     print(NP.RUN, 'template depth J', out['template_depth_J'], 'corr +/- templates %.3f' % out['template_corr_plus_minus'])
     print(' coasts', len(c), 's mean %.4f sd %.4f median s_err %.4f' % (A_('s').mean(), A_('s').std(ddof=1), np.median(A_('s_err'))))
