@@ -214,7 +214,13 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   (Sept 85.5 min at 0.50–0.75, so ~2.1× more damping at matched speed). Wobble scaled to 10 min: 2.2 µHz at
   0.50–0.59 vs 2.3 at 0.40–0.47 (no drop with speed, each ±~50 %); 0.33–0.40 Hz 9.3 µHz (residual lag-1 0.82).
   Force-equivalent noise during the laser-held plateau (16:05–16:21) 2–6e-12 N/√Hz, ~3–9× the free coast at similar
-  speed; laser power noise (PD 1740–1786 counts) is a candidate, not checked against the PD log.
+  speed; laser power noise (PD 1740–1786 counts) is a candidate, not checked against the PD log. **Caution (2026-11-22):**
+  during the plateau the tracker angle jumps ~+90° at ~55° and back at ~140° on every turn (laser glare at 8 mW; 964
+  jumps > 20°, 60 % of frames on the 'blanked' path), so the plateau noise figure may be a tracker artefact; not trusted.
+- **Speed around a turn, laser on vs off (`ripple_figure.py` → `ripple_on_off.json`, plot `ripple_on_off.png`; 2026-11-22,
+  M):** ND2, + coasts at 0.435 Hz, 10° bins: the hill makes the speed swing 0.28–0.63 Hz within each turn (laser off and
+  on identical). Laser on − off per bin rms 384 µHz vs ~230 µHz bin error (χ²/dof 2.9); the expected laser kick is ~1.3 µHz
+  per pass, far below this. The 8 mW plateau cannot be used for this (tracker glare, above).
 - **Air temperature vs coast noise, ND3 + ND2 (`temp_vs_noise.py` → `temp_noise_<run>.json`, `temp_pairs_summary.json`,
   plots `temp_vs_noise.png`, `temp_pair_dgamma.png`; 2026-11-21, M; interpretation not approved; reviewer re-check
   pending):** within-coast noise (jackknife) does not follow T, |dT/dt| or T rms (|ρ| ≤ 0.17). Pair Δγ (laser-state
@@ -229,6 +235,15 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   Best match with T taken 2–5 min after the coast (ND2 +2 min r −0.81; ND3 +5 min r −0.63, post hoc). Not a causal
   temperature coefficient: probe outside the chamber; TSP logger clock assumed (not verified) to be worker2 host time.
   Laser on − off with the ΔT term +4.37 ± 1.11 µHz vs +5.14 without (37 pairs).
+- **G3, hill height and angle per coast (`g3_hill.py` → `g3_hill_<run>.json`, 2026-11-22, M; interpretation not
+  approved):** hill from energy, U(θ)/I = −½ω² + const, per turn in 10° bins (band 0.40–0.47 Hz). Depth 6.9e-11 J on ND2
+  and ND3; + and − profiles correlate 1.000 (conservative, direction-independent). Height drifts smoothly −0.7 % (ND2,
+  16 h) / −1.0 % (ND3, 10 h); coast-to-coast scatter about the trend 0.04–0.07 % (error 0.02–0.03 %); height changes
+  account for ≲ 0.5 µHz of the ~2.5 µHz per-coast noise. Hill ANGLE (phase of the 1-per-turn part): scatter about the
+  night trend 0.07–0.09° (error ~0.02°). Pair Δγ vs angle difference between its coasts: ND2 r 0.65 (p 1e-5),
+  with ΔT: scatter 5.1 → 2.8 µHz; ND3 r 0.34 (p 0.11), 3.5 → 3.4. Angle difference correlates with ΔT (r −0.4, −0.6).
+  ~15 tests; estimator drifts −1.1°/10 min within every coast (speed dependence, unexplained). Check pending; test on
+  the 11-22 run with the method frozen in advance.
 - **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
   the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
   Dropbox `spinup/2026-11-21/phaseB/`.
