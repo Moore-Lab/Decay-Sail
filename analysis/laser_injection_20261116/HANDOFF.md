@@ -1,4 +1,4 @@
-# Laser injection test: HANDOFF (updated 2026-11-20)
+# Laser injection test: HANDOFF (updated 2026-11-21)
 
 **State: ND4, ND3 and ND2 interleaved nights done. ND2 (11-18/19) shows the laser: all pairs +7.4 ± 2.6 µHz (median-based +5.7 ± 1.8) vs +5.3 expected; ND4 and ND3 do not resolve it.** Labels: M measured,
 D derived, A assumed; "Molly" = Molly said. Numbers from the CW/CCW coast-pair protocol (`coast_series.py`).
@@ -202,6 +202,20 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 - **Clock:** host − `Y1:DAQ-DC0_GPS` moved from 315947891.97 (11-16) to ~315947476 (11-20) (worker2 session, M).
   `pd_trend.py`, `pd_vs_dgamma.py`, `pd_lag.py` hard-code the 11-16 value: fine for the ND4 night (≲50 s), wrong by
   minutes for later nights. Read the offset per run before reusing them.
+- **Sept/Oct vs November wobble, same LES readout and estimator (`les_wobble_sept_oct.py` → `les_wobble_sept_oct.json`,
+  2026-11-21, M; interpretation not approved):** 0.40–0.47 Hz band, jackknife scaled to 10 min in band: CCW 09-13 4.7,
+  CW 10-11 4.7 µHz (one coast each, γ ~225 µHz); ND4 night rms 2.4 µHz (48 coasts, range 1.6–4.3, γ ~490). The slow
+  torque noise was not smaller when the damping was better.
+- **damping_1300, 2026-11-21 (worker2; laser 1300 counts, ND out, + direction; Dropbox `spinup/2026-11-21/laser/damping_1300/`;
+  `damping_1300.py` → `damping_1300.json`; M, one coast; interpretation not approved):** laser plateau 0.605–0.606 Hz;
+  free coast 0.59 → 0.28 Hz. τ by band 0.50–0.59 / 0.47–0.50 / 0.40–0.47 / 0.33–0.40 Hz: 39.9 / 37.4 / 33.9 / 31.7 min
+  (Sept 85.5 min at 0.50–0.75, so ~2.1× more damping at matched speed). Wobble scaled to 10 min: 2.2 µHz at
+  0.50–0.59 vs 2.3 at 0.40–0.47 (no drop with speed, each ±~50 %); 0.33–0.40 Hz 9.3 µHz (residual lag-1 0.82).
+  Force-equivalent noise during the laser-held plateau (16:05–16:21) 2–6e-12 N/√Hz, ~3–9× the free coast at similar
+  speed; laser power noise (PD 1740–1786 counts) is a candidate, not checked against the PD log.
+- **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
+  the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
+  Dropbox `spinup/2026-11-21/phaseB/`.
 
 ## Next (exact steps)
 
