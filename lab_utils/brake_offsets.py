@@ -112,7 +112,7 @@ def choose(hist, t_now, level, c_assumed=0.030, min_push=0.15, sign=-1):
 
 
 def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90.0, c_assumed=0.030, min_push=0.15,
-                f_against=0.0, f_rev=0.05):
+                f_against=0.0, f_rev=0.05, state=None):
     """Spin-up governor (2026-11-11, DECISIONS rule amended for this run). hist: [(t, UNWRAPPED angle deg)].
     No trap model: the quadratic fit's own acceleration is used to predict to the middle of the hold the write lands in.
     Energy is added only where the rotor is slow (|w| < w_push_max deg/s, where 8 updates/s can still commutate):
@@ -121,6 +121,10 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
       otherwise                   -> off;
       and if the rotor is ROTATING against d (mean rate along -d above f_rev, 0.05 Hz) -> brake first (reversal,
       2026-11-12); small swings are still pumped normally.
+    state (dict, --fast-handover, 2026-11-21): the reversal brake stops as soon as the rotation along -d has stopped, i.e.
+      the fitted w was against d (< -30 deg/s) and then turns along d, instead of waiting for the 30 s mean f_against to fall
+      below f_rev (Phase B: that lag braked the rotor to rest, then 28-63 s of re-pumping; sim analysis/spinup_phaseC_20261121).
+      Back to the old rule once f_against <= f_rev. state=None keeps the old behaviour exactly.
     Returns (offsets (V2, V4, V3), est dict)."""
     tt = np.array([h[0] for h in hist]) - t_now; yy = np.array([h[1] for h in hist])
     p2 = np.polyfit(tt, yy, 2)
@@ -129,7 +133,16 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
     th_p = th_e + w_e * h + 0.5 * al * h * h; w_p = w_e + al * h
     # deadband centred on the target (was target..target x (1 + tol), which sat the mean above target, sim 2026-11-12)
     want = 1 if f_mean < f_target * (1 - tol / 2) else (-1 if f_mean > f_target * (1 + tol / 2) else 0)
-    if f_against > f_rev:                                  # REVERSE: rotating the other way -> brake first
+    off = False
+    if state is not None:
+        if f_against <= f_rev:
+            state['seen'] = False; state['off'] = False
+        elif d * w_e < -30.0:
+            state['seen'] = True
+        elif state.get('seen') and d * w_e > 0.0:
+            state['off'] = True                            # rotation along -d has stopped: hand over to pumping now
+        off = state.get('off', False)
+    if f_against > f_rev and not off:                      # REVERSE: rotating the other way -> brake first
         want = -1
     out = [0.0, 0.0, 0.0]; bq = None
     if want != 0 and abs(w_p) < w_push_max:
@@ -145,7 +158,7 @@ def choose_spin(hist, t_now, level, d, f_mean, f_target, tol=0.05, w_push_max=90
                 out[bq] = level
             else:
                 bq = None
-    return tuple(out), dict(th=th_e, w_dps=w_e, th_p=th_p, q=-1 if bq is None else bq, want=want)
+    return tuple(out), dict(th=th_e, w_dps=w_e, th_p=th_p, q=-1 if bq is None else bq, want=want, handover=off)
 
 
 def unwrap_to(prev, ang):
@@ -229,6 +242,7 @@ def cmd_run(a, ep=None, src=None):
           + (f'; PUMP to +-{a.pump_to:g} deg' if a.pump_to > 0 else '')
           + (f'; SPIN to {a.spin_to:g} Hz dir {a.dir:+d}, push below {a.w_push_max:g} deg/s, cap {a.w_cap:g} deg/s, NO safe range'
              + (f'; STOP ON TARGET after {a.stop_on_target} turns within {100 * a.stop_tol:g} %' if getattr(a, 'stop_on_target', 0) > 0 else '')
+             + ('; FAST HANDOVER' if getattr(a, 'fast_handover', False) else '')
              if getattr(a, 'spin_to', 0) > 0 else ''))
     print('=' * 72)
     err = vs.check_plan(rows)
@@ -261,6 +275,7 @@ def cmd_run(a, ep=None, src=None):
     trail, spin_th0, f_mean, over_cap = [], None, 0.0, 0   # spin mode
     hist_k = []                                         # (frame index, unwrapped angle) for the speed cap
     TT = None                                           # spin: per-turn rates (TurnTimer)
+    ho_state = {} if getattr(a, 'fast_handover', False) else None   # --fast-handover state (None = old rule)
 
     def killed(signum, frame):                          # SIGTERM/SIGHUP -> same exit as Ctrl-C: field off in finally.
         for sg in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):   # ignore repeats so they can't cut the finally short
@@ -371,8 +386,10 @@ def cmd_run(a, ep=None, src=None):
                 last_write = now
                 if a.spin_to > 0:
                     out, est = choose_spin(hist, ht, a.level, a.dir, f_mean, a.spin_to, a.tol, a.w_push_max, a.c_assumed, a.min_push,
-                                           f_against=f_against)
+                                           f_against=f_against, state=ho_state)
                     est.pop('want', None)
+                    if est.pop('handover', False):
+                        note += ';handover=1'
                 else:
                     out, est = choose(hist, ht, a.level, a.c_assumed, a.min_push, sign=1 if a.pump_to > 0 else -1)
                 if S.amp() < a.rest_amp and a.pump_to <= 0 and a.spin_to <= 0:             # nearly still: nothing to brake; a push would only disturb it
@@ -543,6 +560,8 @@ def main():
     r.add_argument('--w-cap', type=float, default=500.0, help='deg/s: spin safety, field off for good above this speed')
     r.add_argument('--stop-on-target', type=int, default=0, help='spin: field off (coast) once this many consecutive turns '
                    'are within --stop-tol of --spin-to (per-turn rate, frame-index timing, interpolated crossings); 0 = off')
+    r.add_argument('--fast-handover', action='store_true', help='spin reversal: stop braking once the rotation along -dir '
+                   'has stopped (fitted w turns along dir) instead of waiting for the 30 s mean (sim Phase C 2026-11-21)')
     r.add_argument('--stop-tol', type=float, default=0.01, help='spin: fractional tolerance for --stop-on-target (0.01 = 1 %%)')
     r.add_argument('--kick-phase', default='A', choices=('A', 'B', 'C'))
     r.add_argument('--kick-hold', type=float, default=2.0)
