@@ -1,0 +1,56 @@
+{
+ "nd3_night": {
+  "all": {
+   "n": 24,
+   "r": -0.259,
+   "p": 0.2221052551343709,
+   "slope_uHz_per_K": -4.44,
+   "slope_err": 3.53,
+   "sd_dT_mK": 201.0,
+   "sd_dg": 3.6,
+   "sd_dg_after_T": 3.56
+  },
+  "all pairs": {
+   "n": 24,
+   "r": -0.259,
+   "p": 0.2221052551343709,
+   "slope_uHz_per_K": -4.44,
+   "slope_err": 3.53,
+   "sd_dT_mK": 201.0,
+   "sd_dg": 3.6,
+   "sd_dg_after_T": 3.56
+  }
+ },
+ "nd2_run": {
+  "all": {
+   "n": 37,
+   "r": -0.76,
+   "p": 4.8775257335033576e-08,
+   "slope_uHz_per_K": -11.99,
+   "slope_err": 1.73,
+   "sd_dT_mK": 317.0,
+   "sd_dg": 5.14,
+   "sd_dg_after_T": 3.39
+  },
+  "hours 0-7: air cycling ~1 K": {
+   "n": 18,
+   "r": -0.875,
+   "p": 2.029033531915905e-06,
+   "slope_uHz_per_K": -12.17,
+   "slope_err": 1.68,
+   "sd_dT_mK": 427.0,
+   "sd_dg": 6.3,
+   "sd_dg_after_T": 3.15
+  },
+  "hours 7+: air steady": {
+   "n": 19,
+   "r": -0.405,
+   "p": 0.08548868564727957,
+   "slope_uHz_per_K": -10.4,
+   "slope_err": 5.69,
+   "sd_dT_mK": 151.0,
+   "sd_dg": 4.09,
+   "sd_dg_after_T": 3.85
+  }
+ }
+}

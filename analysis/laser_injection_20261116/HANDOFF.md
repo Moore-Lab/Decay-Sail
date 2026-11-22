@@ -213,6 +213,13 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   0.50–0.59 vs 2.3 at 0.40–0.47 (no drop with speed, each ±~50 %); 0.33–0.40 Hz 9.3 µHz (residual lag-1 0.82).
   Force-equivalent noise during the laser-held plateau (16:05–16:21) 2–6e-12 N/√Hz, ~3–9× the free coast at similar
   speed; laser power noise (PD 1740–1786 counts) is a candidate, not checked against the PD log.
+- **Air temperature vs coast noise, ND3 + ND2 (`temp_vs_noise.py` → `temp_noise_<run>.json`, `temp_pairs_summary.json`,
+  plots `temp_vs_noise.png`, `temp_pair_dgamma.png`; 2026-11-21, M; interpretation not approved; reviewer re-check
+  pending):** within-coast noise (jackknife) does not follow T, |dT/dt| or T rms (|ρ| ≤ 0.17). Pair Δγ (laser-state
+  mean removed) vs T(−) − T(+): ND2 (O39 and the 17.6 °C dip excluded, 37 pairs) r −0.76, −12.0 ± 1.7 µHz/K, scatter
+  5.1 → 3.4 µHz with the T term; first 7 h (air ~1 K sawtooth, period 26 min vs pair period 24.5) r −0.88, 6.3 → 3.2;
+  hours 7+ (air steady) r −0.41 (p 0.09). ND3 r −0.26, −4.4 ± 3.5 µHz/K, scatter unchanged 3.6. 12 tests. Probe is in
+  air outside the chamber; the cycle sits near the pair period on both nights (source unknown: the run itself?).
 - **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
   the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
   Dropbox `spinup/2026-11-21/phaseB/`.
