@@ -14,6 +14,15 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-21 (local) — Laser damping run at 1300 counts; Phase B electrostatic spin-up/reversal (live, worker2, Molly's go)
+
+- Lab state: ND2 removed (no ND in the laser path); 405 nm imaging beam back on (LES weak but present). Laser limit ≤ 1300 counts (Molly); LASER_OFFSET 0 except deliberate laser runs.
+- Ran (damping_1300): `damping_laser.py 1300` on worker2, laser on 15:25:13–16:21:25 (FE ~1479348710 at laser-off; 1300 counts → PD 1740–1786, ~8.0 mW D), then free coast to 16:45:35 and a final brake (level 1600, 300 s). Tracker gps1479326928.
+- Saw (M): laser plateau 0.605–0.606 Hz; coast 0.59 → 0.28 Hz; τ 39.9 min at 0.50–0.59 Hz (Sept 85.5), 33.9 at 0.40–0.47; wobble not lower at 0.5–0.6 Hz; torque noise while laser-held 3–9× the free coast. Analysis: `analysis/laser_injection_20261116/damping_1300.py`, HANDOFF.
+- Ran (Phase B, laser 0 throughout, 1 Hz log): worker2 driver of `brake_offsets.py run --map g1 --enable-outputs --live --level 1600 --spin-to 0.5 --tol 0.1 --w-push-max 140 --stop-on-target 3 --stop-tol 0.01` (R7: `--stop-tol 0.1`), spin-up B1 + reversals R1–R7 with 5-min coasts, then final brake; FE GPS ~1479360380 to ~1479364517 (19:35–20:44). Settings from the Phase A simulation, `analysis/spinup_phaseA_20261121/README.md`.
+- Saw (M): all 8 steps on target, no aborts. B1 61 s; reversals 82–149 s (3 of 6 ≤ 90 s); brake half 10–20 s, the spread is deadband hunting (overshoot to 0.53–0.55 Hz) before 3 turns within 1 %. R7 (stop-tol 0.1) 102 s, of which ~55 s a stall swinging after the brake, then 37 s to 0.5 Hz. Each 5-min coast lost 0.055–0.065 Hz. Rotor left swinging ±67°.
+- Data: Dropbox `spinup/2026-11-21/laser/damping_1300/`, `spinup/2026-11-21/phaseB/` (table.txt; rclone check 0 differences; worker2 AVIs deleted). Also today (analysis): G1, Sept/Oct LES wobble, air temperature vs pair Δγ (reviewed), all in `analysis/laser_injection_20261116/HANDOFF.md`.
+
 ### 2026-11-18/19 (local) — Laser injection: ND2 interleaved run, 40 pairs (live, worker2, Molly's typed go)
 
 - Ran: `coast_series.py --pairs 40 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62 --outdir ~/spinup/2026-11-18/laser/nd2_run --live` (worker2 `~/wt_li`, laser-interleave 60a4d3b), 11:51 11-18 to 04:16 11-19, FE GPS 1479072968 to ~1479132100 (last coast end 1479131790 + final brake). ND2 in; 405 nm imaging beam off. Tracker 18 h, 0 dropped frames, ncc ≥ 0.824; TSP01B logging.
