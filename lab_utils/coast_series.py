@@ -62,6 +62,9 @@ GPS_PV = 'Y1:DAQ-DC0_GPS'
 CHANS = (2, 3, 4)
 SPIN = ['--map', 'g1', '--level', '800', '--w-push-max', '120', '--spin-to', '0.5', '--stop-on-target', '3',
         '--stop-tol', '0.01', '--duration', '360', '--enable-outputs']
+# --spin-fast (2026-11-21, Phase D on worker2: 6/6 reversals 29-45 s, spin-up from a swing 49 s, all on target):
+SPIN_FAST = ['--map', 'g1', '--level', '1600', '--tol', '0.1', '--w-push-max', '140', '--spin-to', '0.5', '--stop-on-target',
+             '3', '--stop-tol', '0.05', '--fast-handover', '--duration', '300', '--enable-outputs']
 FINAL = ['--map', 'g1', '--level', '1600', '--w-push-max', '120', '--spin-to', '0.001', '--duration', '300',
          '--enable-outputs']
 LASER_PV = 'Y1:RDS-OUTS_LASER_OFFSET'
@@ -205,6 +208,8 @@ def main():
     p.add_argument('--live', action='store_true', help='pass --live to brake_offsets (Molly\'s go)')
     p.add_argument('--ncc-min', type=float, default=0.70, help='tracker match stop for every brake_offsets run (11-12: '
                    '0.70; a lost dot reads ~0.5, ncc_elsewhere)')
+    p.add_argument('--spin-fast', action='store_true', help='Phase D spin recipe (level 1600, tol 0.1, w-push-max 140, '
+                   'stop-tol 0.05, --fast-handover); default: the 11-12 recipe above')
     p.add_argument('--first-dir', type=int, default=1, choices=(1, -1))
     p.add_argument('--min-free-gb', type=float, default=5.0)
     p.add_argument('--no-final-brake', action='store_true', help='end without the final brake')
@@ -233,6 +238,7 @@ def series(a, rd, laser):
     print('=' * 72)
     print(f'  coast_series: {a.pairs} pairs ({n_steps} spin-ups + {a.coast:g} s coasts, ~{a.pairs * 24 / 60:.1f} h), '
           f'first dir {a.first_dir:+d}; ncc-min {a.ncc_min:g}; {"LIVE" if a.live else "DRY (brake_offsets without --live)"}')
+    print('  spin: ' + ' '.join(SPIN_FAST if a.spin_fast else SPIN))
     print(f'  outdir {a.outdir}; free {free_gb(a.outdir):.1f} GB; touch {os.path.join(a.outdir, "STOP")} to end early')
     if laser.pattern:
         print(f'  laser pattern per pair {",".join(laser.pattern)} (cycled); on {a.laser_on:g} / off {a.laser_off:g}; '
@@ -259,7 +265,7 @@ def series(a, rd, laser):
         if i % 2 == 1:
             laser.set_for_pair((i + 1) // 2)
         t_start = time.time()
-        reason, turns, rc = run_brake(a, SPIN + ['--ncc-min', f'{a.ncc_min:g}', '--dir', str(d)], os.path.join(a.outdir, f'console_{name}.txt'))
+        reason, turns, rc = run_brake(a, (SPIN_FAST if a.spin_fast else SPIN) + ['--ncc-min', f'{a.ncc_min:g}', '--dir', str(d)], os.path.join(a.outdir, f'console_{name}.txt'))
         t_off = time.time()
         g_off = rd.gps()
         st = rd.state()
