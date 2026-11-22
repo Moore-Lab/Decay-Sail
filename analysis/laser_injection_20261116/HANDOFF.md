@@ -80,8 +80,10 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
 - Low off pairs 8, 9 (21:16–22:05; −14.5, −13.4) and 12 (23:02; −12.2). PD, tracker ncc and temperature flat at 21:15–22:05.
 - **Air temperature (M, TSP01B `ext_T0_C`; one probe hanging in air near the table, away from lights, Molly; `ext_T1_C`
   is an identical copy):** 23.6–24.8 °C, sd 0.22. The internal sensor (27.4–28.0) reads ~3.6 °C high (self-heating?). During
-  the run the air cycles at ~23 min, the pair period (FFT peaks 22.7–24.2 min); after the run that period is gone (85, 43 min).
-  + coasts 0.105 ± 0.046 °C warmer than − coasts. Δγ vs (T− − T+) per pair r = −0.45, p = 0.03 (one of ~8 tests); γ per
+  the run the air cycles at ~23 min (FFT peaks 22.7–24.2 min); after the run the peaks were 85, 43 min. Correction 2026-11-21
+  (reviewer): the cycle is not phase-locked to the pairs (ND3 26.2 vs 24.9 min, ND2 25.7 vs 24.3, p 0.32/0.42) and is
+  present with no run active (1.26 K p-p 10:00–12:00 on 11-18); "at the pair period" and "gone after the run" do not hold.
+  + coasts 0.105 ± 0.046 °C warmer than − coasts. Δγ vs (T− − T+) per pair r = −0.45, p = 0.03 (one of ~8 tests; temp_vs_noise.py and the reviewer get −0.26, p 0.22 at zero lag, 2026-11-21; −0.45 is stale or a different γ); γ per
   coast vs T, RH: none (p > 0.1). Cause of the cycle unknown (drive electronics, laser, computers near the table?).
 - **Light step 22:42 (M, cause unknown):** PD +0.37 counts in both laser states for the rest of the night, ncc min
   0.79 → 0.83 at the same time; on − off PD step unchanged (0.80). Δγ mean unchanged across it. A lab mate may have been
@@ -219,7 +221,14 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   mean removed) vs T(−) − T(+): ND2 (O39 and the 17.6 °C dip excluded, 37 pairs) r −0.76, −12.0 ± 1.7 µHz/K, scatter
   5.1 → 3.4 µHz with the T term; first 7 h (air ~1 K sawtooth, period 26 min vs pair period 24.5) r −0.88, 6.3 → 3.2;
   hours 7+ (air steady) r −0.41 (p 0.09). ND3 r −0.26, −4.4 ± 3.5 µHz/K, scatter unchanged 3.6. 12 tests. Probe is in
-  air outside the chamber; the cycle sits near the pair period on both nights (source unknown: the run itself?).
+  air outside the chamber. Reviewer re-check 2026-11-21 (`.claude/review_temp_dgamma_20261121.md`): AGREE; reproduces from
+  raw data; 0 of 401 circular shifts of T reach r −0.76; leave-one-out −0.73..−0.79; Theil–Sen −12.7 (−16.9..−9.4).
+  Pearson needs the dip out (a probe artefact); with O39 in (no-outlier rule): r −0.37, −9.9 ± 4.1 µHz/K. The T cycle
+  (~26 min) is not locked to the pairs and runs with no run active; source unknown. Per coast the effect is common-mode
+  (γ minus neighbours vs T −11.9 ± 1.3 µHz/K, ≈ −2.4 %/K), reaching Δγ because the two coasts sit ~half a T cycle apart.
+  Best match with T taken 2–5 min after the coast (ND2 +2 min r −0.81; ND3 +5 min r −0.63, post hoc). Not a causal
+  temperature coefficient: probe outside the chamber; TSP logger clock assumed (not verified) to be worker2 host time.
+  Laser on − off with the ΔT term +4.37 ± 1.11 µHz vs +5.14 without (37 pairs).
 - **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
   the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
   Dropbox `spinup/2026-11-21/phaseB/`.
