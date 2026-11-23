@@ -14,6 +14,18 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-23 (local) — ND2 fast-cycle run (3 attempts, stopped for tilt tuning); drag timeline; tilt-tuning setup
+
+- Ran (worker2, branch fast-handover 13349cb, Molly's typed go each time): `coast_series.py --spin-fast --coast 300 --pairs 50|45 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62 --outdir ~/spinup/2026-11-23/laser/nd2_fast --live`. ND2 in. Attempt 1 10:45–10:57 (worker2's watchdog tripped on laser ≠ 0 by design; replaced by one allowing {0, 1000}); attempt 2 10:59–11:52 (aborted at O10: an AnyDesk connect stalled the tracker's --show window, brake saw no fresh angle for 0.25 s); attempt 3 from 12:01 with the tracker headless (--snapshot), stopped by Molly for tilt tuning (final step count: worker2's report). Files of attempts 1–2 in `attempt1_aborted/`, `attempt2_stopped/`.
+- Saw (M): all steps on target; reversals median 31.5 s (attempt 2), 38 s (attempt 3); PD at 1000 counts 7.37 mean on, 0.58 off (11-18 ND2: 7.30). TSP01B logger ran throughout (one probe, air).
+- Analysis (M/D, not approved): drag timeline Sept–Nov, `analysis/drag_timeline_20261123/` — γ doubled between 10-11 and 11-12, the added part friction-like (γ = a + b/f). Tilt-tuning readout and plan: `analysis/tilt_tuning_20261123/HANDOFF.md` (stage: two corner wheels X front, Y by the bellows, 6 holes per turn, ~0.02° per hole assumed).
+
+### 2026-11-22 (local) — 5-min coast run, 40 pairs, laser 0 (live, worker2, Molly's go)
+
+- Ran: `coast_series.py --spin-fast --coast 300 --pairs 40 --live` (branch fast-handover 13349cb), 08:28:51–16:03:50; tracker gps1479389296; host−FE 315947301.3 (start). Laser 0 throughout, watchdog never tripped.
+- Saw (M): 80/80 steps on target; spin-up from rest 51.7 s; reversals median 34.2 s (24.5–73.2, n 79); pair period 11.4 min; τ 36.4 min. Frozen G3 hill-angle test PASS (r +0.64); pair scatter 4.15 µHz. `analysis/laser_injection_20261116/HANDOFF.md`.
+- Data: Dropbox `spinup/2026-11-22/fast_5min/` (rclone check 0 differences, local AVI deleted); TSP01B CSV re-uploaded to `spinup/2026-11-17/env/` (logger running since 11-17, never stopped).
+
 ### 2026-11-21 (local) — Laser damping run at 1300 counts; Phase B electrostatic spin-up/reversal (live, worker2, Molly's go)
 
 - Lab state: ND2 removed (no ND in the laser path); 405 nm imaging beam back on (LES weak but present). Laser limit ≤ 1300 counts (Molly); LASER_OFFSET 0 except deliberate laser runs.
