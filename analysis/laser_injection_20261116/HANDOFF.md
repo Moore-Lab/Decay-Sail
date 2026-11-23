@@ -251,6 +251,21 @@ TSP01B logged (`.../2026-11-17/env/`); pressure not (Edwards serial silent, see 
   both 0.44–0.49 Hz (the coasts run ~0.50 → 0.44), pairs (O1,O2), (O3,O4)…, pair Δγ = γ(−) − γ(+) with its mean removed,
   Δangle = angle(−) − angle(+). Pass: r > 0.3, positive sign, and fewer than 5 % of circular shifts of Δangle against Δγ
   reach |r|. Report the coefficient (ND2/ND3 30–44 µHz/deg at 0.435 Hz) and the scatter with/without the term.
+  **Result, 11-22 5-min run (`fast_5min`, 40 pairs, laser 0; `g3_frozen_test.py` → `g3_frozen_test_fast_5min.json`,
+  2026-11-22, M; interpretation not approved): PASS.** r +0.64 (p 9e-6), 0 of 39 circular shifts reach it; 46.7 ± 9.1
+  µHz/deg; pair scatter 4.15 → 3.23 µHz. Not fixed by the spec: γ evaluated at the band centre 0.465 Hz (gamma_mid's 0.435
+  is outside the band); at 0.44 (band edge) r +0.52, shifts 0/39, but scatter 10.3 µHz (edge extrapolation). Hill depth
+  6.7e-11 J, ± templates corr 1.000. Same run, post hoc (not part of the test): air ΔT (TSP re-uploaded 11-22, logger
+  ran throughout) r −0.63, scatter 4.15 → 3.26; Δangle and ΔT correlate r −0.85, so the two cannot be separated here
+  (both together 3.20). No trend in time (r −0.10). γ(+) and γ(−) of a pair are uncorrelated (r −0.10): no
+  cancellation from close spacing. Per-coast jackknife median 0.96 µHz vs per-coast sd 2.6–3.0: scatter is set per coast.
+  Pair period 11.4 min; τ 36.4 min. Reversal to target median 34.2 s (24.5–73.2, n 79).
+- **Does the scatter scale with the drag γ? (2026-11-22, from existing `band_scatter_*.json`, `g1_*.json`; M/D;
+  interpretation not approved):** not testable with current data: γ spans only 450–567 µHz (×1.26) across speed bands and
+  is the same every November night. Across bands, pair scatter (MAD sd) rises ~2× from 0.41–0.45 to 0.37–0.41 Hz
+  (ND4 3.1 → 6.5, ND3 4.2 → 9.6, ND2 5.4 → 8.5 µHz) while γ rises 15 %: not proportional to γ; grows at low speed.
+  Across nights at fixed γ (~495 µHz), scatter varies ~2× (2.1 → 5 µHz). The −2.4 %/K temperature figure is −12 µHz/K
+  divided by γ, not a demonstrated proportionality. A real test needs pairs at a different drag.
 - **Spin-up Phase A (simulation, `analysis/spinup_phaseA_20261121/README.md`, 2026-11-21, D):** see that README for
   the settings and results; Phase B (live, laser 0) approved by Molly for the night of 11-21, run by worker2 into
   Dropbox `spinup/2026-11-21/phaseB/`.
