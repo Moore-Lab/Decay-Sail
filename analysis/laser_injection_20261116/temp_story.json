@@ -1,0 +1,22 @@
+{
+ "ND2 laser night, 11-18/19 (24.5 min pairs)": {
+  "n": 37,
+  "r": -0.76,
+  "p": 4.8775257335033576e-08,
+  "slope_uHz_per_K": -11.99,
+  "slope_err": 1.73,
+  "sd_before": 5.07,
+  "sd_after": 3.34,
+  "shifts_as_good": "0/36"
+ },
+ "5-min coast run, 11-22 (11.4 min pairs, laser off)": {
+  "n": 40,
+  "r": -0.565,
+  "p": 0.0001453623921490154,
+  "slope_uHz_per_K": -5.05,
+  "slope_err": 1.2,
+  "sd_before": 4.15,
+  "sd_after": 3.46,
+  "shifts_as_good": "0/39"
+ }
+}
