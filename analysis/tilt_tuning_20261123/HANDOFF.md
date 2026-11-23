@@ -14,6 +14,9 @@ vacuum, measuring gamma after each step. Labels: M measured, D derived, A assume
 - **Ruled out (M/Molly):** spin-up method (11-21 was a laser spin-up and shows the doubled drag; Sept/Oct were
   electrostatic then laser). Electrodes: Molly measured them grounded with a multimeter before the runs (open: same state
   as during coasts? AC ripple not checked).
+- **Gas unlikely (D):** chamber ~1e-7 mbar (Molly, 2026-11-23, not logged continuously). In a similar diamagnetic rotor
+  (arXiv 2506.03803, graphite, electrodes underneath) gas damping falls below the intrinsic floor under ~3e-5 mbar; their
+  residual damping is eddy currents from spin-axis wobble, measured at 5-15 Hz, not our 0.5 Hz.
 - **Candidates in the gap:** 10-15 rebuild (new tilt stage, chamber off the table, board and magnet centred), 10-26 chamber
   on the stage, 10-27 shims, 11-11 HV amp DC-coupled, the white paint blob (date: ask Molly).
 - **Hypothesis (A, not approved):** off-centre paint blob x tilted rotor axis = a once-per-turn gravitational hill; the hill
