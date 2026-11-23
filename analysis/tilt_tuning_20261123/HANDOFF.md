@@ -24,6 +24,7 @@ vacuum, measuring gamma after each step. Labels: M measured, D derived, A assume
 - Chamber sits on a 125 x 125 mm tilt stage (eBay, Chinese drawing), two corner thumbwheels "0.25/圈" = 0.25 per turn,
   assumed mm per turn -> ~0.13 deg per turn with a ~110 mm lever arm (D). Check: one full turn vs the bubble level on the
   top flange. Wheels tilt about diagonals. Names (Molly, 2026-11-23): **X** = front-corner wheel (by the post, IMG_1881); **Y** = back-corner wheel by the pump bellows (IMG_1882; reach in without leaning on the bellows or the Thorlabs mount).
+- **Units: holes.** Each wheel has 6 holes round its rim (Molly, 2026-11-23): 1 hole = 1/6 turn ~0.02 deg, 3 holes = 1/2 turn ~0.07 deg (D, assuming 0.25 mm/turn). Give every move in holes (e.g. "X +3 holes"); backlash: finish each move with a + turn (going -, overshoot 1-2 holes then come back +).
 - Molly marks each wheel (pointer + zero mark on the stage, +/- direction). Log turns from today's start position.
 - Camera, laser and LES optics are on the table, not the stage: tilting moves the rotor in the view. Watch r_px and ncc.
 - Turn wheels only between steps (rotor coasting slowly or at rest), never during a spin-up or brake. Always finish a move
@@ -31,7 +32,7 @@ vacuum, measuring gamma after each step. Labels: M measured, D derived, A assume
 
 ## Readout (`tilt_readout.py`, this folder; numpy only, reads files only)
 
-    python3 tilt_readout.py --run-dir <outdir> --note "X +0.5 Y 0"     # newest finished coast -> one line + tilt_log.csv
+    python3 tilt_readout.py --run-dir <outdir> --note "X +3 Y 0"     # newest finished coast -> one line + tilt_log.csv
 
 gamma at 0.465 Hz (band 0.44-0.49, quadratic in ln f, jackknife), hill depth (mean detrended w^2 profile, J), h1_J/h1_deg
 (once-per-turn hill size and phase), ncc, dropped turns, r_px. Tested on all 80 coasts of 11-22: gamma matches
@@ -50,7 +51,7 @@ g3_frozen_test to < 0.05 uHz; 0.2-1.5 s per coast. Baseline scatter coast to coa
 On worker2, each step: `coast_series.py --spin-fast --coast 300 --pairs 1 --outdir ~/spinup/2026-11-23/tilt/step_NN --live`
 (fast-handover branch, laser 0, tracker headless, no --show): spin-up from rest to 0.5 Hz (+), 5-min coast, reversal to 0.5 Hz (-), 5-min coast, final brake to rest; Molly turns the knob only with the rotor at rest. Then `tilt_readout.py --run-dir <step dir> --coast O01/O02 --tracker-csv <the running tracker CSV> --note "X .. Y .."`.
 1. Baseline: 2 steps at the start position.
-2. Knob X +1/2 turn, 1 step. Knob X back to 0 and on to -1/2 (approach from the same side), 1 step.
+2. Knob X +3 holes, 1 step. Knob X to -3 holes (go to -4, back +1), 1 step.
 3. Same for knob Y. From the four moves, see how depth, h1_J and h1_deg move per knob; if the hill behaves like a tilt
    arrow, estimate the X,Y combination that shrinks it and go there.
 4. Halve the step near the best point; confirm with 2 steps. Steer by gamma; the hill numbers only guide.
