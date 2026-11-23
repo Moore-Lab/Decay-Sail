@@ -59,7 +59,7 @@ Stop and re-centre the tracker if ncc falls below ~0.8 or r_px moves by > 0.5 px
 
 ## Tracking (required, every step)
 
-- `--note` always carries BOTH wheels' absolute positions from today's zero marks, in holes: `"X +3 Y 0"`, never just the move.
+- `--note` always carries BOTH wheels' absolute positions from today's zero marks, in holes, plus the move just made: `"X +3 Y 0; move X +3"` (going -: `"X -3 Y 0; move X -6 (to -7, back +1)"`). The positions are the record; the move is a check.
 - worker2 appends each readout to `~/spinup/2026-11-23/tilt/tilt_log.csv` (pass `--run-dir` per step but the same log:
   run the readout with `--run-dir ~/spinup/2026-11-23/tilt/step_NN`; it writes `step_NN/tilt_log.csv`, so also `cat` that
   line into the shared log) and sends both lines to the tuning session; uploads `spinup/2026-11-23/tilt/` at the end.
