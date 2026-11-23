@@ -14,6 +14,12 @@ Entries before October 2026 are archived in `logs/2026-q3.md`.
 
 ## Changes
 
+### 2026-11-23 (evening, local) — Tilt tuning: 10 steps, gamma 457.85 -> 317.5 uHz (live, worker2, Molly's typed go each step)
+
+- Ran (worker2, branch fast-handover 13349cb): per step `coast_series.py --spin-fast --coast 300|420 --pairs 1 --outdir ~/spinup/2026-11-23/tilt/step_NN --live`, laser 0, tracker headless; readout `analysis/tilt_tuning_20261123/tilt_readout.py`. Steps 01-10, 14:04-18:03 (worker2 clock). Molly turned the stage wheels between steps (X front corner, Y by the bellows, in holes from today's zero marks); tracker re-centred before steps 07-10 to a predicted pin.
+- Saw (M): X 0 Y 0 reproducible (3 steps, gamma pair mean 457.8-457.9 uHz). X +3 -22.6, Y +3 -26.2, X -3 about +29 (+ coast only; that step's reversal stalled). Along the diagonal X=Y = +3/+6/+9/+12: 412.3 / 378.3 / 345.5 / 317.5 uHz (tau 36 -> 52-53 min), still falling, no minimum yet. Tilt slides the camera view ~0.6 px per hole; r_px swings and part of the probe-step hill changes were pin-offset artefacts (orbit radius 23.35 px throughout). Knobs left at X +12 Y +12. Table and next steps: `analysis/tilt_tuning_20261123/HANDOFF.md` (interpretations not approved).
+- Overnight: 8 h long coast at X +12 Y +12 (`--coast 28800 --pairs 1 --no-final-brake`, outdir `~/spinup/2026-11-23/tilt/overnight_coast`) on Molly's go; upload in the morning.
+
 ### 2026-11-23 (local) — ND2 fast-cycle run (3 attempts, stopped for tilt tuning); drag timeline; tilt-tuning setup
 
 - Ran (worker2, branch fast-handover 13349cb, Molly's typed go each time): `coast_series.py --spin-fast --coast 300 --pairs 50|45 --laser-pattern off,on,on,off --laser-on 1000 --laser-off 0 --laser-settle 30 --ncc-min 0.62 --outdir ~/spinup/2026-11-23/laser/nd2_fast --live`. ND2 in. Attempt 1 10:45–10:57 (worker2's watchdog tripped on laser ≠ 0 by design; replaced by one allowing {0, 1000}); attempt 2 10:59–11:52 (aborted at O10: an AnyDesk connect stalled the tracker's --show window, brake saw no fresh angle for 0.25 s); attempt 3 from 12:01 with the tracker headless (--snapshot), stopped by Molly for tilt tuning (final step count: worker2's report). Files of attempts 1–2 in `attempt1_aborted/`, `attempt2_stopped/`.
