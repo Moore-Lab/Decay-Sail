@@ -57,6 +57,19 @@ On worker2, each step: `coast_series.py --spin-fast --coast 300 --pairs 1 --outd
 4. Halve the step near the best point; confirm with 2 steps. Steer by gamma; the hill numbers only guide.
 Stop and re-centre the tracker if ncc falls below ~0.8 or r_px moves by > 0.5 px.
 
+## Tracking (required, every step)
+
+- `--note` always carries BOTH wheels' absolute positions from today's zero marks, in holes: `"X +3 Y 0"`, never just the move.
+- worker2 appends each readout to `~/spinup/2026-11-23/tilt/tilt_log.csv` (pass `--run-dir` per step but the same log:
+  run the readout with `--run-dir ~/spinup/2026-11-23/tilt/step_NN`; it writes `step_NN/tilt_log.csv`, so also `cat` that
+  line into the shared log) and sends both lines to the tuning session; uploads `spinup/2026-11-23/tilt/` at the end.
+- The tuning session fills the table below after every step (and commits it with Molly's OK at the end), with the next
+  move and why.
+
+| step | time | X (holes) | Y (holes) | gamma + (uHz) | gamma - (uHz) | mean | depth_J | h1_J | h1_deg | ncc min | r_px | next move / why |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 11-22 ref | | 0 | 0 | | | 454.8 +- 3.9 | 6.571e-11 | 5.211e-11 | 162.8 | 0.83 | 23.35 | baseline from 80 coasts |
+
 ## State (2026-11-23 ~13:40)
 
 - nd2_fast attempt 3 running on worker2 (ND2, 45 pairs, off/on/on/off). Molly will stop it for tuning (stop message:
